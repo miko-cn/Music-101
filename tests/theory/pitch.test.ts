@@ -20,6 +20,11 @@ describe("midiToPitchClass", () => {
     expect(midiToPitchClass(-1)).toBe(11);
     expect(midiToPitchClass(-13)).toBe(11);
   });
+
+  it("非整数音高抛错，避免下游拼出 undefined 音名", () => {
+    expect(() => midiToPitchClass(60.5)).toThrow(/整数/);
+    expect(() => midiToPitchClass(Number.NaN)).toThrow(/整数/);
+  });
 });
 
 describe("midiToNoteName", () => {
@@ -33,6 +38,11 @@ describe("midiToNoteName", () => {
     expect(midiToNoteName(70, true)).toBe("Bb4");
     expect(midiToNoteName(58, true)).toBe("Bb3");
   });
+
+  it("负八度用 floor 计算，不会截断成 B-1", () => {
+    expect(midiToNoteName(0)).toBe("C-1");
+    expect(midiToNoteName(-1)).toBe("B-2");
+  });
 });
 
 describe("noteNameToMidi", () => {
@@ -44,8 +54,29 @@ describe("noteNameToMidi", () => {
     expect(noteNameToMidi("C-1")).toBe(0);
   });
 
+  it("变化音不折回同八度：Cb4 = B3，B#3 = C4", () => {
+    expect(noteNameToMidi("Cb4")).toBe(59);
+    expect(noteNameToMidi("B#3")).toBe(60);
+  });
+
+  it("小写字母同样可解析", () => {
+    expect(noteNameToMidi("c4")).toBe(60);
+    expect(noteNameToMidi("a4")).toBe(69);
+  });
+
   it("非法音名抛错", () => {
     expect(() => noteNameToMidi("H4")).toThrow();
+  });
+
+  it("超出 MIDI 0-127 范围的音名抛错", () => {
+    expect(() => noteNameToMidi("C999")).toThrow(/0-127/);
+    expect(() => noteNameToMidi("C-3")).toThrow(/0-127/);
+  });
+
+  it("MIDI 0-127 全域往返一致", () => {
+    for (let midi = 0; midi <= 127; midi += 1) {
+      expect(noteNameToMidi(midiToNoteName(midi))).toBe(midi);
+    }
   });
 });
 

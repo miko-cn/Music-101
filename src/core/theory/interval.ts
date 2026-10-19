@@ -21,8 +21,20 @@ export const INTERVALS: readonly Interval[] = [
   { semitones: 12, name: "纯八度", shortName: "P8", consonance: 5 },
 ];
 
+/**
+ * 计算两个 MIDI 音高之间的音程（不区分方向）。
+ *
+ * 复合音程（超过纯八度）会被折叠为其等效的简单音程，例如 60→84 记作 P8；
+ * 只有同音（a === b）才记作纯一度 P1。
+ */
 export function getInterval(a: number, b: number): Interval {
   const raw = Math.abs(b - a);
+  // 非整数音距在音程表里没有对应项，会静默返回 undefined，先行拒绝。
+  if (!Number.isInteger(raw)) throw new Error(`非法音程: ${a} → ${b}`);
+  // 整八度要折成 12 而不是 0：纯一度（同音）与纯八度语义不同，0 只留给同音。
   const semitones = raw % 12 === 0 && raw > 0 ? 12 : raw % 12;
-  return INTERVALS[semitones];
+  // 显式标注 `Interval | undefined` 让判空成为编译器可见的真检查。
+  const found: Interval | undefined = INTERVALS[semitones];
+  if (found === undefined) throw new Error(`非法音程: ${a} → ${b}`);
+  return found;
 }
