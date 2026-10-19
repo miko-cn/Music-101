@@ -1225,8 +1225,8 @@ const demo: MidiFile = {
       name: "Music-101",
       events: [
         { kind: "trackName", tick: 0, text: "Music-101" },
-import { getChordPitches, romanNumeral, type Chord } from "../src/core/theory/chord.ts";
-import type { PitchClass } from "../src/core/theory/pitch.ts";
+        { kind: "tempo", tick: 0, microsecondsPerBeat: 400000 },
+        { kind: "marker", tick: 1920, text: "Chorus" },
     },
     {
       name: "KICK",
@@ -1854,31 +1854,55 @@ for (let bar = 0; bar < TOTAL_BARS; bar += 1) {
 }
 
 const bassNotes: SkeletonNote[] = [];
+const subNotes: SkeletonNote[] = [];
 const supersawNotes: SkeletonNote[] = [];
 const chords: SkeletonChord[] = [];
+
+/**
+ * 以根音为基准把和弦音排进同一个八度。
+ * 直接给音级加常数会让 C#（音级 1）落到根音下方，得到 F#3 + A3 + C#3 这种错位排列。
+ */
+function voiceChord(pitches: readonly number[], root: number, base: number): number[] {
+  return pitches.map(
+    (pitch) => base + root + ((((pitch - root) % 12) + 12) % 12),
+  );
+}
 
 for (const entry of PROGRESSION) {
   const pitches = getChordPitches(entry.chord);
   const numeral = romanNumeral(entry.chord, KEY_ROOT);
   chords.push({
     tick: barToTick(entry.startBar, BEATS_PER_BAR),
-    pitches: pitches.map((pitch) => 48 + pitch),
+    pitches: voiceChord(pitches, entry.chord.root, 48),
     text: `${entry.label} (${numeral})`,
   });
 
   for (let bar = entry.startBar; bar < entry.startBar + 2; bar += 1) {
     const base = barToTick(bar, BEATS_PER_BAR);
+    // 808：低八度根音长音，只占低频，把瞬态空间留给 kick
+    for (const beat of [0, 2]) {
+      subNotes.push({
+        tick: base + beat * PPQ,
+        dur: PPQ * 2 - 20,
+        pitch: 24 + entry.chord.root,
+        vel: 100,
+      });
+    }
+    // BASS：中八度根音，每拍一个
     for (let beat = 0; beat < BEATS_PER_BAR; beat += 1) {
       bassNotes.push({
         tick: base + beat * PPQ,
         dur: PPQ - 20,
-        pitch: 24 + pitches[0],
+        pitch: 36 + entry.chord.root,
         vel: 100,
       });
     }
-    for (const pitch of pitches) {
-      supersawNotes.push({ tick: base, dur: PPQ * 4 - 20, pitch: 48 + pitch, vel: 80 });
-      supersawNotes.push({ tick: base, dur: PPQ * 4 - 20, pitch: 60 + pitch, vel: 70 });
+    // SUPERSAW：两个高八度层的和弦音
+    for (const pitch of voiceChord(pitches, entry.chord.root, 60)) {
+      supersawNotes.push({ tick: base, dur: PPQ * 4 - 20, pitch, vel: 80 });
+    }
+    for (const pitch of voiceChord(pitches, entry.chord.root, 72)) {
+      supersawNotes.push({ tick: base, dur: PPQ * 4 - 20, pitch, vel: 70 });
     }
   }
 }
@@ -1892,7 +1916,7 @@ const skeleton: SongSkeleton = {
   sections,
   tracks: [
     { role: "KICK", channel: 9, notes: kickNotes },
-    { role: "808", channel: 0, notes: bassNotes },
+    { role: "808", channel: 0, notes: subNotes },
     { role: "BASS", channel: 1, notes: bassNotes },
     { role: "SUPERSAW", channel: 2, notes: supersawNotes },
   ],
@@ -1917,7 +1941,7 @@ console.log(`进行：${chords.map((chord) => chord.text).join(" | ")}`);
 预期输出：
 
 ```
-已生成 D:\Workspace\Github\Music-101\Music-101\out\music101-test.mid
+已生成 D:\Workspace\Github\Music-101\Music-101\.worktrees\m1-foundation\out\music101-test.mid
 轨道：KICK, 808, BASS, SUPERSAW + CHORDS
 速度 150 BPM，8 小节，段落：Intro / Verse / PreChorus / Chorus
 进行：F#m (i) | D (♭VI) | B (IV) | F# (I)
@@ -1933,14 +1957,12 @@ node -e "const b=require('fs').readFileSync('out/music101-test.mid');console.log
 
 预期：`bytes` 大于 1000，`head MThd`。
 
-- [ ] **步骤 4：把 `out/` 加入 `.gitignore`**
+- [ ] **步骤 4：确认 `.gitignore` 已忽略 `out/`**
 
-在 `.gitignore` 末尾追加：
+任务 1 已在 `.gitignore` 中加入 `out/`。本步骤只需**确认**该行存在，不要重复追加（避免重复条目）。
 
-```
-# 生成的演示 MIDI（构建产物）
-out/
-```
+运行：`Select-String -Path .gitignore -Pattern '^out/$'`
+预期：匹配到一行 `out/`。
 
 - [ ] **步骤 5：类型检查**
 
@@ -1953,6 +1975,8 @@ out/
 git add scripts/make-test-midi.ts .gitignore
 git commit -m "feat(scripts): add CLI to generate a demo MIDI for Cubase import checks"
 ```
+
+> 注意：M1 在 worktree `feature/m1-foundation` 中开发，产物位于 `D:\Workspace\Github\Music-101\Music-101\.worktrees\m1-foundation\out\music101-test.mid`；Cubase 导入验证应使用这个路径。
 
 ---
 
@@ -2107,7 +2131,7 @@ git commit -m "feat(ui): wire theory core into the app shell"
 在文件名输入框中输入完整路径：
 
 ```
-D:\Workspace\Github\Music-101\Music-101\out\music101-test.mid
+D:\Workspace\Github\Music-101\Music-101\.worktrees\m1-foundation\out\music101-test.mid
 ```
 
 然后确认（回车）。
