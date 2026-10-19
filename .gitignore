@@ -7,3 +7,6 @@ dist-ssr/
 
 # 头脑风暴会话的临时原型（不入库）
 .superpowers/
+
+# 隔离工作区（git worktree）
+.worktrees/
