@@ -534,14 +534,14 @@ describe("getScalePitches", () => {
 
 describe("isInScale / degreeOfPitch", () => {
   it("判定调内与级数", () => {
-    expect(isInScale(60, 9, "major")).toBe(true);
     expect(isInScale(61, 9, "major")).toBe(true);
+    expect(isInScale(60, 9, "major")).toBe(false);
     expect(isInScale(60, 9, "naturalMinor")).toBe(true);
     expect(isInScale(61, 9, "naturalMinor")).toBe(false);
   });
 
   it("级数从 1 开始，不在调内返回 null", () => {
-    expect(degreeOfPitch(60, 9, "major")).toBe(3);
+    expect(degreeOfPitch(61, 9, "major")).toBe(3);
     expect(degreeOfPitch(57, 9, "major")).toBe(1);
     expect(degreeOfPitch(61, 9, "naturalMinor")).toBeNull();
   });
@@ -655,21 +655,21 @@ describe("getChordPitches", () => {
 
 describe("matchChord", () => {
   it("识别大三和弦", () => {
-    expect(matchChord([57, 60, 64], 9)).toEqual({ root: 9, quality: "maj" });
+    expect(matchChord([57, 61, 64], 9)).toEqual({ root: 9, quality: "maj" });
   });
 
   it("识别小三和弦", () => {
-    expect(matchChord([57, 59, 62], 9)).toEqual({ root: 9, quality: "min" });
+    expect(matchChord([57, 60, 64], 9)).toEqual({ root: 9, quality: "min" });
   });
 
   it("优先匹配更具体的色彩和弦", () => {
-    expect(matchChord([57, 60, 64, 67], 9)).toEqual({ root: 9, quality: "maj7" });
-    expect(matchChord([57, 60, 64, 71], 9)).toEqual({ root: 9, quality: "add9" });
-    expect(matchChord([57, 59, 62, 65], 9)).toEqual({ root: 9, quality: "min7" });
+    expect(matchChord([57, 61, 64, 68], 9)).toEqual({ root: 9, quality: "maj7" });
+    expect(matchChord([57, 61, 64, 71], 9)).toEqual({ root: 9, quality: "add9" });
+    expect(matchChord([57, 60, 64, 67], 9)).toEqual({ root: 9, quality: "min7" });
   });
 
   it("无法归类时返回 null", () => {
-    expect(matchChord([57, 60, 63], 9)).toBeNull();
+    expect(matchChord([60, 61, 62], 9)).toBeNull();
   });
 });
 
@@ -679,7 +679,7 @@ describe("romanNumeral", () => {
     expect(romanNumeral({ root: 11, quality: "min" }, 9)).toBe("ii");
     expect(romanNumeral({ root: 2, quality: "maj" }, 9)).toBe("IV");
     expect(romanNumeral({ root: 4, quality: "maj" }, 9)).toBe("V");
-    expect(romanNumeral({ root: 7, quality: "min" }, 9)).toBe("vi");
+    expect(romanNumeral({ root: 6, quality: "min" }, 9)).toBe("vi");
   });
 
   it("大调：借用和弦加 ♭ 前缀", () => {
@@ -697,8 +697,9 @@ describe("romanNumeral", () => {
     expect(romanNumeral({ root: 11, quality: "dim" }, 9)).toBe("ii°");
   });
 
-  it("无法归类时返回 ?", () => {
-    expect(romanNumeral({ root: 1, quality: "maj" }, 9)).toBe("?");
+  it("7 级 + 降半音参考已覆盖全部 12 个根音，不会出现 ?", () => {
+    expect(romanNumeral({ root: 1, quality: "maj" }, 9)).toBe("III");
+    expect(romanNumeral({ root: 3, quality: "maj" }, 9)).toBe("♭III");
   });
 });
 ```
