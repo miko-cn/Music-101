@@ -307,6 +307,11 @@ describe("midiToPitchClass", () => {
     expect(midiToPitchClass(-1)).toBe(11);
     expect(midiToPitchClass(-13)).toBe(11);
   });
+
+  it("非整数音高抛错，避免下游拼出 undefined 音名", () => {
+    expect(() => midiToPitchClass(60.5)).toThrow(/整数/);
+    expect(() => midiToPitchClass(Number.NaN)).toThrow(/整数/);
+  });
 });
 
 describe("midiToNoteName", () => {
@@ -320,6 +325,11 @@ describe("midiToNoteName", () => {
     expect(midiToNoteName(70, true)).toBe("Bb4");
     expect(midiToNoteName(58, true)).toBe("Bb3");
   });
+
+  it("负八度用 floor 计算，不会截断成 B-1", () => {
+    expect(midiToNoteName(0)).toBe("C-1");
+    expect(midiToNoteName(-1)).toBe("B-2");
+  });
 });
 
 describe("noteNameToMidi", () => {
@@ -331,8 +341,29 @@ describe("noteNameToMidi", () => {
     expect(noteNameToMidi("C-1")).toBe(0);
   });
 
+  it("变化音不折回同八度：Cb4 = B3，B#3 = C4", () => {
+    expect(noteNameToMidi("Cb4")).toBe(59);
+    expect(noteNameToMidi("B#3")).toBe(60);
+  });
+
+  it("小写字母同样可解析", () => {
+    expect(noteNameToMidi("c4")).toBe(60);
+    expect(noteNameToMidi("a4")).toBe(69);
+  });
+
   it("非法音名抛错", () => {
     expect(() => noteNameToMidi("H4")).toThrow();
+  });
+
+  it("超出 MIDI 0-127 范围的音名抛错", () => {
+    expect(() => noteNameToMidi("C999")).toThrow(/0-127/);
+    expect(() => noteNameToMidi("C-3")).toThrow(/0-127/);
+  });
+
+  it("MIDI 0-127 全域往返一致", () => {
+    for (let midi = 0; midi <= 127; midi += 1) {
+      expect(noteNameToMidi(midiToNoteName(midi))).toBe(midi);
+    }
   });
 });
 
@@ -371,7 +402,7 @@ describe("getInterval", () => {
     expect(getInterval(60, 72).shortName).toBe("P8");
   });
 
-  it("小二度与大三度区分得开", () => {
+  it("小二度与大二度区分得开", () => {
     expect(getInterval(60, 61).shortName).toBe("m2");
     expect(getInterval(60, 62).shortName).toBe("M2");
   });
@@ -383,6 +414,17 @@ describe("getInterval", () => {
   it("协和度排序：纯五 > 三度 > 二度", () => {
     expect(getInterval(60, 67).consonance).toBeGreaterThan(getInterval(60, 64).consonance);
     expect(getInterval(60, 64).consonance).toBeGreaterThan(getInterval(60, 62).consonance);
+  });
+
+  it("复合音程折叠为等效的简单音程，同音记作纯一度", () => {
+    expect(getInterval(60, 60).shortName).toBe("P1");
+    expect(getInterval(60, 72).shortName).toBe("P8");
+    expect(getInterval(60, 84).shortName).toBe("P8");
+  });
+
+  it("非法音程抛错，而不是静默返回 undefined", () => {
+    expect(() => getInterval(60, 61.5)).toThrow(/非法音程/);
+    expect(() => getInterval(60, Number.NaN)).toThrow(/非法音程/);
   });
 });
 ```
@@ -405,9 +447,24 @@ export type PitchClass = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 export const SHARP_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const;
 export const FLAT_NAMES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"] as const;
 
-const LETTER_INDEX: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+/**
+ * 字母到「以 C 为基准的半音偏移」的对照表。
+ * 故意声明成 `number | undefined`：只有这样，下面 `base === undefined` 的防御性检查
+ * 才是编译器可见的真检查，而不是永远为假的死代码。
+ */
+const LETTER_INDEX: Record<string, number | undefined> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
+/** 黑键对应的音级集合（C#、D#、F#、G#、A#）。提到模块级常量，避免每次调用都新建数组。 */
+const BLACK_KEY_PITCH_CLASSES: readonly number[] = [1, 3, 6, 8, 10];
+
+/**
+ * 把 MIDI 音高映射到 0-11 的音级。
+ * 非整数输入会一路走到音名查表并拼出 "undefined4" 之类的垃圾结果，所以在这里直接拒绝。
+ */
 export function midiToPitchClass(midi: number): PitchClass {
+  if (!Number.isInteger(midi)) throw new Error(`MIDI 音高必须是整数: ${midi}`);
+  // JS 的 `%` 对负数返回负余数（-1 % 12 === -1），单次取模会得到负音级；
+  // 先 +12 再取一次模，才能把负音高稳定折回 0-11。
   return ((((midi % 12) + 12) % 12) as PitchClass);
 }
 
@@ -417,10 +474,17 @@ export function pitchClassToName(pitchClass: number, preferFlat = false): string
 }
 
 export function midiToNoteName(midi: number, preferFlat = false): string {
+  // 负八度必须用 floor 而不是截断：Math.floor(-1 / 12) === -1，截断会得到 0，
+  // 把 B-2 错算成 B-1；floor 才能让 C-1 落在 MIDI 0 上。
   const octave = Math.floor(midi / 12) - 1;
   return `${pitchClassToName(midi, preferFlat)}${octave}`;
 }
 
+/**
+ * 把音名解析为 MIDI 音高。
+ * 不对 MIDI 0-127 以外的音名做隐式纠正（不静默折返），超范围直接抛错，
+ * 以免下游拿到一个「看起来正常但其实是错的」音高。
+ */
 export function noteNameToMidi(noteName: string): number {
   const match = /^([A-Ga-g])([#b]?)(-?\d+)$/.exec(noteName.trim());
   if (!match) throw new Error(`无法解析的音名: ${noteName}`);
@@ -428,11 +492,15 @@ export function noteNameToMidi(noteName: string): number {
   if (base === undefined) throw new Error(`无法解析的音名: ${noteName}`);
   const accidental = match[2] === "#" ? 1 : match[2] === "b" ? -1 : 0;
   const octave = Number(match[3]);
-  return (octave + 1) * 12 + (((base + accidental) % 12) + 12) % 12;
+  // 变化音按线性半音数叠加，不能折回同一八度：
+  // Cb4 = B3 = 59、B#3 = C4 = 60、F#3 = 54、Bb2 = 46、C-1 = 0。
+  const midi = (octave + 1) * 12 + base + accidental;
+  if (midi < 0 || midi > 127) throw new Error(`音名超出 MIDI 范围(0-127): ${noteName}`);
+  return midi;
 }
 
 export function isBlackKey(pitchClass: number): boolean {
-  return [1, 3, 6, 8, 10].includes(midiToPitchClass(pitchClass));
+  return BLACK_KEY_PITCH_CLASSES.includes(midiToPitchClass(pitchClass));
 }
 
 export function midiToFrequency(midi: number): number {
@@ -466,10 +534,22 @@ export const INTERVALS: readonly Interval[] = [
   { semitones: 12, name: "纯八度", shortName: "P8", consonance: 5 },
 ];
 
+/**
+ * 计算两个 MIDI 音高之间的音程（不区分方向）。
+ *
+ * 复合音程（超过纯八度）会被折叠为其等效的简单音程，例如 60→84 记作 P8；
+ * 只有同音（a === b）才记作纯一度 P1。
+ */
 export function getInterval(a: number, b: number): Interval {
   const raw = Math.abs(b - a);
+  // 非整数音距在音程表里没有对应项，会静默返回 undefined，先行拒绝。
+  if (!Number.isInteger(raw)) throw new Error(`非法音程: ${a} → ${b}`);
+  // 整八度要折成 12 而不是 0：纯一度（同音）与纯八度语义不同，0 只留给同音。
   const semitones = raw % 12 === 0 && raw > 0 ? 12 : raw % 12;
-  return INTERVALS[semitones];
+  // 显式标注 `Interval | undefined` 让判空成为编译器可见的真检查。
+  const found: Interval | undefined = INTERVALS[semitones];
+  if (found === undefined) throw new Error(`非法音程: ${a} → ${b}`);
+  return found;
 }
 ```
 
@@ -481,7 +561,7 @@ export function getInterval(a: number, b: number): Interval {
 npx vitest run tests/theory/pitch.test.ts tests/theory/interval.test.ts
 ```
 
-预期：PASS，两个文件共 9 个用例全部通过。
+预期：PASS，两个文件共 20 个用例全部通过。
 
 - [ ] **步骤 7：类型检查**
 
