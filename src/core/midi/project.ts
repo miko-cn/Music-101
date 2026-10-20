@@ -13,7 +13,8 @@ export type TrackRole =
   | "CHOP"
   | "ARP"
   | "FX"
-  | "MELODY";
+  | "MELODY"
+  | "CHORDS";
 
 export const DRUM_ROLES = ["KICK", "SNARE", "CLAP", "HAT"] as const;
 export type DrumRole = (typeof DRUM_ROLES)[number];

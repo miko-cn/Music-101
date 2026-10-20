@@ -1,8 +1,13 @@
 import { useMemo, useState } from "react";
-import { Alert, Card, Flex, Select } from "antd";
+import { Alert, Button, Card, Flex, Select } from "antd";
 import { energySeries, isChorusName, isVerseName, sectionBars, type BarEnergy } from "../core/analyze/energy.ts";
 import type { AnalysisSong } from "../core/analyze/song.ts";
 import { diagnoseArrangement } from "../core/analyze/rules/index.ts";
+import { importMidi, type ImportedMidi } from "../core/midi/importSong.ts";
+import { readMidiFile } from "../core/midi/reader.ts";
+import type { MidiFile } from "../core/midi/types.ts";
+import { pitchClassToName, type PitchClass } from "../core/theory/pitch.ts";
+import { SCALE_LABELS, type ScaleId } from "../core/theory/scale.ts";
 import {
   chorusFlatSong,
   chorusLiftedSong,
@@ -27,18 +32,87 @@ const EXAMPLES: { id: string; label: string; song: () => AnalysisSong }[] = [
   { id: "color-ok", label: "换了一个和弦", song: freshColorSong },
 ];
 
+const KEYS = Array.from({ length: 12 }, (_, pitch) => pitch as PitchClass);
+const SCALES: ScaleId[] = ["major", "naturalMinor"];
+
 export function DiagnosticsLab() {
   const [exampleId, setExampleId] = useState("lift-fail");
+  const [midi, setMidi] = useState<MidiFile | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [keyRoot, setKeyRoot] = useState<PitchClass>(0);
+  const [keyScale, setKeyScale] = useState<ScaleId>("major");
   const example = EXAMPLES.find((item) => item.id === exampleId) ?? EXAMPLES[0];
-  const song = useMemo(() => example?.song() ?? chorusFlatSong(), [example]);
+  const imported = useMemo(
+    () => (midi ? importMidi(midi, { keyRoot, keyScale }) : null),
+    [midi, keyRoot, keyScale],
+  );
+  const exampleSong = useMemo(() => example?.song() ?? chorusFlatSong(), [example]);
+  const song = imported?.song ?? exampleSong;
   const series = useMemo(() => energySeries(song), [song]);
   const diagnostics = useMemo(() => diagnoseArrangement(song), [song]);
+
+  const loadFile = async (file: File) => {
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const parsed = readMidiFile(bytes);
+      setMidi(parsed);
+      setFileName(file.name);
+      setFileError(null);
+    } catch (error) {
+      setMidi(null);
+      setFileName(file.name);
+      setFileError(error instanceof Error ? error.message : "这个文件读不了。");
+    }
+  };
 
   return (
     <>
       <p className="lead">
-        这六条规则看的是构造出来的小样例，用来核对判定落在哪一小节。第 1 关自己的音高和格子规则还在关卡里面，不混在这里。
+        这六条规则看的是构造出来的小样例，也可以打开一份本地 MIDI。第 1 关自己的音高和格子规则还在关卡里面，不混在这里。
       </p>
+      <Card title="MIDI 文件">
+        <Flex vertical gap={12}>
+          <label className="hint">
+            打开本地 .mid
+            <input
+              aria-label="打开本地 MIDI"
+              type="file"
+              accept=".mid,audio/midi"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void loadFile(file);
+              }}
+            />
+          </label>
+          {fileError ? <Alert type="error" showIcon message={fileError} /> : null}
+          {imported && fileName ? <MidiSummary imported={imported} fileName={fileName} /> : null}
+          {imported ? (
+            <Flex gap={12} wrap>
+              <div className="field">
+                <label htmlFor="diagnostic-key">和声用的调</label>
+                <Select
+                  id="diagnostic-key"
+                  value={keyRoot}
+                  style={{ minWidth: 120 }}
+                  onChange={setKeyRoot}
+                  options={KEYS.map((pitch) => ({ value: pitch, label: pitchClassToName(pitch) }))}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="diagnostic-scale">音阶</label>
+                <Select
+                  id="diagnostic-scale"
+                  value={keyScale}
+                  style={{ minWidth: 140 }}
+                  onChange={setKeyScale}
+                  options={SCALES.map((scale) => ({ value: scale, label: SCALE_LABELS[scale] }))}
+                />
+              </div>
+            </Flex>
+          ) : null}
+        </Flex>
+      </Card>
       <Card title="样例">
         <div className="field">
           <label htmlFor="diagnostic-example">看哪一个</label>
@@ -46,11 +120,23 @@ export function DiagnosticsLab() {
             id="diagnostic-example"
             size="large"
             value={exampleId}
+            disabled={imported !== null}
             style={{ minWidth: 240 }}
             onChange={setExampleId}
             options={EXAMPLES.map((item) => ({ value: item.id, label: item.label }))}
           />
         </div>
+        {imported ? (
+          <Button
+            onClick={() => {
+              setMidi(null);
+              setFileName(null);
+              setFileError(null);
+            }}
+          >
+            回到样例
+          </Button>
+        ) : null}
       </Card>
       <Card title="能量曲线">
         <EnergyChart song={song} series={series} />
@@ -71,6 +157,37 @@ export function DiagnosticsLab() {
         </Flex>
       </Card>
     </>
+  );
+}
+
+function MidiSummary({ imported, fileName }: { imported: ImportedMidi; fileName: string }) {
+  const tempo = imported.bpm === null ? "没有速度" : `${imported.bpm} BPM`;
+  const meter = imported.timeSignature
+    ? `${imported.timeSignature.numerator}/${imported.timeSignature.denominator}`
+    : "没有拍号，按 4/4";
+  return (
+    <Flex vertical gap={8}>
+      <p className="lead">
+        {fileName} · {tempo} · {meter} · {imported.song.totalBars} 小节
+      </p>
+      <p className="hint">
+        轨：
+        {imported.tracks.length === 0
+          ? "没有"
+          : imported.tracks.map((track) => `${track.name}${track.notes > 0 ? ` ${track.notes} 音` : " 无音符"}`).join("、")}
+      </p>
+      <p className="hint">
+        标记：
+        {imported.markers.length === 0
+          ? "没有"
+          : imported.markers.map((marker) => `${marker.text} 第 ${marker.bar + 1} 小节`).join("、")}
+      </p>
+      {imported.gaps.map((line) => (
+        <p key={line} className="hint">
+          {line}
+        </p>
+      ))}
+    </Flex>
   );
 }
 

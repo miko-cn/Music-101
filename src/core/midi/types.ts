@@ -10,7 +10,8 @@ export type MidiEvent =
   | { kind: "noteOff"; tick: number; pitch: number; velocity: number; channel: number }
   | { kind: "tempo"; tick: number; microsecondsPerBeat: number }
   | { kind: "marker"; tick: number; text: string }
-  | { kind: "trackName"; tick: number; text: string };
+  | { kind: "trackName"; tick: number; text: string }
+  | { kind: "timeSignature"; tick: number; numerator: number; denominator: number };
 
 export interface MidiTrack {
   /** 轨名，同时会写进轨首的 track name meta 事件。 */
