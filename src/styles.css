@@ -153,10 +153,28 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.45);
   cursor: pointer;
   font: inherit;
-  padding: 0 0 8px;
+  padding: 6px 0 8px;
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.keycap {
+  min-width: 0.95rem;
+  padding: 0 0.2rem;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.piano-white .keycap {
+  margin-bottom: auto;
 }
 
 .piano-key:focus-visible {
@@ -203,6 +221,22 @@ body {
 
 .piano-key.is-root {
   box-shadow: inset 0 0 0 3px #ffd666;
+}
+
+.piano-key.is-held {
+  box-shadow: inset 0 0 0 3px #91caff;
+}
+
+.piano-white.is-held:not(.is-chord) {
+  background: #d6e8ff;
+}
+
+.piano-black.is-held:not(.is-chord) {
+  background: #243044;
+}
+
+.piano-key.is-root.is-held {
+  box-shadow: inset 0 0 0 3px #ffd666, inset 0 0 0 6px #91caff;
 }
 
 .piano-key.is-scale.is-root:not(.is-chord) {

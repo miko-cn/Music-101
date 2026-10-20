@@ -19,6 +19,8 @@ export function Piano({
   onPick,
   label = "一个八度的键盘",
   rootWord = "当前主音",
+  keycap,
+  isHeld,
 }: {
   spell: (pitch: PitchClass) => string;
   isRoot: (pitch: PitchClass) => boolean;
@@ -27,6 +29,9 @@ export function Piano({
   onPick: (pitch: PitchClass) => void;
   label?: string;
   rootWord?: string;
+  /** 印在琴键上的电脑键帽，例如 A、W。 */
+  keycap?: (pitch: PitchClass) => string | null;
+  isHeld?: (pitch: PitchClass) => boolean;
 }) {
   return (
     <div className="piano" role="group" aria-label={label}>
@@ -35,7 +40,9 @@ export function Piano({
           key={pitch}
           kind="white"
           name={spell(pitch)}
+          keycap={keycap?.(pitch) ?? null}
           isRoot={isRoot(pitch)}
+          isHeld={isHeld?.(pitch) === true}
           inScale={inScale(pitch)}
           inChord={inChord(pitch)}
           rootWord={rootWord}
@@ -47,7 +54,9 @@ export function Piano({
           key={key.pitch}
           kind="black"
           name={spell(key.pitch)}
+          keycap={keycap?.(key.pitch) ?? null}
           isRoot={isRoot(key.pitch)}
+          isHeld={isHeld?.(key.pitch) === true}
           inScale={inScale(key.pitch)}
           inChord={inChord(key.pitch)}
           rootWord={rootWord}
@@ -65,7 +74,9 @@ export function Piano({
 function KeyButton({
   kind,
   name,
+  keycap,
   isRoot,
+  isHeld,
   inScale,
   inChord,
   rootWord,
@@ -74,7 +85,9 @@ function KeyButton({
 }: {
   kind: "white" | "black";
   name: string;
+  keycap: string | null;
   isRoot: boolean;
+  isHeld: boolean;
   inScale: boolean;
   inChord: boolean;
   rootWord: string;
@@ -91,15 +104,17 @@ function KeyButton({
         inScale ? "is-scale" : "",
         inChord ? "is-chord" : "",
         isRoot ? "is-root" : "",
+        isHeld ? "is-held" : "",
       ]
         .filter(Boolean)
         .join(" ")}
-      aria-pressed={isRoot}
-      aria-label={`${name}，${isRoot ? `${rootWord}，` : ""}${role}`}
+      aria-pressed={isRoot || isHeld}
+      aria-label={`${name}${keycap ? `，电脑键 ${keycap}` : ""}，${isRoot ? `${rootWord}，` : ""}${role}`}
       style={style}
       onClick={onPick}
     >
-      <span>{name}</span>
+      {keycap ? <span className="keycap">{keycap}</span> : null}
+      <span className="key-name">{name}</span>
     </button>
   );
 }

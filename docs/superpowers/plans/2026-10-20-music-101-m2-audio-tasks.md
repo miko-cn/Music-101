@@ -37,7 +37,7 @@ M2 的完成标准：**第 1 关六步能走完，并下载一个含有正确音
 | 诊断 | 错了给出原因，并给可点击的修正（把音高设成 C4、把格子填成四个四分音符） | 修正后重新判定 |
 | 导出 | 下载 `level1.mid` | 按钮只在过关后可点 |
 
-电脑键盘：`A`–`K` 从当前八度的 C 起按半音往上弹（`A` = C，`K` = A#）。`Q` 低一个八度，`W` 回到第 4 八度，`E` 高一个八度。鼠标点琴键同样有效。
+电脑键盘按钢琴排：白键 `A S D F G H J` = C D E F G A B，黑键 `W E T Y U` = C# D# F# G# A#。`Z` 低八度，`X` 高八度。琴键上印着键帽，按住时高亮。鼠标点琴键同样有效。
 
 导出文件：120 BPM，1 小节，标记 `Level1`，轨名 `MELODY`，音高为选中的音，打开的格子各一个音。十六分音符 = `PPQ / 4` = 120 tick。不写和弦 meta 事件。网页音色与 Cubase 音色不同，这一点写在导出步骤的说明里。
 
@@ -60,7 +60,7 @@ M2 的完成标准：**第 1 关六步能走完，并下载一个含有正确音
 | `src/core/analyze/types.ts` | `Diagnostic` / `DiagnosticRule` |
 | `src/core/analyze/run.ts` | `runDiagnostics` |
 | `src/content/level1.ts` | 第 1 关文案、听辨题、目标音、目标格子 |
-| `src/core/lesson/keys.ts` | `A`–`K` 与 `Q`/`W`/`E` |
+| `src/core/lesson/keys.ts` | 白键 `A S D F G H J`、黑键 `W E T Y U`，`Z`/`X` 换八度 |
 | `src/core/lesson/level1.ts` | 听辨计分、过关、诊断、修正、MIDI |
 | `src/core/lesson/progress.ts` | localStorage 进度的解析与版本 |
 | `src/ui/Piano.tsx` | 从乐理页抽出的一个八度键盘 |
@@ -101,7 +101,7 @@ M2 的完成标准：**第 1 关六步能走完，并下载一个含有正确音
 
 ## 任务 5：键盘映射与进度
 
-- [x] `A` 在第 4 八度等于 MIDI 60，`K` 等于 A#4。`Q` / `E` 改八度，`W` 回到 4。
+- [x] `A` 在第 4 八度等于 MIDI 60，`J` 等于 B4，`W` 等于 C#4。`Z` / `X` 改八度。
 - [x] 进度 JSON：`schema: 1`。坏数据或更高版本返回空进度，不抛到界面上。
 - [x] 测试：`tests/lesson/keys.test.ts`、`tests/lesson/progress.test.ts`。
 
@@ -112,7 +112,7 @@ M2 的完成标准：**第 1 关六步能走完，并下载一个含有正确音
 - [x] 步进器一排 16 格，可切 2 小节 / 4 小节。过关只看第 1 小节。
 - [x] 诊断上的修正按钮直接改音高或格子。
 - [x] 过关后下载 `level1.mid`。导出说明写明：这是音高和节奏，不是 Cubase 里的音色。
-- [x] 点琴键、`A`–`K`、听辨题的「播放」都走 `playPitch`。音频不可用时界面仍可作答和导出。
+- [x] 点琴键、白键 `A S D F G H J` 与黑键 `W E T Y U`、听辨题的「播放」都走 `playPitch`。音频不可用时界面仍可作答和导出。
 
 ## 任务 7：验收
 

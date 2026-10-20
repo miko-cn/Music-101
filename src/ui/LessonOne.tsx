@@ -10,9 +10,9 @@ import {
   level1ToMidi,
   type Level1State,
 } from "../core/lesson/level1.ts";
-import { lessonKeyToMidi, lessonOctaveKey } from "../core/lesson/keys.ts";
+import { computerKeyLabel, lessonKeyToMidi, lessonOctaveKey } from "../core/lesson/keys.ts";
 import { loadProgress, saveProgress } from "../core/lesson/progress.ts";
-import { midiToNoteName, midiToPitchClass, pitchClassToName } from "../core/theory/pitch.ts";
+import { midiToNoteName, midiToPitchClass, pitchClassToName, type PitchClass } from "../core/theory/pitch.ts";
 import { getScalePitches } from "../core/theory/scale.ts";
 import { quarterSteps, resizeSteps, type BarCount } from "../core/sequencer/grid.ts";
 import {
@@ -37,6 +37,7 @@ export function LessonOne() {
   const [octave, setOctave] = useState(4);
   const [bars, setBars] = useState<BarCount>(1);
   const [state, setState] = useState<Level1State>(emptyLevel1State);
+  const [held, setHeld] = useState<ReadonlySet<PitchClass>>(() => new Set());
   const engineRef = useRef<MusicEngine | null>(null);
   const scalePitches = useMemo(() => new Set(getScalePitches(0, "major")), []);
   const diagnostics = diagnoseLevel1(state);
@@ -61,9 +62,21 @@ export function LessonOne() {
   }, [passed]);
 
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
+    const typingTarget = (event: KeyboardEvent) => {
       const target = event.target;
-      if (target instanceof HTMLElement && target.closest("input, textarea, select, .ant-select")) return;
+      return target instanceof HTMLElement && target.closest("input, textarea, select, .ant-select") !== null;
+    };
+    const hold = (pitch: PitchClass, down: boolean) => {
+      setHeld((current) => {
+        if (down === current.has(pitch)) return current;
+        const next = new Set(current);
+        if (down) next.add(pitch);
+        else next.delete(pitch);
+        return next;
+      });
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (typingTarget(event)) return;
       const nextOctave = lessonOctaveKey(event.key, octave);
       if (nextOctave !== null) {
         event.preventDefault();
@@ -73,10 +86,23 @@ export function LessonOne() {
       const midi = lessonKeyToMidi(event.key, octave);
       if (midi === null) return;
       event.preventDefault();
-      choosePitch(midi);
+      hold(midiToPitchClass(midi), true);
+      if (!event.repeat) choosePitch(midi);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const onKeyUp = (event: KeyboardEvent) => {
+      const midi = lessonKeyToMidi(event.key, octave);
+      if (midi === null) return;
+      hold(midiToPitchClass(midi), false);
+    };
+    const clearHeld = () => setHeld(new Set());
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", clearHeld);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", clearHeld);
+    };
   }, [octave]);
 
   const engine = async () => {
@@ -120,7 +146,9 @@ export function LessonOne() {
               {paragraph}
             </p>
           ))}
-          <p className="hint">电脑键：A 到 K 从当前八度的 C 按半音往上。Q 低八度，W 回到第 4 八度，E 高八度。</p>
+          <p className="hint">
+            白键 A S D F G H J 是 C D E F G A B，黑键 W E T Y U 是 C# D# F# G# A#。Z 低八度，X 高八度。
+          </p>
         </Card>
       )}
       {step === 1 && (
@@ -163,10 +191,13 @@ export function LessonOne() {
           <p className="lead">
             当前八度 {octave}。当前音：{state.pitch === null ? "还没选" : midiToNoteName(state.pitch)}。目标是 C4，格子是第 1、5、9、13 格。
           </p>
+          <p className="hint">琴键上的字母是电脑键。按住时对应的琴键会亮。Z 低八度，X 高八度。</p>
           <Piano
-            label="第 1 关键盘，点击选择音高"
+            label="第 1 关键盘，点击或用电脑键选择音高"
             rootWord="已选"
             spell={(pitch) => `${pitchClassToName(pitch)}${octave}`}
+            keycap={computerKeyLabel}
+            isHeld={(pitch) => held.has(pitch)}
             isRoot={(pitch) => selectedClass === pitch && selectedOctave === octave}
             inScale={(pitch) => scalePitches.has(pitch)}
             inChord={(pitch) => selectedClass === pitch}
