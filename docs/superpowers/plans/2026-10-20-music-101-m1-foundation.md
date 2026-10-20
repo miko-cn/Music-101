@@ -1088,8 +1088,13 @@ describe("writeMidiFile", () => {
 - [ ] **步骤 3：实现 `src/core/midi/types.ts`**
 
 ```ts
+/** 每四分音符的 tick 数，M1 全局统一为 480。 */
 export const PPQ = 480;
 
+/**
+ * 单一轨内的事件联合类型。
+ * 只保留 M1 真正需要的事件，避免读入时产生无法表达的数据。
+ */
 export type MidiEvent =
   | { kind: "noteOn"; tick: number; pitch: number; velocity: number; channel: number }
   | { kind: "noteOff"; tick: number; pitch: number; velocity: number; channel: number }
@@ -1098,11 +1103,13 @@ export type MidiEvent =
   | { kind: "trackName"; tick: number; text: string };
 
 export interface MidiTrack {
+  /** 轨名，同时会写进轨首的 track name meta 事件。 */
   name: string;
   events: MidiEvent[];
 }
 
 export interface MidiFile {
+  /** 0 = 单轨，1 = 多轨。 */
   format: 0 | 1;
   ppq: number;
   tracks: MidiTrack[];
@@ -1115,10 +1122,22 @@ export interface MidiFile {
 import type { MidiEvent, MidiFile, MidiTrack } from "./types.ts";
 
 const META_TRACK_NAME = 0x03;
+/**
+ * 0x06 在 SMF 里是 Marker。
+ * MMA 的 Chord Name 与 Marker 共用这一号段，写出端若同时写和弦 meta 事件，
+ * 读入端无法区分，会把和弦名误当成段落标记。
+ * 因此 M1 只写 Marker，不写和弦 meta 事件。
+ */
 const META_MARKER = 0x06;
-const META_TIMECODE = 0x51;
+const META_TEMPO = 0x51;
 const META_END_OF_TRACK = 0x2f;
 
+/**
+ * 同一 tick 内的事件顺序。
+ * noteOff 必须排在 noteOn 之前：SMF 按字节顺序播放，若同 tick 先出现 noteOn，
+ * 前一个同音高的音会被立刻切断，表现为音符被“吃掉”。
+ * tempo / trackName / marker 之间没有先后依赖，给同样的序值即可保持原有顺序。
+ */
 const EVENT_ORDER: Record<MidiEvent["kind"], number> = {
   tempo: 0,
   trackName: 0,
@@ -1127,6 +1146,7 @@ const EVENT_ORDER: Record<MidiEvent["kind"], number> = {
   noteOn: 2,
 };
 
+/** 把非负整数编码成 SMF 的可变长度数量（VLQ）：每字节 7 位，高位表示还有后续字节。 */
 export function encodeVariableLength(value: number): number[] {
   if (!Number.isInteger(value) || value < 0) {
     throw new Error(`VLQ 需要非负整数，收到 ${value}`);
@@ -1152,17 +1172,28 @@ function u32(value: number): number[] {
   return [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff];
 }
 
+/** 文本统一用 UTF-8 编码，长度按字节数算（meta 长度也是字节数）。 */
 function encodeText(text: string): number[] {
   const bytes = Array.from(new TextEncoder().encode(text));
   return [...encodeVariableLength(bytes.length), ...bytes];
 }
 
 function sortEvents(events: readonly MidiEvent[]): MidiEvent[] {
+  // Array.prototype.sort 自 ES2019 起是稳定排序，序值相同的事件保持原有先后，
+  // 这样“写出→读入”才能逐字段相等。
   return [...events].sort((a, b) =>
     a.tick !== b.tick ? a.tick - b.tick : EVENT_ORDER[a.kind] - EVENT_ORDER[b.kind],
   );
 }
 
+/**
+ * 写出单条轨。
+ * 轨名写两处：模型里的 MidiTrack.name 字段 + 轨首的 track name meta 事件。
+ * 字节流只包含事件列表本身——轨名由列表里的 trackName 事件承载，
+ * 读入端再以 track name meta 为准还原 MidiTrack.name；
+ * 若在此额外补一条 trackName 事件，读回后的事件列表会比原来多一条，
+ * 破坏“写出→读入逐字段相等”的往返约束。
+ */
 function encodeTrack(track: MidiTrack): number[] {
   const body: number[] = [];
   let lastTick = 0;
@@ -1174,7 +1205,7 @@ function encodeTrack(track: MidiTrack): number[] {
       case "tempo":
         body.push(
           0xff,
-          META_TIMECODE,
+          META_TEMPO,
           0x03,
           (event.microsecondsPerBeat >>> 16) & 0xff,
           (event.microsecondsPerBeat >>> 8) & 0xff,
@@ -1188,17 +1219,24 @@ function encodeTrack(track: MidiTrack): number[] {
         body.push(0xff, META_MARKER, ...encodeText(event.text));
         break;
       case "noteOn":
-        body.push(0x90 | (event.channel & 0x0f), event.pitch & 0x7f, event.velocity & 0x7f);
+        if (event.velocity === 0) {
+          // 力度 0 的 noteOn 在 SMF 语义上就是 note off，直接写成 0x80 状态字节。
+          body.push(0x80 | (event.channel & 0x0f), event.pitch & 0x7f, 0);
+        } else {
+          body.push(0x90 | (event.channel & 0x0f), event.pitch & 0x7f, event.velocity & 0x7f);
+        }
         break;
       case "noteOff":
         body.push(0x80 | (event.channel & 0x0f), event.pitch & 0x7f, event.velocity & 0x7f);
         break;
     }
   }
+  // 每条轨必须以 end of track meta 收尾，否则部分软件会拒绝播放该轨。
   body.push(0x00, 0xff, META_END_OF_TRACK, 0x00);
   return body;
 }
 
+/** 把领域模型序列化成标准 MIDI 文件（SMF format 0/1）的字节流。 */
 export function writeMidiFile(file: MidiFile): Uint8Array {
   const parts: number[] = [
     ...ascii("MThd"),
@@ -1224,6 +1262,10 @@ export function writeMidiFile(file: MidiFile): Uint8Array {
 
 运行：`npm run typecheck`
 预期：退出码 0。
+
+> **实现说明（轨名写两处）：** `MidiTrack.name` 字段与轨首的 track name meta 事件都承载轨名。
+> 写出端只写事件列表本身，**不额外补一条 trackName 事件**——否则读回后的事件列表会多出一条，
+> 破坏任务 6 的“写出→读入逐字段相等”。读入端以 track name meta 为准还原 `MidiTrack.name`。
 
 - [ ] **步骤 7：Commit**
 
@@ -1375,19 +1417,31 @@ import type { MidiEvent, MidiFile, MidiTrack } from "./types.ts";
 
 const META_TRACK_NAME = 0x03;
 const META_MARKER = 0x06;
-const META_TIMECODE = 0x51;
+const META_TEMPO = 0x51;
 const META_END_OF_TRACK = 0x2f;
 
-function readVariableLength(bytes: Uint8Array, start: number): [number, number] {
+const decoder = new TextDecoder();
+
+function fail(message: string): never {
+  throw new Error(`不是合法的 MIDI 文件：${message}`);
+}
+
+/** 读取 VLQ（可变长度数量），返回数值与新的读取位置。 */
+function readVariableLength(bytes: Uint8Array, start: number, end: number): [number, number] {
   let value = 0;
   let position = start;
-  for (;;) {
+  for (let count = 0; count < 4; count += 1) {
+    if (position >= end) {
+      fail("VLQ 长度越界");
+    }
     const byte = bytes[position];
     position += 1;
     value = (value << 7) | (byte & 0x7f);
-    if ((byte & 0x80) === 0) break;
+    if ((byte & 0x80) === 0) {
+      return [value, position];
+    }
   }
-  return [value, position];
+  return fail("VLQ 超过 4 字节");
 }
 
 function readTrack(bytes: Uint8Array, start: number, end: number): MidiTrack {
@@ -1398,50 +1452,81 @@ function readTrack(bytes: Uint8Array, start: number, end: number): MidiTrack {
   let name = "";
 
   while (position < end) {
-    const [delta, afterDelta] = readVariableLength(bytes, position);
+    const [delta, afterDelta] = readVariableLength(bytes, position, end);
     position = afterDelta;
     tick += delta;
 
+    if (position >= end) {
+      fail("事件缺少状态字节");
+    }
     let status = bytes[position];
     if (status < 0x80) {
+      // 运行状态：复用上一个状态字节。
+      if (runningStatus === 0) {
+        fail("出现没有状态字节的数据");
+      }
       status = runningStatus;
     } else {
       position += 1;
-      runningStatus = status;
+      if (status < 0xf0) {
+        runningStatus = status;
+      }
     }
-
-    if (status === 0xff) {
+      } else if (metaType === META_TRACK_NAME) {
+        const text = decoder.decode(data);
+        // 轨名以轨首的 track name meta 为准：若出现多个，取第一个。
+        if (name === "") {
+          name = text;
+        }
+        events.push({ kind: "trackName", tick, text });
+      }
       const metaType = bytes[position];
       position += 1;
-      const [length, afterLength] = readVariableLength(bytes, position);
+      const [length, afterLength] = readVariableLength(bytes, position, end);
       position = afterLength;
+      if (position + length > end) {
+        fail("meta 事件数据越界");
+      }
       const data = bytes.subarray(position, position + length);
       position += length;
 
-      if (metaType === META_TIMECODE) {
+      if (metaType === META_TEMPO) {
+        if (data.length < 3) {
+          fail("tempo 事件长度不足 3 字节");
+        }
         events.push({
           kind: "tempo",
           tick,
           microsecondsPerBeat: (data[0] << 16) | (data[1] << 8) | data[2],
         });
       } else if (metaType === META_TRACK_NAME) {
-        name = new TextDecoder().decode(data);
-        events.push({ kind: "trackName", tick, text: name });
+        const text = decoder.decode(data);
+        name = text;
+        events.push({ kind: "trackName", tick, text });
       } else if (metaType === META_MARKER) {
-        events.push({ kind: "marker", tick, text: new TextDecoder().decode(data) });
+        events.push({ kind: "marker", tick, text: decoder.decode(data) });
       } else if (metaType === META_END_OF_TRACK) {
         break;
       }
+      // 其他 meta 事件（文本、拍号、乐器名等）M1 不需要，直接忽略。
     } else if (status === 0xf0 || status === 0xf7) {
-      const [length, afterLength] = readVariableLength(bytes, position);
-      position = afterLength + length;
+      const [length, afterLength] = readVariableLength(bytes, position, end);
+      position = afterLength;
+      if (position + length > end) {
+        fail("sysex 事件数据越界");
+      }
+      position += length;
     } else {
       const messageType = status & 0xf0;
       const channel = status & 0x0f;
       if (messageType === 0x90 || messageType === 0x80) {
+        if (position + 2 > end) {
+          fail("音符事件数据越界");
+        }
         const pitch = bytes[position];
         const velocity = bytes[position + 1];
         position += 2;
+        // 力度为 0 的 noteOn 在 SMF 里等同于 note off。
         if (messageType === 0x90 && velocity > 0) {
           events.push({ kind: "noteOn", tick, pitch, velocity, channel });
         } else {
@@ -1459,10 +1544,16 @@ function readTrack(bytes: Uint8Array, start: number, end: number): MidiTrack {
 }
 
 export function readMidiFile(bytes: Uint8Array): MidiFile {
+  if (bytes.length < 14) {
+    fail("数据长度不足一个 MThd 头");
+  }
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let position = 0;
 
   const readAscii = (count: number): string => {
+    if (position + count > bytes.length) {
+      fail("块标识越界");
+    }
     let text = "";
     for (let index = 0; index < count; index += 1) {
       text += String.fromCharCode(bytes[position]);
@@ -1472,10 +1563,13 @@ export function readMidiFile(bytes: Uint8Array): MidiFile {
   };
 
   if (readAscii(4) !== "MThd") {
-    throw new Error("不是合法的 MIDI 文件：缺少 MThd 头");
+    fail("缺少 MThd 头");
   }
   const headerLength = view.getUint32(position);
   position += 4;
+  if (headerLength < 6) {
+    fail("MThd 头长度非法");
+  }
   const format = view.getUint16(position);
   position += 2;
   const trackCount = view.getUint16(position);
@@ -1491,11 +1585,18 @@ export function readMidiFile(bytes: Uint8Array): MidiFile {
     const chunkLength = view.getUint32(position);
     position += 4;
     const chunkEnd = position + chunkLength;
+    if (chunkEnd > bytes.length) {
+      fail(`${chunkId} 块长度越界`);
+    }
     if (chunkId === "MTrk") {
       tracks.push(readTrack(bytes, position, chunkEnd));
       parsed += 1;
     }
     position = chunkEnd;
+  }
+
+  if (tracks.length !== trackCount) {
+    fail(`轨数不足：声明 ${trackCount} 轨，实际读到 ${tracks.length} 轨`);
   }
 
   return { format: format === 0 ? 0 : 1, ppq, tracks };
