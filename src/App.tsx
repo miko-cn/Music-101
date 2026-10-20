@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Button, ConfigProvider, Flex, Layout, theme } from "antd";
 import zhCN from "antd/locale/zh_CN";
+import { DiagnosticsLab } from "./ui/DiagnosticsLab.tsx";
 import { LessonOne } from "./ui/LessonOne.tsx";
 import { TheoryBench } from "./ui/TheoryBench.tsx";
 
 const { Header, Content } = Layout;
 
-type View = "bench" | "level1";
+type View = "bench" | "level1" | "diagnostics";
 
 export function App() {
   const [view, setView] = useState<View>("level1");
@@ -37,10 +38,15 @@ export function App() {
               <Button type={view === "level1" ? "primary" : "default"} onClick={() => setView("level1")}>
                 第 1 关
               </Button>
+              <Button type={view === "diagnostics" ? "primary" : "default"} onClick={() => setView("diagnostics")}>
+                诊断
+              </Button>
             </Flex>
           </Flex>
         </Header>
-        <Content className="bench">{view === "bench" ? <TheoryBench /> : <LessonOne />}</Content>
+        <Content className="bench">
+          {view === "bench" ? <TheoryBench /> : view === "diagnostics" ? <DiagnosticsLab /> : <LessonOne />}
+        </Content>
       </Layout>
     </ConfigProvider>
   );

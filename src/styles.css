@@ -327,8 +327,10 @@ body {
   margin-top: 1rem;
 }
 
-.ear-question .hint {
-  margin-top: 0.35rem;
+.energy-chart {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
 @media (max-width: 640px) {
