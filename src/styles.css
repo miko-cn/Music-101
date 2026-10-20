@@ -247,6 +247,56 @@ body {
   box-shadow: inset 0 0 0 2px #ffd666;
 }
 
+.stepper-view {
+  margin-bottom: 0.75rem;
+  max-width: 10rem;
+}
+
+.stepper-block {
+  margin: 1rem 0;
+}
+
+.stepper {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.step {
+  appearance: none;
+  min-height: 2.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.step.beat {
+  border-color: rgba(255, 255, 255, 0.38);
+}
+
+.step.on {
+  background: #1677ff;
+  color: #fff;
+  border-color: #0958d9;
+}
+
+.step:focus-visible {
+  outline: 2px solid #ffe58f;
+  outline-offset: 2px;
+}
+
+.ear-question {
+  margin-top: 1rem;
+}
+
+.ear-question .hint {
+  margin-top: 0.35rem;
+}
+
 @media (max-width: 640px) {
   .piano {
     height: 148px;
