@@ -3,10 +3,18 @@ import { Alert, Button, Card, Flex, Radio, Steps } from "antd";
 import { createEngine, type MusicEngine } from "../core/audio/engine.ts";
 import { computerKeyLabel, lessonKeyToMidi, lessonOctaveKey } from "../core/lesson/keys.ts";
 import {
+  applyRecipeToStage,
+  buildAttempt,
+  classifyHand,
+  recipeFromStage,
+} from "../core/lesson/personalize.ts";
+import { observeAttempt, saveRecipe, type ProgressFile, type ProgressUpdate, type Recipe } from "../core/lesson/progress.ts";
+import {
   STAGE_FIX_HAND,
   applyStageFix,
   diagnoseStage,
   emptyStageState,
+  stageEarScore,
   stagePassed,
   stageToMidi,
   type StageState,
@@ -19,6 +27,7 @@ import { candidatesFromPcm, demoClicks, type ReferenceCandidates } from "../core
 import { referenceToMidi } from "../core/reference/export.ts";
 import type { StageLesson } from "../content/stage1.ts";
 import { EnergyChart } from "./DiagnosticsLab.tsx";
+import { LessonCoach } from "./LessonCoach.tsx";
 import { Piano } from "./Piano.tsx";
 import { Stepper } from "./Stepper.tsx";
 
@@ -30,13 +39,43 @@ const STEPS = [
   { title: "导出" },
 ];
 
-export function LessonFlow({ lesson }: { lesson: StageLesson }) {
+export function LessonFlow({
+  lesson,
+  progress,
+  onProgress,
+  pendingRecipe,
+  onConsumeRecipe,
+  onOpenLevel,
+}: {
+  lesson: StageLesson;
+  progress: ProgressFile;
+  onProgress: (update: ProgressUpdate) => void;
+  pendingRecipe: Recipe | null;
+  onConsumeRecipe: () => void;
+  onOpenLevel: (levelId: number) => void;
+}) {
   const [step, setStep] = useState(0);
   const [octave, setOctave] = useState(4);
   const [held, setHeld] = useState<ReadonlySet<PitchClass>>(() => new Set());
   const [state, setState] = useState<StageState>(() => emptyStageState(lesson));
   const [candidates, setCandidates] = useState<ReferenceCandidates | null>(null);
+  const [visitTick, setVisitTick] = useState(0);
   const engineRef = useRef<MusicEngine | null>(null);
+  const seenLesson = useRef<number | null>(null);
+  const visitId = useRef(`${lesson.id}:${Date.now()}`);
+  const usedFix = useRef(false);
+  const seenMistakes = useRef<ReturnType<typeof classifyHand>>([]);
+  const lessonChanged = seenLesson.current !== null && seenLesson.current !== lesson.id;
+  if (lessonChanged) {
+    visitId.current = `${lesson.id}:${Date.now()}`;
+    usedFix.current = false;
+    seenMistakes.current = [];
+  }
+  if (!lessonChanged && state.hand !== null) {
+    for (const kind of classifyHand(lesson.id, state.hand, lesson.handCorrect)) {
+      if (!seenMistakes.current.includes(kind)) seenMistakes.current.push(kind);
+    }
+  }
   const scalePitches = new Set(getScalePitches(lesson.keyRoot, lesson.keyScale));
 
   useEffect(() => {
@@ -45,6 +84,12 @@ export function LessonFlow({ lesson }: { lesson: StageLesson }) {
     setHeld(new Set());
     setCandidates(null);
   }, [lesson.id]);
+
+  useEffect(() => {
+    if (!pendingRecipe || pendingRecipe.levelId !== lesson.id) return;
+    setState((current) => applyRecipeToStage(current, pendingRecipe));
+    onConsumeRecipe();
+  }, [pendingRecipe, lesson.id, onConsumeRecipe]);
 
   useEffect(() => {
     const typing = (event: KeyboardEvent) => {
@@ -92,6 +137,29 @@ export function LessonFlow({ lesson }: { lesson: StageLesson }) {
   const diagnostics = diagnoseStage(lesson, state);
   const passed = stagePassed(lesson, state);
 
+  useEffect(() => {
+    if (seenLesson.current !== lesson.id) {
+      seenLesson.current = lesson.id;
+      return;
+    }
+    if (step < 3 && !passed) return;
+    const ear = stageEarScore(lesson, state.earAnswers);
+    onProgress((current) =>
+      observeAttempt(
+        current,
+        buildAttempt({
+          visitId: visitId.current,
+          levelId: lesson.id,
+          passed,
+          earCorrect: ear.correct,
+          earTotal: ear.total,
+          usedFix: usedFix.current,
+          mistakes: seenMistakes.current,
+        }),
+      ),
+    );
+  }, [lesson, step, passed, state.earAnswers, state.hand, visitTick, onProgress]);
+
   const engine = async () => {
     if (!engineRef.current) engineRef.current = createEngine();
     await engineRef.current?.resume();
@@ -119,6 +187,7 @@ export function LessonFlow({ lesson }: { lesson: StageLesson }) {
   return (
     <>
       <Steps current={step} items={STEPS} onChange={setStep} />
+      <LessonCoach progress={progress} levelId={lesson.id} onOpenLevel={onOpenLevel} />
       <p className="hint">
         第 {lesson.id} 关 · {lesson.title}。白键 A S D F G H J，黑键 W E T Y U。Z 低八度，X 高八度。
       </p>
@@ -235,6 +304,9 @@ export function LessonFlow({ lesson }: { lesson: StageLesson }) {
           {lesson.showEnergy && state.hand !== null && (
             <EnergyPreview lesson={lesson} choice={state.hand} />
           )}
+          <Button onClick={() => onProgress((current) => saveRecipe(current, recipeFromStage(lesson, state)))}>
+            存成配方
+          </Button>
         </Card>
       )}
       {step === 3 && (
@@ -247,7 +319,14 @@ export function LessonFlow({ lesson }: { lesson: StageLesson }) {
                 message={item.message}
                 action={
                   item.fix?.actionId === STAGE_FIX_HAND ? (
-                    <Button size="small" onClick={() => setState((current) => applyStageFix(lesson, current))}>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        usedFix.current = true;
+                        setVisitTick((value) => value + 1);
+                        setState((current) => applyStageFix(lesson, current));
+                      }}
+                    >
                       {item.fix.label}
                     </Button>
                   ) : undefined

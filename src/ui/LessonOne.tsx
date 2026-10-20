@@ -8,10 +8,12 @@ import {
   emptyLevel1State,
   level1Passed,
   level1ToMidi,
+  scoreEar,
   type Level1State,
 } from "../core/lesson/level1.ts";
 import { computerKeyLabel, lessonKeyToMidi, lessonOctaveKey } from "../core/lesson/keys.ts";
-import { loadProgress, saveProgress } from "../core/lesson/progress.ts";
+import { applyRecipeToLevel1, buildAttempt, isMastered, recipeFromLevel1 } from "../core/lesson/personalize.ts";
+import { observeAttempt, saveRecipe, type ProgressFile, type ProgressUpdate, type Recipe } from "../core/lesson/progress.ts";
 import { midiToNoteName, midiToPitchClass, pitchClassToName, type PitchClass } from "../core/theory/pitch.ts";
 import { getScalePitches } from "../core/theory/scale.ts";
 import { quarterSteps, resizeSteps, type BarCount } from "../core/sequencer/grid.ts";
@@ -21,6 +23,7 @@ import {
   LEVEL1_EAR,
   LEVEL1_TARGET_PITCH,
 } from "../content/level1.ts";
+import { LessonCoach } from "./LessonCoach.tsx";
 import { Piano } from "./Piano.tsx";
 import { Stepper } from "./Stepper.tsx";
 
@@ -32,12 +35,37 @@ const STEPS = [
   { title: "导出" },
 ];
 
-export function LessonOne() {
-  const [step, setStep] = useState(0);
+function solvedLevel1(): Level1State {
+  return {
+    earAnswers: LEVEL1_EAR.map((question) => question.correct),
+    pitch: LEVEL1_TARGET_PITCH,
+    steps: quarterSteps(),
+  };
+}
+
+export function LessonOne({
+  progress,
+  onProgress,
+  pendingRecipe,
+  onConsumeRecipe,
+  onOpenLevel,
+}: {
+  progress: ProgressFile;
+  onProgress: (update: ProgressUpdate) => void;
+  pendingRecipe: Recipe | null;
+  onConsumeRecipe: () => void;
+  onOpenLevel: (levelId: number) => void;
+}) {
+  const mastered = isMastered(progress, 1);
+  const [step, setStep] = useState(() => (mastered ? 4 : 0));
   const [octave, setOctave] = useState(4);
   const [bars, setBars] = useState<BarCount>(1);
-  const [state, setState] = useState<Level1State>(emptyLevel1State);
+  const [state, setState] = useState<Level1State>(() => (mastered ? solvedLevel1() : emptyLevel1State()));
+  const [visitTick, setVisitTick] = useState(0);
   const [held, setHeld] = useState<ReadonlySet<PitchClass>>(() => new Set());
+  const seenLesson = useRef<number | null>(null);
+  const visitId = useRef(`1:${Date.now()}`);
+  const usedFix = useRef(false);
   const engineRef = useRef<MusicEngine | null>(null);
   const scalePitches = useMemo(() => new Set(getScalePitches(0, "major")), []);
   const diagnostics = diagnoseLevel1(state);
@@ -46,20 +74,33 @@ export function LessonOne() {
   const selectedOctave = state.pitch === null ? null : Math.floor(state.pitch / 12) - 1;
 
   useEffect(() => {
-    const stored = loadProgress(typeof localStorage === "undefined" ? null : localStorage);
-    if (!stored.level1Passed) return;
-    setState({
-      earAnswers: LEVEL1_EAR.map((question) => question.correct),
-      pitch: LEVEL1_TARGET_PITCH,
-      steps: quarterSteps(),
-    });
-    setStep(4);
-  }, []);
+    if (!pendingRecipe || pendingRecipe.levelId !== 1) return;
+    setState((current) => applyRecipeToLevel1(current, pendingRecipe));
+    onConsumeRecipe();
+  }, [pendingRecipe, onConsumeRecipe]);
 
   useEffect(() => {
-    if (!passed || typeof localStorage === "undefined") return;
-    saveProgress(localStorage, { schema: 1, level1Passed: true });
-  }, [passed]);
+    if (seenLesson.current !== 1) {
+      seenLesson.current = 1;
+      return;
+    }
+    if (step < 3 && !passed) return;
+    const ear = scoreEar(state.earAnswers);
+    onProgress((current) =>
+      observeAttempt(
+        current,
+        buildAttempt({
+          visitId: visitId.current,
+          levelId: 1,
+          passed,
+          earCorrect: ear.correct,
+          earTotal: ear.total,
+          usedFix: usedFix.current,
+          mistakes: [],
+        }),
+      ),
+    );
+  }, [step, passed, state.earAnswers, visitTick, onProgress]);
 
   useEffect(() => {
     const typingTarget = (event: KeyboardEvent) => {
@@ -121,6 +162,8 @@ export function LessonOne() {
   };
 
   const applyFix = (actionId: string) => {
+    usedFix.current = true;
+    setVisitTick((value) => value + 1);
     setState((current) => applyLevel1Fix(current, actionId));
     if (actionId === LEVEL1_FIX_PITCH) setOctave(4);
   };
@@ -139,6 +182,7 @@ export function LessonOne() {
   return (
     <>
       <Steps current={step} items={STEPS} onChange={setStep} />
+      <LessonCoach progress={progress} levelId={1} onOpenLevel={onOpenLevel} />
       {step === 0 && (
         <Card title="音高与键盘">
           {LEVEL1_CONCEPT.map((paragraph) => (
@@ -219,6 +263,7 @@ export function LessonOne() {
           >
             听步进
           </Button>
+          <Button onClick={() => onProgress((current) => saveRecipe(current, recipeFromLevel1(state)))}>存成配方</Button>
         </Card>
       )}
       {step === 3 && (

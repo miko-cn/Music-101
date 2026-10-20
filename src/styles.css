@@ -333,6 +333,12 @@ body {
   display: block;
 }
 
+.radar {
+  width: min(28rem, 100%);
+  height: auto;
+  display: block;
+}
+
 @media (max-width: 640px) {
   .piano {
     height: 148px;
