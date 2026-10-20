@@ -59,12 +59,13 @@ describe("阶段一关 2–8", () => {
     expect(pitchesOf(7)).toHaveLength(12);
   });
 
-  it("第 8 关标记里有 ♭VI", () => {
+  it("第 8 关标记里的降号写成 ASCII b", () => {
     const midi = readMidiFile(stageToMidi(stageLesson(8), 0));
     const markers = midi.tracks[0]?.events.filter((event) => event.kind === "marker").map((event) =>
       event.kind === "marker" ? event.text : "",
     );
-    expect(markers).toContain("F (♭VI)");
-    expect(markers).toContain("G (♭VII)");
+    expect(markers).toContain("F (bVI)");
+    expect(markers).toContain("G (bVII)");
+    expect(markers.some((text) => text.includes("♭"))).toBe(false);
   });
 });

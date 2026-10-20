@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readMidiFile } from "../../src/core/midi/reader.ts";
 import { encodeVariableLength, writeMidiFile } from "../../src/core/midi/writer.ts";
 import type { MidiFile } from "../../src/core/midi/types.ts";
 
@@ -59,6 +60,26 @@ describe("writeMidiFile", () => {
     expect(text).toContain("Chorus");
     expect(text).toContain("\xff\x03"); // track name
     expect(text).toContain("\xff\x06"); // marker
+  });
+
+  it("marker 里的降号写成 ASCII b，文件里不留 UTF-8 的 ♭", () => {
+    const bytes = writeMidiFile({
+      format: 0,
+      ppq: 480,
+      tracks: [
+        {
+          name: "M",
+          events: [
+            { kind: "trackName", tick: 0, text: "M" },
+            { kind: "marker", tick: 0, text: "D (♭VI)" },
+          ],
+        },
+      ],
+    });
+    expect(bytes.includes(0xe2)).toBe(false);
+    expect(bytes.includes(0x99)).toBe(false);
+    const marker = readMidiFile(bytes).tracks[0]?.events.find((event) => event.kind === "marker");
+    expect(marker).toEqual({ kind: "marker", tick: 0, text: "D (bVI)" });
   });
 
   it("拒绝负数 VLQ", () => {

@@ -9,6 +9,7 @@ const META_TRACK_NAME = 0x03;
  */
 const META_MARKER = 0x06;
 const META_TEMPO = 0x51;
+const META_TIME_SIGNATURE = 0x58;
 const META_END_OF_TRACK = 0x2f;
 
 /**
@@ -21,6 +22,7 @@ const EVENT_ORDER: Record<MidiEvent["kind"], number> = {
   tempo: 0,
   trackName: 0,
   marker: 0,
+  timeSignature: 0,
   noteOff: 1,
   noteOn: 2,
 };
@@ -52,6 +54,15 @@ function u32(value: number): number[] {
 }
 
 /** 文本统一用 UTF-8 编码，长度按字节数算（meta 长度也是字节数）。 */
+/**
+ * Cubase 13 在中文 Windows 上按系统 ANSI（GBK）读 marker，不按 UTF-8。
+ * ♭ 的 UTF-8 是 E2 99 AD，会和后面的字母拼成汉字，例如 ♭VI 显示成「鈾璙I」。
+ * 标记文本改成 ASCII b，界面上的罗马数字仍然用 ♭。
+ */
+export function markerTextForHost(text: string): string {
+  return text.replaceAll("♭", "b");
+}
+
 function encodeText(text: string): number[] {
   const bytes = Array.from(new TextEncoder().encode(text));
   return [...encodeVariableLength(bytes.length), ...bytes];
@@ -95,8 +106,14 @@ function encodeTrack(track: MidiTrack): number[] {
         body.push(0xff, META_TRACK_NAME, ...encodeText(event.text));
         break;
       case "marker":
-        body.push(0xff, META_MARKER, ...encodeText(event.text));
+        body.push(0xff, META_MARKER, ...encodeText(markerTextForHost(event.text)));
         break;
+      case "timeSignature": {
+        const denominator = Math.max(1, event.denominator);
+        const log = Math.round(Math.log2(denominator));
+        body.push(0xff, META_TIME_SIGNATURE, 0x04, event.numerator & 0xff, log & 0xff, 24, 8);
+        break;
+      }
       case "noteOn":
         if (event.velocity === 0) {
           // 力度 0 的 noteOn 在 SMF 语义上就是 note off，直接写成 0x80 状态字节。

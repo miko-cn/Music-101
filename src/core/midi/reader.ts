@@ -3,6 +3,7 @@ import type { MidiEvent, MidiFile, MidiTrack } from "./types.ts";
 const META_TRACK_NAME = 0x03;
 const META_MARKER = 0x06;
 const META_TEMPO = 0x51;
+const META_TIME_SIGNATURE = 0x58;
 const META_END_OF_TRACK = 0x2f;
 
 const decoder = new TextDecoder();
@@ -90,6 +91,13 @@ function readTrack(bytes: Uint8Array, start: number, end: number): MidiTrack {
         events.push({ kind: "trackName", tick, text });
       } else if (metaType === META_MARKER) {
         events.push({ kind: "marker", tick, text: decoder.decode(data) });
+      } else if (metaType === META_TIME_SIGNATURE && data.length >= 2) {
+        events.push({
+          kind: "timeSignature",
+          tick,
+          numerator: data[0],
+          denominator: 2 ** data[1],
+        });
       } else if (metaType === META_END_OF_TRACK) {
         break;
       }

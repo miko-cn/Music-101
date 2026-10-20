@@ -34,7 +34,7 @@ describe("演示 MIDI", () => {
       { kind: "marker", tick: 0, text: "Intro" },
       { kind: "marker", tick: 0, text: "F#m (i)" },
       { kind: "marker", tick: 2 * BAR, text: "Verse" },
-      { kind: "marker", tick: 2 * BAR, text: "D (♭VI)" },
+      { kind: "marker", tick: 2 * BAR, text: "D (bVI)" },
       { kind: "marker", tick: 4 * BAR, text: "PreChorus" },
       { kind: "marker", tick: 4 * BAR, text: "B (IV)" },
       { kind: "marker", tick: 6 * BAR, text: "Chorus" },
