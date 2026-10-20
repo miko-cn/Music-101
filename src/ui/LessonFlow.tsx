@@ -13,8 +13,14 @@ import {
 } from "../core/lesson/stage1.ts";
 import { midiToPitchClass, pitchClassToName, type PitchClass } from "../core/theory/pitch.ts";
 import { getScalePitches } from "../core/theory/scale.ts";
+import { energySeries } from "../core/analyze/energy.ts";
+import { choiceEnergySong } from "../core/lesson/stage1.ts";
+import { candidatesFromPcm, demoClicks, type ReferenceCandidates } from "../core/reference/candidates.ts";
+import { referenceToMidi } from "../core/reference/export.ts";
 import type { StageLesson } from "../content/stage1.ts";
+import { EnergyChart } from "./DiagnosticsLab.tsx";
 import { Piano } from "./Piano.tsx";
+import { Stepper } from "./Stepper.tsx";
 
 const STEPS = [
   { title: "概念" },
@@ -29,6 +35,7 @@ export function LessonFlow({ lesson }: { lesson: StageLesson }) {
   const [octave, setOctave] = useState(4);
   const [held, setHeld] = useState<ReadonlySet<PitchClass>>(() => new Set());
   const [state, setState] = useState<StageState>(() => emptyStageState(lesson));
+  const [candidates, setCandidates] = useState<ReferenceCandidates | null>(null);
   const engineRef = useRef<MusicEngine | null>(null);
   const scalePitches = new Set(getScalePitches(lesson.keyRoot, lesson.keyScale));
 
@@ -36,6 +43,7 @@ export function LessonFlow({ lesson }: { lesson: StageLesson }) {
     setStep(0);
     setState(emptyStageState(lesson));
     setHeld(new Set());
+    setCandidates(null);
   }, [lesson.id]);
 
   useEffect(() => {
@@ -91,8 +99,14 @@ export function LessonFlow({ lesson }: { lesson: StageLesson }) {
   };
 
   const download = () => {
-    const choice = state.hand ?? lesson.handCorrect;
-    const bytes = stageToMidi(lesson, choice);
+    const bytes = lesson.reference
+      ? referenceToMidi(
+          candidates?.bpms[state.referencePick?.bpm ?? 0] ?? 120,
+          candidates?.structures[state.referencePick?.structure ?? 0]?.sections ?? [
+            { name: "Verse", startBar: 0, bars: 16 },
+          ],
+        )
+      : stageToMidi(lesson, lesson.drums ? 0 : (state.hand ?? lesson.handCorrect));
     const blob = new Blob([bytes.slice()], { type: "audio/midi" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -169,18 +183,58 @@ export function LessonFlow({ lesson }: { lesson: StageLesson }) {
       {step === 2 && (
         <Card title="手做">
           <p className="lead">{lesson.handPrompt}</p>
-          <Radio.Group
-            value={state.hand ?? undefined}
-            onChange={(event) => setState((current) => ({ ...current, hand: Number(event.target.value) }))}
-          >
-            <Flex vertical gap={8}>
-              {lesson.handChoices.map((choice, index) => (
-                <Radio key={choice.label} value={index}>
-                  {choice.label}
-                </Radio>
+          {lesson.audition === "sidechain" && (
+            <Button onClick={() => void engine().then((active) => active?.playPump(lesson.bpm))}>听侧链</Button>
+          )}
+          {lesson.drums ? (
+            <Flex vertical gap={12}>
+              {lesson.drums.map((lane, laneIndex) => (
+                <div key={lane.role}>
+                  <p className="hint">{lane.label}</p>
+                  <Stepper
+                    label={lane.label}
+                    lockBars
+                    steps={state.drums?.[laneIndex] ?? Array.from({ length: 16 }, () => false)}
+                    bars={1}
+                    onBars={() => undefined}
+                    onSteps={(steps) =>
+                      setState((current) => {
+                        const drums = (current.drums ?? lesson.drums?.map(() => Array.from({ length: 16 }, () => false)) ?? []).map(
+                          (row) => [...row],
+                        );
+                        drums[laneIndex] = steps.slice(0, 16);
+                        return { ...current, drums };
+                      })
+                    }
+                  />
+                </div>
               ))}
             </Flex>
-          </Radio.Group>
+          ) : lesson.reference ? (
+            <ReferenceHand
+              candidates={candidates}
+              pick={state.referencePick ?? { bpm: null, key: null, structure: null }}
+              onDemo={() => setCandidates(candidatesFromPcm(demoClicks(), 8000))}
+              onFile={(samples, sampleRate) => setCandidates(candidatesFromPcm(samples, sampleRate))}
+              onPick={(pick) => setState((current) => ({ ...current, referencePick: pick }))}
+            />
+          ) : (
+            <Radio.Group
+              value={state.hand ?? undefined}
+              onChange={(event) => setState((current) => ({ ...current, hand: Number(event.target.value) }))}
+            >
+              <Flex vertical gap={8}>
+                {lesson.handChoices.map((choice, index) => (
+                  <Radio key={choice.label} value={index}>
+                    {choice.label}
+                  </Radio>
+                ))}
+              </Flex>
+            </Radio.Group>
+          )}
+          {lesson.showEnergy && state.hand !== null && (
+            <EnergyPreview lesson={lesson} choice={state.hand} />
+          )}
         </Card>
       )}
       {step === 3 && (
@@ -221,5 +275,111 @@ export function LessonFlow({ lesson }: { lesson: StageLesson }) {
         </Button>
       </Flex>
     </>
+  );
+}
+
+function EnergyPreview({ lesson, choice }: { lesson: StageLesson; choice: number }) {
+  const song = choiceEnergySong(lesson, choice);
+  if (!song) return null;
+  return (
+    <div>
+      <p className="hint">蓝条是副歌，浅条是主歌。纵轴是这一小节的能量。</p>
+      <EnergyChart song={song} series={energySeries(song)} />
+    </div>
+  );
+}
+
+function ReferenceHand({
+  candidates,
+  pick,
+  onDemo,
+  onFile,
+  onPick,
+}: {
+  candidates: ReferenceCandidates | null;
+  pick: { bpm: number | null; key: number | null; structure: number | null };
+  onDemo: () => void;
+  onFile: (samples: Float32Array, sampleRate: number) => void;
+  onPick: (pick: { bpm: number | null; key: number | null; structure: number | null }) => void;
+}) {
+  const [note, setNote] = useState<string | null>(null);
+
+  const loadFile = async (file: File) => {
+    try {
+      const context = new AudioContext();
+      const buffer = await context.decodeAudioData(await file.arrayBuffer());
+      const channel = buffer.getChannelData(0);
+      const copy = new Float32Array(channel.length);
+      copy.set(channel);
+      await context.close();
+      onFile(copy, buffer.sampleRate);
+      setNote(`已读取 ${file.name}，下面是候选，选一套即可。`);
+    } catch {
+      onFile(demoClicks(), 8000);
+      setNote("这个文件读不出来，改用示例鼓点。候选已经准备好了。");
+    }
+  };
+
+  return (
+    <Flex vertical gap={12}>
+      <Flex gap={8} wrap>
+        <Button onClick={onDemo}>示例鼓点</Button>
+        <label className="hint">
+          或上传本地音频
+          <input
+            aria-label="上传本地音频"
+            type="file"
+            accept="audio/*"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void loadFile(file);
+            }}
+          />
+        </label>
+      </Flex>
+      {note && <p className="hint">{note}</p>}
+      {candidates ? (
+        <Flex vertical gap={12}>
+          <Radio.Group
+            value={pick.bpm ?? undefined}
+            onChange={(event) => onPick({ ...pick, bpm: Number(event.target.value) })}
+          >
+            <Flex vertical gap={4}>
+              {candidates.bpms.map((bpm, index) => (
+                <Radio key={bpm} value={index}>
+                  {bpm} BPM
+                </Radio>
+              ))}
+            </Flex>
+          </Radio.Group>
+          <Radio.Group
+            value={pick.key ?? undefined}
+            onChange={(event) => onPick({ ...pick, key: Number(event.target.value) })}
+          >
+            <Flex vertical gap={4}>
+              {candidates.keys.map((label, index) => (
+                <Radio key={label} value={index}>
+                  {label}
+                </Radio>
+              ))}
+            </Flex>
+          </Radio.Group>
+          <Radio.Group
+            value={pick.structure ?? undefined}
+            onChange={(event) => onPick({ ...pick, structure: Number(event.target.value) })}
+          >
+            <Flex vertical gap={4}>
+              {candidates.structures.map((item, index) => (
+                <Radio key={item.label} value={index}>
+                  {item.label}
+                </Radio>
+              ))}
+            </Flex>
+          </Radio.Group>
+        </Flex>
+      ) : (
+        <p className="hint">还没有候选。先点示例鼓点，或上传一首本地音频。</p>
+      )}
+    </Flex>
   );
 }

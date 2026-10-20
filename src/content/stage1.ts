@@ -1,6 +1,6 @@
 import type { PitchClass } from "../core/theory/pitch.ts";
 import type { ScaleId } from "../core/theory/scale.ts";
-import type { SkeletonChord, SkeletonNote } from "../core/midi/project.ts";
+import type { SkeletonChord, SkeletonNote, TrackRole } from "../core/midi/project.ts";
 import { PPQ } from "../core/midi/types.ts";
 
 export interface StageEar {
@@ -15,6 +15,14 @@ export interface StageChoice {
   label: string;
   notes: SkeletonNote[];
   chords: SkeletonChord[];
+  /** 多轨导出。有这个字段时优先于 notes。 */
+  tracks?: { role: TrackRole; channel: number; notes: SkeletonNote[] }[];
+}
+
+export interface DrumLaneSpec {
+  role: "KICK" | "SNARE" | "CLAP" | "HAT";
+  label: string;
+  target: boolean[];
 }
 
 export interface StageLesson {
@@ -31,6 +39,15 @@ export interface StageLesson {
   keyScale: ScaleId;
   totalBars: number;
   marker: string;
+  /** 有鼓组时，手做改成把每条轨打成目标格子，不再用单选题。 */
+  drums?: DrumLaneSpec[];
+  sections?: { name: string; startBar: number; bars: number }[];
+  /** 手做步播放一段侧链泵动。 */
+  audition?: "sidechain";
+  /** 手做步按当前选项画能量曲线。 */
+  showEnergy?: boolean;
+  /** 参考曲：从候选里选 BPM、调、结构。 */
+  reference?: boolean;
 }
 
 const BAR = 4 * PPQ;

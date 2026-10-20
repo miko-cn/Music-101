@@ -6,15 +6,20 @@ export function Stepper({
   bars,
   onSteps,
   onBars,
+  lockBars = false,
+  label = "16 格步进器",
 }: {
   steps: boolean[];
   bars: BarCount;
   onSteps: (steps: boolean[]) => void;
   onBars: (bars: BarCount) => void;
+  lockBars?: boolean;
+  label?: string;
 }) {
   const visible = steps.slice(0, stepCount(bars));
   return (
     <div>
+      {lockBars ? null : (
       <div className="field stepper-view">
         <label htmlFor="step-bars">视图</label>
         <Select<BarCount>
@@ -32,7 +37,8 @@ export function Stepper({
           ]}
         />
       </div>
-      <div className="stepper" role="group" aria-label="16 格步进器">
+      )}
+      <div className="stepper" role="group" aria-label={label}>
         {visible.map((on, index) => (
           <button
             key={index}

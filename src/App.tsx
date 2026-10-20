@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, ConfigProvider, Flex, Layout, Select, theme } from "antd";
 import zhCN from "antd/locale/zh_CN";
+import { ARRANGING_LESSONS } from "./content/arranging.ts";
 import { STAGE_LESSONS } from "./content/stage1.ts";
 import { DiagnosticsLab } from "./ui/DiagnosticsLab.tsx";
 import { LessonFlow } from "./ui/LessonFlow.tsx";
@@ -11,15 +12,17 @@ const { Header, Content } = Layout;
 
 type View = "bench" | "lesson" | "diagnostics";
 
+const FLOW_LESSONS = [...STAGE_LESSONS, ...ARRANGING_LESSONS];
+
 const LESSON_OPTIONS = [
   { value: 1, label: "第 1 关 · 音高与键盘" },
-  ...STAGE_LESSONS.map((lesson) => ({ value: lesson.id, label: `第 ${lesson.id} 关 · ${lesson.title}` })),
+  ...FLOW_LESSONS.map((lesson) => ({ value: lesson.id, label: `第 ${lesson.id} 关 · ${lesson.title}` })),
 ];
 
 export function App() {
   const [view, setView] = useState<View>("lesson");
   const [level, setLevel] = useState(1);
-  const stage = STAGE_LESSONS.find((lesson) => lesson.id === level);
+  const stage = FLOW_LESSONS.find((lesson) => lesson.id === level);
 
   return (
     <ConfigProvider

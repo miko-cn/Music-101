@@ -20,6 +20,8 @@ export interface MusicEngine {
   playSequence(midis: readonly number[]): void;
   playVoice(voice: VoiceId, when: number, duration: number, midi?: number): void;
   playSteps(steps: readonly boolean[], midi: number, bpm: number): void;
+  /** 两小节：kick 在每拍上，808 经过侧链被抽下去。 */
+  playPump(bpm?: number): void;
   applySidechain(gain: GainNode, points: readonly GainPoint[], origin: number): void;
   stopAll(): void;
 }
@@ -173,6 +175,26 @@ export function createEngine(): MusicEngine | null {
         if (!on) return;
         playVoice("pluck", origin + index * seconds, Math.min(seconds * 0.9, 0.2), midi);
       });
+    },
+    playPump(bpm = 120) {
+      const origin = context.currentTime + 0.06;
+      const bus = context.createGain();
+      bus.gain.setValueAtTime(1, origin);
+      bus.connect(master);
+      const seconds = stepSeconds(bpm);
+      const triggers = [0, 4, 8, 12, 16, 20, 24, 28];
+      const points = sidechainAutomation(triggers, seconds, 0.12, seconds * 3);
+      const param = bus.gain;
+      param.cancelScheduledValues(origin);
+      param.setValueAtTime(1, origin);
+      for (const point of points) param.linearRampToValueAtTime(point.gain, origin + point.time);
+      const osc = context.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(midiToFrequency(36), origin);
+      const subGain = envelope(context, origin, seconds * 32, 0.35);
+      osc.connect(subGain).connect(bus);
+      track(osc, origin, seconds * 32);
+      for (const step of triggers) playVoice("kick", origin + step * seconds, 0.18, 36);
     },
     applySidechain(gain, points, origin) {
       const param = gain.gain;

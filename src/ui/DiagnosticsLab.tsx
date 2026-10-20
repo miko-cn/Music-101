@@ -81,7 +81,7 @@ function diagnosticText(item: { bar?: number; message: string }): string {
   return `${label} · ${item.message}`;
 }
 
-function EnergyChart({ song, series }: { song: AnalysisSong; series: BarEnergy[] }) {
+export function EnergyChart({ song, series }: { song: AnalysisSong; series: BarEnergy[] }) {
   const width = 640;
   const height = 220;
   const pad = 28;
