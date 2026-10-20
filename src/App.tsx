@@ -10,6 +10,8 @@ import {
   keyName,
   pitchClassToName,
   romanNumeral,
+  spellChordTones,
+  spellScaleNotes,
   type ChordQuality,
   type PitchClass,
   type ScaleId,
@@ -41,9 +43,22 @@ export function App() {
   const chord = { root, quality };
   const chordPitches = getChordPitches(chord);
   const numeral = romanNumeral(chord, root);
+  const scaleNames = spellScaleNotes(root, scale, preferFlat);
+  const chordNames = spellChordTones(chord, preferFlat);
   const scaleSet = new Set(scalePitches);
   const chordSet = new Set(chordPitches);
-  const spell = (pitch: PitchClass) => pitchClassToName(pitch, preferFlat);
+  const tonicName = pitchClassToName(root, preferFlat);
+  // 和弦音的拼写优先于音阶：F# 自然小调里的 E 是调内音，F#maj7 的七音仍要写成 E#。
+  const spelled = new Map<PitchClass, string>();
+  scalePitches.forEach((pitch, index) => {
+    const name = scaleNames[index];
+    if (name !== undefined) spelled.set(pitch, name);
+  });
+  chordPitches.forEach((pitch, index) => {
+    const name = chordNames[index];
+    if (name !== undefined) spelled.set(pitch, name);
+  });
+  const spell = (pitch: PitchClass) => spelled.get(pitch) ?? pitchClassToName(pitch, preferFlat);
 
   return (
     <ConfigProvider
@@ -82,7 +97,10 @@ export function App() {
                   value={root}
                   style={{ minWidth: 112 }}
                   onChange={setRoot}
-                  options={ROOTS.map((pitch) => ({ value: pitch, label: spell(pitch) }))}
+                  options={ROOTS.map((pitch) => ({
+                    value: pitch,
+                    label: pitchClassToName(pitch, preferFlat),
+                  }))}
                 />
               </div>
               <div className="field">
@@ -135,7 +153,7 @@ export function App() {
                   {scalePitches.map((pitch, index) => (
                     <li key={`${index}-${pitch}`}>
                       <span className="degree-index">{index + 1}</span>
-                      <span>{spell(pitch)}</span>
+                      <span>{scaleNames[index]}</span>
                     </li>
                   ))}
                 </ol>
@@ -144,18 +162,18 @@ export function App() {
             <Col xs={24} lg={12}>
               <Card title="和弦与级数" className="result-card">
                 <p className="chord-symbol">
-                  {spell(root)}
+                  {tonicName}
                   {quality} → {numeral}
                 </p>
                 <p className="numeral-label">级数</p>
                 <p className="numeral">{numeral}</p>
                 <p className="quality-label">{CHORD_LABELS[quality]}</p>
                 <Flex wrap gap={8}>
-                  {chordPitches.map((pitch) => {
+                  {chordPitches.map((pitch, index) => {
                     const degree = degreeOfPitch(pitch, root, scale);
                     return (
-                      <Tag key={pitch} color={degree === null ? "gold" : "blue"}>
-                        {spell(pitch)}
+                      <Tag key={`${index}-${pitch}`} color={degree === null ? "gold" : "blue"}>
+                        {chordNames[index]}
                         {degree === null ? " · 调外" : ` · ${degree} 级`}
                       </Tag>
                     );

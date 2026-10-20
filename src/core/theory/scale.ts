@@ -1,4 +1,4 @@
-import { midiToPitchClass, pitchClassToName, type PitchClass } from "./pitch.ts";
+import { midiToPitchClass, pitchClassToName, spellStackedPitch, type PitchClass } from "./pitch.ts";
 
 /** 支持的音阶种类。 */
 export type ScaleId = "major" | "naturalMinor" | "harmonicMinor" | "melodicMinor";
@@ -33,6 +33,16 @@ export const SCALE_LABELS: Record<ScaleId, string> = {
  */
 export function getScalePitches(root: PitchClass, scale: ScaleId): PitchClass[] {
   return SCALE_INTERVALS[scale].map((offset) => midiToPitchClass(root + offset));
+}
+
+/**
+ * 按音阶级数拼写音阶。每个音级占下一个字母，变化音跟着算。
+ * F# 大调的导音因此是 E#，Gb 大调的四级是 Cb。
+ */
+export function spellScaleNotes(root: PitchClass, scale: ScaleId, preferFlat = false): string[] {
+  return SCALE_INTERVALS[scale].map((interval, degree) =>
+    spellStackedPitch(root, interval, degree, preferFlat),
+  );
 }
 
 /**
