@@ -50,6 +50,11 @@ export interface SkeletonChord {
   pitches: number[];
   /** 标记与轨面上显示的和弦名，例如 "F#m" */
   text: string;
+  /**
+   * 为 true 时不在导轨写和弦标记。
+   * 同一个和弦跨多小节时，每小节仍各写一组和弦音，标记只留在第一小节。
+   */
+  omitMarker?: boolean;
 }
 
 export interface SongSkeleton {
@@ -92,6 +97,7 @@ export function skeletonToMidi(skeleton: SongSkeleton): MidiFile {
   }
 
   for (const chord of skeleton.chords) {
+    if (chord.omitMarker === true) continue;
     conductor.events.push({ kind: "marker", tick: chord.tick, text: chord.text });
   }
 

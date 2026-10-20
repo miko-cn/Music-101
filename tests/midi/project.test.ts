@@ -89,4 +89,20 @@ describe("skeletonToMidi", () => {
     const offs = midi.tracks[2].events.filter((event) => event.kind === "noteOff");
     expect(offs[0]?.tick).toBe(4 * PPQ);
   });
+
+  it("omitMarker 的延续小节只铺和弦音，不重复导轨标记", () => {
+    const midi = skeletonToMidi({
+      ...skeleton,
+      chords: [
+        { tick: 0, pitches: [54, 57, 61], text: "F#m" },
+        { tick: 4 * PPQ, pitches: [54, 57, 61], text: "F#m", omitMarker: true },
+      ],
+    });
+    const chordMarkers = midi.tracks[0].events.filter(
+      (event) => event.kind === "marker" && event.text === "F#m",
+    );
+    expect(chordMarkers).toEqual([{ kind: "marker", tick: 0, text: "F#m" }]);
+    const noteOns = midi.tracks[2].events.filter((event) => event.kind === "noteOn");
+    expect(noteOns.map((event) => event.tick)).toEqual([0, 0, 0, 4 * PPQ, 4 * PPQ, 4 * PPQ]);
+  });
 });
