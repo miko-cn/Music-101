@@ -1,4 +1,4 @@
-import { midiToPitchClass, type PitchClass } from "./pitch.ts";
+import { midiToPitchClass, spellStackedPitch, type PitchClass } from "./pitch.ts";
 
 /** 支持的和弦性质。 */
 export type ChordQuality =
@@ -76,9 +76,40 @@ export const CHORD_MATCH_ORDER: readonly ChordQuality[] = [
   "min",
 ];
 
+/**
+ * 每个和弦音相对根音的字母跨度（0 = 根音字母）。
+ * 三和弦是三度叠置（+2、+4），七和弦再加七度（+6）。
+ * 挂留二度是二度（+1），挂留四度是四度（+3），加九是九度（+8）。
+ */
+const CHORD_LETTER_OFFSETS: Record<ChordQuality, readonly number[]> = {
+  maj: [0, 2, 4],
+  min: [0, 2, 4],
+  dim: [0, 2, 4],
+  aug: [0, 2, 4],
+  maj7: [0, 2, 4, 6],
+  min7: [0, 2, 4, 6],
+  dom7: [0, 2, 4, 6],
+  sus2: [0, 1, 4],
+  sus4: [0, 3, 4],
+  add9: [0, 2, 4, 8],
+  m7b5: [0, 2, 4, 6],
+  dim7: [0, 2, 4, 6],
+};
+
 /** 取得和弦包含的全部音级（0-11），按从根音向上的顺序排列。 */
 export function getChordPitches(chord: Chord): PitchClass[] {
   return CHORD_INTERVALS[chord.quality].map((offset) => midiToPitchClass(chord.root + offset));
+}
+
+/** 按和弦结构拼写和弦音。F#maj7 → F# A# C# E#，不把七音写成 F。 */
+export function spellChordTones(chord: Chord, preferFlat = false): string[] {
+  const semitones = CHORD_INTERVALS[chord.quality];
+  const letters = CHORD_LETTER_OFFSETS[chord.quality];
+  return semitones.map((interval, index) => {
+    const letterOffset = letters[index];
+    if (letterOffset === undefined) throw new Error(`和弦 ${chord.quality} 缺少第 ${index} 个字母跨度`);
+    return spellStackedPitch(chord.root, interval, letterOffset, preferFlat);
+  });
 }
 
 /**
