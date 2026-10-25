@@ -39,10 +39,34 @@
   white-space: nowrap;
 }
 
-/* 记谱变音记号比正文字母高一点、瘦一点，是谱面的样子。 */
+/*
+ * 记谱变音记号。
+ *
+ * 记谱字体的变音符号是按五线谱位置画的，不是按文字基线画的，所以要单独调：
+ * - 升号横跨谱线，重心在基线以下 → 往上提
+ * - 降号的碗坐在基线上 → 不能提，只能让它长高
+ *
+ * 记谱符号的笔画也比字母细，同尺寸下会细成一根发丝，所以整体放大一号。
+ * line-height: 0 是为了不让放大的符号把行盒撑高。
+ */
 .note-accidental {
-  font-size: 1.05em;
-  padding: 0 0.02em;
+  font-size: 1.3em;
+  line-height: 0;
+  /* 放大之后变音记号会贴到字母上，留一点缝。 */
+  padding: 0 0.03em 0 0.06em;
+  /* 记谱字体的笔画是雕刻线，细到正常缩放下只剩半像素的灰丝。
+     加一点点描边，把它撑成看得见的实心笔画。 */
+  -webkit-text-stroke: 0.02em currentColor;
+}
+
+.note-accidental.is-sharp {
+  position: relative;
+  top: -0.12em;
+}
+
+.note-accidental.is-flat {
+  position: relative;
+  top: -0.02em;
 }
 
 /* 八度数字用下标——谱面就是这么标的。 */

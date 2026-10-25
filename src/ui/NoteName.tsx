@@ -14,8 +14,26 @@ export function NoteName({ name, className }: { name: string; className?: string
   return (
     <span className={className ? `note-name ${className}` : "note-name"}>
       {letter}
-      {accidental ? <span className="note-accidental">{accidental}</span> : null}
+      {accidental ? <NoteAccidental sign={accidental} /> : null}
       {octave ? <span className="note-octave">{octave}</span> : null}
     </span>
+  );
+}
+
+/**
+ * 变音记号。
+ *
+ * 记谱字体的变音符号是按「五线谱上的位置」设计的，不是按文字基线设计的：
+ *
+ * - **升号 / 重升号**是横跨谱线的：它有一半在基线以下。跟字母并排时必须往上提，
+ *   否则重心偏低，看着像掉下去了。
+ * - **降号 / 重降号**的碗就坐在基线上：不能提，一提就浮起来了。它的柄本来就往上长。
+ *
+ * 另外记谱符号的笔画比字母细，同尺寸下会细成一根发丝，所以整体放大到比字母大一号。
+ */
+function NoteAccidental({ sign }: { sign: string }) {
+  const raised = sign === "♯" || sign === "\u{1D12A}";
+  return (
+    <span className={raised ? "note-accidental is-sharp" : "note-accidental is-flat"}>{sign}</span>
   );
 }
