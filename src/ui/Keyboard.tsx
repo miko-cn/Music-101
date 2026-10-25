@@ -1,10 +1,10 @@
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { midiToNoteName } from "../core/theory/pitch.ts";
-import { keyboardLayout } from "../core/theory/keyboard.ts";
+import { centeredKeyboardLayout } from "../core/theory/keyboard.ts";
 
 export interface KeyboardProps {
-  /** 起始 MIDI 音高，必须是 C（例如 36 = C2、48 = C3）。 */
-  fromMidi?: number;
+  /** 中央 C 的 MIDI 音高（60）。布局以它为中心向左右展开。 */
+  centerMidi?: number;
   /** 显示几个八度。 */
   octaves?: number;
   /** 是否在琴键上印音名。 */
@@ -17,8 +17,10 @@ export interface KeyboardProps {
   highlight?: ReadonlySet<number>;
   /** 需要高亮的精确 MIDI 音高集合（比音类高亮更强）。 */
   highlightMidi?: ReadonlySet<number>;
-  /** 点琴键时回调，参数是 MIDI 音高。 */
-  onPick?: (midi: number) => void;
+  /** 按下琴键时回调，参数是 MIDI 音高。 */
+  onPress?: (midi: number) => void;
+  /** 松开琴键时回调，参数是 MIDI 音高。 */
+  onRelease?: (midi: number) => void;
   /** 已经按下的音高集合。 */
   pressed?: ReadonlySet<number>;
   label?: string;
@@ -28,23 +30,30 @@ export interface KeyboardProps {
  * 多八度参考键盘。
  *
  * 与关卡里那个单八度 Piano 不同，这个是「查位置」用的：
+ * - 以中央 C 为中心向左右展开，C4 永远在正中间，打开就能当尺子用
  * - 跨多个八度，才能看出「黑键 2 个一组、3 个一组」在重复
  * - 每个键都印音名（黑键也印）
  * - 可以标出 C 和 F 这两个定位点
+ *
+ * 发声跟住手指：按下起音，松开制音，延音多长由你按多久决定。
  */
 export function Keyboard({
-  fromMidi = 36,
+  centerMidi = 60,
   octaves = 3,
   showNames = true,
   showMidi = false,
   showGroups = true,
   highlight,
   highlightMidi,
-  onPick,
+  onPress,
+  onRelease,
   pressed,
   label = "参考键盘",
 }: KeyboardProps) {
-  const { white, black, whiteCount } = keyboardLayout(fromMidi, octaves);
+  const { white, black, whiteCount, cIndexes, fIndexes, groups } = centeredKeyboardLayout(
+    centerMidi,
+    octaves,
+  );
   const whiteWidth = 100 / whiteCount;
   const blackWidth = (0.58 / whiteCount) * 100;
 
@@ -52,23 +61,18 @@ export function Keyboard({
     <div className="keyboard-wrap">
       {showGroups && (
         <div className="keyboard-groups" aria-hidden="true">
-          {Array.from({ length: octaves }, (_, octave) => {
-            const base = octave * 7;
-            const pairLeft = ((base + 1 - 0.29) / whiteCount) * 100;
-            const pairWidth = (1.58 / whiteCount) * 100;
-            const tripleLeft = ((base + 4 - 0.29) / whiteCount) * 100;
-            const tripleWidth = (2.58 / whiteCount) * 100;
-            return (
-              <div key={octave}>
-                <span className="keyboard-group" style={{ left: `${pairLeft}%`, width: `${pairWidth}%` }}>
-                  2 个
-                </span>
-                <span className="keyboard-group" style={{ left: `${tripleLeft}%`, width: `${tripleWidth}%` }}>
-                  3 个
-                </span>
-              </div>
-            );
-          })}
+          {groups.map((group) => (
+            <span
+              key={`${group.fromWhite}-${group.toWhite}`}
+              className="keyboard-group"
+              style={{
+                left: `${((group.fromWhite + 1 - 0.29) / whiteCount) * 100}%`,
+                width: `${((group.toWhite - group.fromWhite + 0.58) / whiteCount) * 100}%`,
+              }}
+            >
+              {group.size} 个
+            </span>
+          ))}
         </div>
       )}
       <div className="keyboard" role="group" aria-label={label}>
@@ -82,7 +86,8 @@ export function Keyboard({
             highlighted={highlight?.has(key.midi % 12) === true}
             exact={highlightMidi?.has(key.midi) === true}
             pressed={pressed?.has(key.midi) === true}
-            onPick={onPick}
+            onPress={onPress}
+            onRelease={onRelease}
           />
         ))}
         {black.map((key) => (
@@ -95,7 +100,8 @@ export function Keyboard({
             highlighted={highlight?.has(key.midi % 12) === true}
             exact={highlightMidi?.has(key.midi) === true}
             pressed={pressed?.has(key.midi) === true}
-            onPick={onPick}
+            onPress={onPress}
+            onRelease={onRelease}
             style={{
               left: `${((key.whiteIndex + 1 - 0.29) / whiteCount) * 100}%`,
               width: `${blackWidth}%`,
@@ -105,22 +111,24 @@ export function Keyboard({
       </div>
       {showGroups && (
         <div className="keyboard-anchors" aria-hidden="true">
-          {Array.from({ length: octaves }, (_, octave) => {
-            const base = octave * 7;
-            return (
-              <div key={octave}>
-                <span className="keyboard-anchor" style={{ left: `${base * whiteWidth}%`, width: `${whiteWidth}%` }}>
-                  C
-                </span>
-                <span
-                  className="keyboard-anchor"
-                  style={{ left: `${(base + 3) * whiteWidth}%`, width: `${whiteWidth}%` }}
-                >
-                  F
-                </span>
-              </div>
-            );
-          })}
+          {cIndexes.map((index) => (
+            <span
+              key={`c-${index}`}
+              className="keyboard-anchor"
+              style={{ left: `${index * whiteWidth}%`, width: `${whiteWidth}%` }}
+            >
+              C
+            </span>
+          ))}
+          {fIndexes.map((index) => (
+            <span
+              key={`f-${index}`}
+              className="keyboard-anchor"
+              style={{ left: `${index * whiteWidth}%`, width: `${whiteWidth}%` }}
+            >
+              F
+            </span>
+          ))}
         </div>
       )}
     </div>
@@ -135,7 +143,8 @@ function KeyButton({
   highlighted,
   exact,
   pressed,
-  onPick,
+  onPress,
+  onRelease,
   style,
 }: {
   kind: "white" | "black";
@@ -145,10 +154,22 @@ function KeyButton({
   highlighted: boolean;
   exact: boolean;
   pressed: boolean;
-  onPick?: (midi: number) => void;
+  onPress?: (midi: number) => void;
+  onRelease?: (midi: number) => void;
   style?: CSSProperties;
 }) {
   const name = midiToNoteName(midi);
+  // 指针按下的时刻。用它区分「鼠标点的」和「键盘 Enter 触发的」——
+  // 鼠标那一下已经在 pointerdown 里起音了，click 不该再响一次。
+  const pointerAt = useRef(0);
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    pointerAt.current = Date.now();
+    // 抓住指针：手指滑出琴键也不会漏掉「松开」，延音才跟得住。
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    onPress?.(midi);
+  };
+
   return (
     <button
       type="button"
@@ -163,7 +184,16 @@ function KeyButton({
         .join(" ")}
       aria-label={`${name}${showMidi ? `，MIDI ${midi}` : ""}`}
       style={style}
-      onClick={() => onPick?.(midi)}
+      onPointerDown={handlePointerDown}
+      onPointerUp={() => onRelease?.(midi)}
+      onPointerCancel={() => onRelease?.(midi)}
+      onLostPointerCapture={() => onRelease?.(midi)}
+      onClick={() => {
+        // 键盘（Enter / 空格）触发时没有 pointerdown，这里补一声短音。
+        if (Date.now() - pointerAt.current < 800) return;
+        onPress?.(midi);
+        window.setTimeout(() => onRelease?.(midi), 200);
+      }}
     >
       {showNames ? <span className="keyboard-key-name">{name}</span> : null}
       {showMidi ? <span className="keyboard-key-midi">{midi}</span> : null}

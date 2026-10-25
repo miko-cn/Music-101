@@ -1,8 +1,8 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Drawer, Flex, Select, Space, Switch, Tag } from "antd";
 import { createEngine, type MusicEngine } from "../core/audio/engine.ts";
 import { midiToNoteName } from "../core/theory/pitch.ts";
-import { quizHighlight } from "../core/theory/keyboard.ts";
+import { centeredKeyboardLayout, quizHighlight } from "../core/theory/keyboard.ts";
 import { Keyboard } from "./Keyboard.tsx";
 
 /** 12 个音类，附带两种拼写，方便和谱面/软件里的写法对上。 */
@@ -27,19 +27,24 @@ const OCTAVE_OPTIONS = [
   { value: 4, label: "4 个八度" },
 ];
 
+/** 布局以中央 C 为中心。 */
+const CENTER_MIDI = 60;
+
 /**
  * 全局键盘面板。
  *
  * 没有实体 MIDI 键盘的时候，「C 在哪个键上」只能靠抽象字母记住。
  * 这个面板把字母和黑白键的物理位置绑在一起：
+ * - C4 固定在正中间，向左向右展开，打开就能当尺子用
  * - 多八度铺开，黑键「2 个一组、3 个一组」的重复规律一眼可见
  * - 每个键都印音名（黑键也印）
  * - 「找音」直接定位到所有八度的同名键
  * - 「听一个音」把声音和位置绑定起来：听 → 自己点 → 对错立刻有反馈
+ *
+ * 发声跟住手指：按下起音，松开制音。按多久响多久，不留一截回声。
  */
 export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [octaves, setOctaves] = useState(3);
-  const [fromMidi, setFromMidi] = useState(36);
   const [showNames, setShowNames] = useState(true);
   const [showMidi, setShowMidi] = useState(false);
   const [showGroups, setShowGroups] = useState(true);
@@ -47,18 +52,22 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
   const [quiz, setQuiz] = useState<{ midi: number; answered: boolean; correct: boolean } | null>(null);
   const [pressed, setPressed] = useState<ReadonlySet<number>>(new Set());
   const engineRef = useRef<MusicEngine | null>(null);
+  /** 正在响的音：MIDI 音高 → 引擎里的句柄。 */
+  const voicesRef = useRef(new Map<number, number>());
 
-  const engine = async () => {
+  const getEngine = (): MusicEngine | null => {
     if (!engineRef.current) engineRef.current = createEngine();
-    await engineRef.current?.resume();
     return engineRef.current;
   };
 
-  const range = useMemo(() => {
-    const notes: number[] = [];
-    for (let i = 0; i < octaves * 12; i += 1) notes.push(fromMidi + i);
-    return notes;
-  }, [fromMidi, octaves]);
+  const engine = async () => {
+    const active = getEngine();
+    await active?.resume();
+    return active;
+  };
+
+  const layout = useMemo(() => centeredKeyboardLayout(CENTER_MIDI, octaves), [octaves]);
+  const range = useMemo(() => layout.white.map((key) => key.midi), [layout]);
 
   // 测验进行中，高亮必须为空：高亮等于直接把答案说出来。
   // 判定规则放在 core 层的纯函数里，这里只负责取结果。
@@ -80,11 +89,50 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
     return range.filter((midi) => midi % 12 === target);
   }, [range, target]);
 
+  // 面板关掉时把还在响的音制住，别让余音留在后台。
+  useEffect(() => {
+    return () => {
+      for (const id of voicesRef.current.values()) engineRef.current?.releasePitch(id);
+      voicesRef.current.clear();
+    };
+  }, []);
+
   const flash = (midi: number) => {
     setPressed(new Set([midi]));
     window.setTimeout(() => setPressed(new Set()), 320);
   };
 
+  /** 按下：起音。必须同步完成，否则「快速点一下」会在松手之后才起音。 */
+  const press = (midi: number) => {
+    setPressed((current) => new Set(current).add(midi));
+    const active = getEngine();
+    if (active) {
+      void active.resume();
+      const previous = voicesRef.current.get(midi);
+      if (previous !== undefined) active.releasePitch(previous);
+      voicesRef.current.set(midi, active.pressPitch(midi));
+    }
+    // 测验进行中，按下哪个键就是作答。
+    if (quiz && !quiz.answered) {
+      setQuiz({ ...quiz, answered: true, correct: midi === quiz.midi });
+    }
+  };
+
+  /** 松开：制音器落下，尾音立刻收掉。 */
+  const release = (midi: number) => {
+    setPressed((current) => {
+      if (!current.has(midi)) return current;
+      const next = new Set(current);
+      next.delete(midi);
+      return next;
+    });
+    const id = voicesRef.current.get(midi);
+    if (id === undefined) return;
+    voicesRef.current.delete(midi);
+    engineRef.current?.releasePitch(id);
+  };
+
+  /** 一次性的试听音（找这个音、听音测验）。 */
   const play = async (midi: number) => {
     flash(midi);
     await engine().then((active) => active?.playPitch(midi));
@@ -95,12 +143,6 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
     setTarget(null);
     setQuiz({ midi, answered: false, correct: false });
     await engine().then((active) => active?.playPitch(midi));
-  };
-
-  const onKeyClick = async (midi: number) => {
-    await play(midi);
-    if (!quiz) return;
-    setQuiz({ ...quiz, answered: true, correct: midi === quiz.midi });
   };
 
   return (
@@ -163,14 +205,13 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
             options={OCTAVE_OPTIONS}
             onChange={(value) => {
               setOctaves(value);
-              setFromMidi(value === 2 ? 48 : 36);
               setQuiz(null);
             }}
           />
         </Flex>
 
         <Keyboard
-          fromMidi={fromMidi}
+          centerMidi={CENTER_MIDI}
           octaves={octaves}
           showNames={showNames}
           showMidi={showMidi}
@@ -178,7 +219,8 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
           highlight={highlight}
           highlightMidi={highlightMidi}
           pressed={pressed}
-          onPick={(midi) => void onKeyClick(midi)}
+          onPress={press}
+          onRelease={release}
           label="全局参考键盘"
         />
 
@@ -235,8 +277,9 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
         )}
 
         <p className="hint">
-          点琴键会发声。白键是 C D E F G A B，黑键是它们中间的升号音；同名音每高一个八度就再加 1。
-          中央 C 记成 C4，MIDI 编号 60——所有 MIDI 编号都从它往两边数。
+          <strong>按住琴键</strong>声音就会一直响，<strong>松手</strong>立刻收掉——延音由你按多久决定。
+          白键是 C D E F G A B，黑键是它们中间的升号音；同名音每高一个八度就再加 1。
+          中央 C 记成 C4，MIDI 编号 60，就在键盘正中间。
         </p>
       </Flex>
     </Drawer>

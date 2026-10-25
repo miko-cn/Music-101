@@ -97,6 +97,14 @@ export const PLAIN_TONE: PlainToneProfile = {
 /** 点琴键时按住多久（秒）：够听完起音和一段自然衰减，又不会盖住下一次点击。 */
 export const PIANO_HOLD_SECONDS = 1.6;
 
+/**
+ * 制音器最早什么时候落下（秒）。
+ *
+ * 真实钢琴的制音器不是一松手就到底的：键床有回弹，毡垫落下去要走一点时间。
+ * 少了这个下限，快速点一下就变成「咔」的一声，听不见音高。
+ */
+export const DAMPER_MIN_SECONDS = 0.12;
+
 /** 中央 C 的频率，作为音区衰减的参考点。 */
 const CENTRAL_C_HZ = 261.6255653;
 

@@ -14,8 +14,17 @@ interface Started {
   frequency: number;
 }
 
+interface ParamCall {
+  type: string;
+  value: number;
+  time: number;
+  constant?: number;
+}
+
 interface FakeParam {
   value: number;
+  /** 参数自动化调用的记录，用来断言「制音器落在哪一刻」。 */
+  calls: ParamCall[];
   setValueAtTime: (value: number, time: number) => void;
   linearRampToValueAtTime: (value: number, time: number) => void;
   exponentialRampToValueAtTime: (value: number, time: number) => void;
@@ -26,17 +35,22 @@ interface FakeParam {
 function fakeParam(): FakeParam {
   const param: FakeParam = {
     value: 0,
-    setValueAtTime: (value) => {
+    calls: [],
+    setValueAtTime: (value, time) => {
       param.value = value;
+      param.calls.push({ type: "setValueAtTime", value, time });
     },
-    linearRampToValueAtTime: (value) => {
+    linearRampToValueAtTime: (value, time) => {
       param.value = value;
+      param.calls.push({ type: "linearRampToValueAtTime", value, time });
     },
-    exponentialRampToValueAtTime: (value) => {
+    exponentialRampToValueAtTime: (value, time) => {
       param.value = value;
+      param.calls.push({ type: "exponentialRampToValueAtTime", value, time });
     },
-    setTargetAtTime: (value) => {
+    setTargetAtTime: (value, time, constant) => {
       param.value = value;
+      param.calls.push({ type: "setTargetAtTime", value, time, constant });
     },
     cancelScheduledValues: () => {},
   };
@@ -50,13 +64,18 @@ class FakeAudioContext {
   sampleRate = 44100;
   destination = {};
   started: Started[] = [];
+  stopped: { when: number }[] = [];
+  /** 所有创建过的增益节点。 */
+  gains: FakeParam[] = [];
 
   constructor() {
     FakeAudioContext.instances.push(this);
   }
 
   createGain() {
-    return { gain: fakeParam(), connect: (node: unknown) => node };
+    const gain = fakeParam();
+    this.gains.push(gain);
+    return { gain, connect: (node: unknown) => node };
   }
 
   createOscillator() {
@@ -70,7 +89,9 @@ class FakeAudioContext {
       start(when: number) {
         context.started.push({ when, frequency: frequency.value });
       },
-      stop: () => {},
+      stop(when: number) {
+        context.stopped.push({ when });
+      },
       onended: null as null | (() => void),
     };
   }
@@ -201,5 +222,69 @@ describe("参考音走电钢、听辨走纯音", () => {
     expect(frequencies).toHaveLength(2);
     expect(frequencies[0]).toBeCloseTo(261.6256, 3);
     expect(frequencies[1]).toBeCloseTo(523.2512, 3);
+  });
+});
+
+describe("延音跟住按住时长", () => {
+  /** 电钢的 4 条泛音各自的增益节点：有起音斜坡的那些。 */
+  function voiceGains(context: FakeAudioContext): FakeParam[] {
+    return context.gains.filter((gain) =>
+      gain.calls.some((call) => call.type === "linearRampToValueAtTime"),
+    );
+  }
+
+  it("按下就起音，并且不预先安排停止时刻", async () => {
+    const { engine, context } = await makeEngine();
+    const id = engine.pressPitch(60);
+    expect(id).toBeGreaterThan(0);
+    expect(context.started).toHaveLength(4);
+    // 按住不放：振荡器不会自己停，延音多长由手指决定。
+    expect(context.stopped).toHaveLength(0);
+  });
+
+  it("松手后制音器落下，振荡器被停下", async () => {
+    const { engine, context } = await makeEngine();
+    const id = engine.pressPitch(60);
+    context.currentTime = 2;
+    engine.releasePitch(id);
+    expect(context.stopped).toHaveLength(4);
+    for (const stop of context.stopped) {
+      expect(stop.when).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("制音器落在松手的那一刻，不是按下后的固定时长", async () => {
+    const { engine, context } = await makeEngine();
+    const id = engine.pressPitch(60);
+    context.currentTime = 2;
+    engine.releasePitch(id);
+    const dampers = voiceGains(context).flatMap((gain) =>
+      gain.calls.filter((call) => call.type === "setTargetAtTime" && call.constant === 0.08),
+    );
+    expect(dampers).toHaveLength(4);
+    for (const damper of dampers) {
+      expect(damper.time).toBeCloseTo(2, 6);
+    }
+  });
+
+  it("松得太快时制音器不会早于起音", async () => {
+    const { engine, context } = await makeEngine();
+    const id = engine.pressPitch(60);
+    engine.releasePitch(id);
+    const dampers = voiceGains(context).flatMap((gain) =>
+      gain.calls.filter((call) => call.type === "setTargetAtTime" && call.constant === 0.08),
+    );
+    const startedAt = context.started[0]!.when;
+    for (const damper of dampers) {
+      expect(damper.time).toBeGreaterThanOrEqual(startedAt);
+    }
+  });
+
+  it("松同一个音两次不会出错", async () => {
+    const { engine, context } = await makeEngine();
+    const id = engine.pressPitch(60);
+    engine.releasePitch(id);
+    engine.releasePitch(id);
+    expect(context.stopped).toHaveLength(4);
   });
 });

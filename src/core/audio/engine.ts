@@ -10,6 +10,7 @@ import {
   type GainPoint,
 } from "./params.ts";
 import {
+  DAMPER_MIN_SECONDS,
   PLAIN_TONE,
   PIANO_HOLD_SECONDS,
   RHODES,
@@ -26,6 +27,10 @@ export interface MusicEngine {
   resume(): Promise<void>;
   /** 点琴键 / 试听用的参考音：电钢。 */
   playPitch(midi: number, when?: number, duration?: number): void;
+  /** 按住琴键：起音，返回一个可以松开的句柄。延音由按住多久决定。 */
+  pressPitch(midi: number): number;
+  /** 松开琴键：制音器落下，声音在几十毫秒内消失。 */
+  releasePitch(voiceId: number): void;
   /** 依次播放若干个音（听辨题的「播放」按钮：把几个备选一个一个弹出来对比）。 */
   playSequence(midis: readonly number[]): void;
   /** 播放听辨题的一个选项：和弦同时响，旋律依次响。用纯音。 */
@@ -42,6 +47,16 @@ interface Stoppable {
   stop: (when: number) => void;
 }
 
+/** 一个正在响的、按住不放的电钢音。 */
+interface HeldVoice {
+  /** 起音时刻。制音器不会早于它落下。 */
+  startedAt: number;
+  /** 每条泛音的增益节点——制音器就落在这些节点上。 */
+  gains: GainNode[];
+  /** 还在响的振荡器。 */
+  nodes: OscillatorNode[];
+}
+
 /** 浏览器里没有 AudioContext 时返回 null，关卡界面仍可作答和导出。 */
 export function createEngine(): MusicEngine | null {
   if (typeof AudioContext === "undefined") return null;
@@ -50,7 +65,70 @@ export function createEngine(): MusicEngine | null {
   master.gain.value = 0.8;
   master.connect(context.destination);
   const live = new Set<Stoppable>();
+  const heldVoices = new Map<number, HeldVoice>();
+  let nextVoiceId = 1;
   const noise = createNoise(context, 1);
+
+  /**
+   * 电钢起音：加法合成。每个泛音一条正弦，起音后各自指数衰减，高次泛音先死。
+   *
+   * 这里只管「响起来」，不管「什么时候停」——停下是制音器的事（dampVoice）。
+   */
+  const startPiano = (when: number, midi: number): HeldVoice => {
+    const profile = RHODES;
+    const frequencies = partialFrequencies(midi, profile);
+    const decays = partialDecays(midi, profile);
+    const gains: GainNode[] = [];
+    const nodes: OscillatorNode[] = [];
+    profile.partials.forEach((partial, index) => {
+      const osc = context.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(frequencies[index] ?? midiToFrequency(midi), when);
+      const gain = context.createGain();
+      const peak = profile.peak * partial.gain;
+      gain.gain.setValueAtTime(0, when);
+      gain.gain.linearRampToValueAtTime(peak, when + partial.attack);
+      gain.gain.setTargetAtTime(0, when + partial.attack, decays[index] ?? profile.baseDecaySeconds);
+      osc.connect(gain).connect(master);
+      osc.start(when);
+      nodes.push(osc);
+      gains.push(gain);
+    });
+    // 槌击 / 音叉的瞬态噪声。
+    const click = context.createBufferSource();
+    click.buffer = noise;
+    const band = context.createBiquadFilter();
+    band.type = "bandpass";
+    band.frequency.value = profile.clickHz;
+    band.Q.value = 0.8;
+    const clickGain = context.createGain();
+    clickGain.gain.setValueAtTime(profile.clickGain, when);
+    clickGain.gain.setTargetAtTime(0, when, profile.clickSeconds / 3);
+    click.connect(band).connect(clickGain).connect(master);
+    track(click, when, profile.clickSeconds);
+    return { startedAt: when, gains, nodes };
+  };
+
+  /**
+   * 制音器落下：泛音被快速掐掉。
+   *
+   * 这就是「延音跟住按住时长」的关键——琴键一松，尾音立刻收掉，
+   * 而不是按一个固定时长自己响完。
+   */
+  const dampVoice = (voice: HeldVoice, at: number) => {
+    const profile = RHODES;
+    const fall = Math.max(at, voice.startedAt + DAMPER_MIN_SECONDS);
+    for (const gain of voice.gains) {
+      gain.gain.setTargetAtTime(0, fall, profile.releaseSeconds);
+    }
+    for (const node of voice.nodes) {
+      try {
+        node.stop(fall + profile.releaseSeconds * 6);
+      } catch {
+        // 已经停过的节点再 stop 会抛，忽略即可。
+      }
+    }
+  };
 
   const track = (node: OscillatorNode | AudioBufferSourceNode, when: number, duration: number) => {
     const item = {
@@ -157,40 +235,9 @@ export function createEngine(): MusicEngine | null {
       return;
     }
     if (voice === "piano") {
-      // 电钢：加法合成。每个泛音一条正弦，起音后各自指数衰减，高次泛音先死。
-      const profile = RHODES;
-      const frequencies = partialFrequencies(midi, profile);
-      const decays = partialDecays(midi, profile);
-      const longestAttack = Math.max(...profile.partials.map((partial) => partial.attack));
-      // 按住的时间不能比起音还短，否则包络事件会乱序。
-      const hold = Math.max(duration, longestAttack + 0.01);
-      profile.partials.forEach((partial, index) => {
-        const osc = context.createOscillator();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(frequencies[index] ?? frequency, when);
-        const gain = context.createGain();
-        const peak = profile.peak * partial.gain;
-        const attack = partial.attack;
-        gain.gain.setValueAtTime(0, when);
-        gain.gain.linearRampToValueAtTime(peak, when + attack);
-        gain.gain.setTargetAtTime(0, when + attack, decays[index] ?? profile.baseDecaySeconds);
-        // 松键：制音器落下，剩下的余音被快速掐掉，不跟下一个音叠在一起。
-        gain.gain.setTargetAtTime(0, when + hold, profile.releaseSeconds);
-        osc.connect(gain).connect(master);
-        track(osc, when, hold + profile.releaseSeconds * 5);
-      });
-      // 槌击 / 音叉的瞬态噪声。
-      const click = context.createBufferSource();
-      click.buffer = noise;
-      const band = context.createBiquadFilter();
-      band.type = "bandpass";
-      band.frequency.value = profile.clickHz;
-      band.Q.value = 0.8;
-      const clickGain = context.createGain();
-      clickGain.gain.setValueAtTime(profile.clickGain, when);
-      clickGain.gain.setTargetAtTime(0, when + 0.002, profile.clickSeconds / 3);
-      click.connect(band).connect(clickGain).connect(master);
-      track(click, when, profile.clickSeconds);
+      // 电钢：起音 + 定时制音。
+      const held = startPiano(when, midi);
+      dampVoice(held, when + Math.max(duration, 0.05));
       return;
     }
     if (voice === "pure") {
@@ -232,6 +279,17 @@ export function createEngine(): MusicEngine | null {
     },
     playPitch(midi, when = context.currentTime + 0.02, duration = PIANO_HOLD_SECONDS) {
       playVoice("piano", when, duration, midi);
+    },
+    pressPitch(midi) {
+      const id = nextVoiceId++;
+      heldVoices.set(id, startPiano(context.currentTime + 0.02, midi));
+      return id;
+    },
+    releasePitch(voiceId) {
+      const voice = heldVoices.get(voiceId);
+      if (!voice) return;
+      heldVoices.delete(voiceId);
+      dampVoice(voice, context.currentTime);
     },
     playSequence(midis) {
       const start = context.currentTime + 0.05;
@@ -291,6 +349,8 @@ export function createEngine(): MusicEngine | null {
       const at = context.currentTime;
       for (const node of live) node.stop(at);
       live.clear();
+      for (const voice of heldVoices.values()) dampVoice(voice, at);
+      heldVoices.clear();
     },
   };
 }
