@@ -148,13 +148,14 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
   };
 
   return (
-    <Drawer title="全局键盘 · 查位置" placement="right" size={880} open={open} onClose={onClose}>
-      <p className="hint">
-        黑键永远是「2 个一组、3 个一组」循环出现的。2 个黑键那一组，左边紧挨的白键是 <strong>C</strong>；
-        3 个黑键那一组，左边紧挨的白键是 <strong>F</strong>。找到 C 和 F，整台键盘的位置就都知道了。
-      </p>
-
-      <Flex vertical gap={16} style={{ marginTop: 12 }}>
+    <Drawer
+      title="全局键盘 · 查位置"
+      placement="bottom"
+      size={500}
+      open={open}
+      onClose={onClose}
+    >
+      <Flex vertical gap={12}>
         <Flex gap={12} wrap align="center">
           <Space>
             <span className="hint">找这个音</span>
@@ -225,6 +226,11 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
           onRelease={release}
           label="全局参考键盘"
         />
+
+        <p className="hint">
+          黑键永远是「2 个一组、3 个一组」循环出现的。2 个黑键那一组，左边紧挨的白键是 <strong>C</strong>；
+          3 个黑键那一组，左边紧挨的白键是 <strong>F</strong>。找到 C 和 F，整台键盘的位置就都知道了。
+        </p>
 
         {target !== null && !quiz && (
           <Alert

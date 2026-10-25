@@ -55,8 +55,9 @@
   /* 放大之后变音记号会贴到字母上，留一点缝。 */
   padding: 0 0.03em 0 0.06em;
   /* 记谱字体的笔画是雕刻线，细到正常缩放下只剩半像素的灰丝。
-     加一点点描边，把它撑成看得见的实心笔画。 */
-  -webkit-text-stroke: 0.02em currentColor;
+     描边把它撑成看得见的实心笔画——这比放大更管用：
+     放大只会让符号更稀疏，描边才真的增加墨量。 */
+  -webkit-text-stroke: 0.035em currentColor;
 }
 
 .note-accidental.is-sharp {
@@ -445,17 +446,17 @@ body {
 }
 
 .keyboard-key-name {
-  font-size: 0.75rem;
+  font-size: 1rem;
   font-weight: 600;
 }
 
 .keyboard-black .keyboard-key-name {
-  font-size: 0.66rem;
+  font-size: 1rem;
 }
 
 .keyboard-key-midi {
-  font-size: 0.6rem;
-  opacity: 0.6;
+  font-size: 0.68rem;
+  opacity: 0.65;
 }
 
 .swatch {
@@ -585,5 +586,22 @@ body {
 
   .piano-black span {
     font-size: 0.62rem;
+  }
+
+  /* 全局键盘在窄屏上键数不变，只能把字缩回去 */
+  .keyboard {
+    height: 150px;
+  }
+
+  .keyboard-key-name {
+    font-size: 0.7rem;
+  }
+
+  .keyboard-black .keyboard-key-name {
+    font-size: 0.62rem;
+  }
+
+  .keyboard-key-midi {
+    font-size: 0.55rem;
   }
 }
