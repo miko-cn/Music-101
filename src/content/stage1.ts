@@ -147,8 +147,9 @@ export const STAGE_LESSONS: readonly StageLesson[] = [
     id: 3,
     title: "音程与协和度",
     concept: [
-      "两个音之间的距离叫音程。纯五很空、很稳；小二度两个音挤在一起，很不协和。",
-      "可以记一个大致顺序：纯五比大三度协和，大三度比大二度协和，小二度最挤。",
+      "音程就是两个音隔多远。从 C4 开始数琴键：紧挨着的下一个键是 C#4，只隔一个半音，叫小二度。数到 E4，叫大三度。数到 G4，叫纯五。",
+      "协和是这两个音一起响的时候，耳朵觉得稳不稳。C4 和 G4 离得开，又像锁在一起，听起来空、稳，所以说纯五协和。C4 和 C#4 贴在同一个地方，听起来挤、发毛，这就是不协和。",
+      "先记这一串，左边更稳，右边更挤：纯五（C 到 G）比大三度（C 到 E）稳，大三度比大二度（C 到 D）稳，小二度（C 到 C#）最挤。",
     ],
     earPass: 4,
     ear: [
@@ -160,7 +161,7 @@ export const STAGE_LESSONS: readonly StageLesson[] = [
           { label: "C4 → C#4（小二）", midis: [60, 61] },
         ],
         correct: 0,
-        explain: "纯五比小二度协和得多。",
+        explain: "C4 和 G4 离得开又合得上。C4 和 C#4 只差一个键，听着挤。",
       },
       {
         id: "m3-vs-m2",
@@ -170,7 +171,7 @@ export const STAGE_LESSONS: readonly StageLesson[] = [
           { label: "C4 → Db4（小二）", midis: [60, 61] },
         ],
         correct: 0,
-        explain: "大三度是协和音程，小二度是不协和音程。",
+        explain: "C4 到 E4 还能分开听，是大三度。C4 到 Db4 和 C#4 一样，只差一个键，是小二度，更挤。",
       },
       {
         id: "which-p5",
@@ -180,7 +181,7 @@ export const STAGE_LESSONS: readonly StageLesson[] = [
           { label: "C4 → F4", midis: [60, 65] },
         ],
         correct: 0,
-        explain: "C 到 G 是纯五。C 到 F 是纯四。",
+        explain: "从 C4 数到 G4 是纯五。数到 F4 近一截，那是纯四，不是纯五。",
       },
       {
         id: "tighter",
@@ -190,7 +191,7 @@ export const STAGE_LESSONS: readonly StageLesson[] = [
           { label: "C4 → C5", midis: [60, 72] },
         ],
         correct: 0,
-        explain: "小二度挤在一起。纯八度是同一个音名，高一个八度，很开阔。",
+        explain: "C4 到 C#4 是相邻的两个键，最挤。C4 到 C5 是同一个音名，只是高了八度，听起来开阔。",
       },
       {
         id: "which-m3",
@@ -200,10 +201,10 @@ export const STAGE_LESSONS: readonly StageLesson[] = [
           { label: "C4 → Eb4", midis: [60, 63] },
         ],
         correct: 0,
-        explain: "C 到 E 是大三度。C 到 Eb 是小三度。",
+        explain: "C4 到 E4 是大三度。C4 到 Eb4 少走一个半音，那是小三度。",
       },
     ],
-    handPrompt: "选出最协和的一对。",
+    handPrompt: "选出听起来最稳、最不挤的一对。",
     handChoices: [
       choice("C4 → C#4（小二）", melody([60, 61])),
       choice("C4 → D4（大二）", melody([60, 62])),
