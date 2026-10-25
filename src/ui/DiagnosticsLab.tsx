@@ -7,6 +7,7 @@ import { importMidi, type ImportedMidi } from "../core/midi/importSong.ts";
 import { readMidiFile } from "../core/midi/reader.ts";
 import type { MidiFile } from "../core/midi/types.ts";
 import { pitchClassToName, type PitchClass } from "../core/theory/pitch.ts";
+import { toNotationName } from "../core/theory/notation.ts";
 import { SCALE_LABELS, type ScaleId } from "../core/theory/scale.ts";
 import {
   chorusFlatSong,
@@ -96,7 +97,10 @@ export function DiagnosticsLab() {
                   value={keyRoot}
                   style={{ minWidth: 120 }}
                   onChange={setKeyRoot}
-                  options={KEYS.map((pitch) => ({ value: pitch, label: pitchClassToName(pitch) }))}
+                  options={KEYS.map((pitch) => ({
+                    value: pitch,
+                    label: toNotationName(pitchClassToName(pitch)),
+                  }))}
                 />
               </div>
               <div className="field">

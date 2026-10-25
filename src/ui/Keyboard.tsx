@@ -1,6 +1,8 @@
 import { useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { midiToNoteName } from "../core/theory/pitch.ts";
+import { toNotationName } from "../core/theory/notation.ts";
 import { centeredKeyboardLayout } from "../core/theory/keyboard.ts";
+import { NoteName } from "./NoteName.tsx";
 
 export interface KeyboardProps {
   /** 中央 C 的 MIDI 音高（60）。布局以它为中心向左右展开。 */
@@ -182,7 +184,7 @@ function KeyButton({
       ]
         .filter(Boolean)
         .join(" ")}
-      aria-label={`${name}${showMidi ? `，MIDI ${midi}` : ""}`}
+      aria-label={`${toNotationName(name)}${showMidi ? `，MIDI ${midi}` : ""}`}
       style={style}
       onPointerDown={handlePointerDown}
       onPointerUp={() => onRelease?.(midi)}
@@ -195,7 +197,9 @@ function KeyButton({
         window.setTimeout(() => onRelease?.(midi), 200);
       }}
     >
-      {showNames ? <span className="keyboard-key-name">{name}</span> : null}
+      {showNames ? (
+        <NoteName name={name} className="keyboard-key-name" />
+      ) : null}
       {showMidi ? <span className="keyboard-key-midi">{midi}</span> : null}
     </button>
   );

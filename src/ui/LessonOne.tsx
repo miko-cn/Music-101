@@ -26,6 +26,7 @@ import {
   LEVEL1_TARGET_PITCH,
 } from "../content/level1.ts";
 import { LessonCoach } from "./LessonCoach.tsx";
+import { NoteName } from "./NoteName.tsx";
 import { MemoryAnchorCard } from "./MemoryAnchorCard.tsx";
 import { Piano } from "./Piano.tsx";
 import { Stepper } from "./Stepper.tsx";
@@ -238,7 +239,8 @@ export function LessonOne({
       {step === 2 && (
         <Card title="点出 C4，并打四个四分音符">
           <p className="lead">
-            当前八度 {octave}。当前音：{state.pitch === null ? "还没选" : midiToNoteName(state.pitch)}。目标是 C4，格子是第 1、5、9、13 格。
+            当前八度 {octave}。当前音：{" "}
+            {state.pitch === null ? "还没选" : <NoteName name={midiToNoteName(state.pitch)} />}。目标是 C4，格子是第 1、5、9、13 格。
           </p>
           <p className="hint">琴键上的字母是电脑键。按住时对应的琴键会亮。Z 低八度，X 高八度。</p>
           <Piano

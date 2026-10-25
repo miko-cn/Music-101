@@ -1,8 +1,55 @@
+/*
+ * 记谱字体：Noto Music 的「音乐符号」子集，只有 56KB。
+ *
+ * unicode-range 把它的职责限死在音乐符号上（U+2669–266F 的 ♭♯、
+ * U+1D100–1D245 的 𝄪𝄫𝄞 等）。字母和数字不在这个范围里，
+ * 会自动落到后面的衬线字体上，互不干扰。
+ *
+ * 自托管而不是走 CDN：整个应用零外部请求，离线可用。
+ */
+@font-face {
+  font-family: "Noto Music Symbols";
+  src: url("/fonts/noto-music-symbols.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+25CC, U+2669-266F, U+1D100-1D245;
+}
+
 :root {
   color-scheme: dark;
   font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
   background: #12121a;
   color: #ececf3;
+}
+
+/*
+ * 音名用衬线体渲染。
+ *
+ * 正文是无衬线的，音名换成衬线之后在视觉上立刻分得开——
+ * 学习者扫一眼就知道「这几个字是音名，不是句子」。
+ * 变音记号优先交给 Noto Music（真正的记谱字形），
+ * 字母落到 Cambria / Times 这类衬线体上。
+ */
+.note-name {
+  font-family: "Noto Music Symbols", "Cambria", "Palatino Linotype", "Times New Roman",
+    "Liberation Serif", "DejaVu Serif", serif;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* 记谱变音记号比正文字母高一点、瘦一点，是谱面的样子。 */
+.note-accidental {
+  font-size: 1.05em;
+  padding: 0 0.02em;
+}
+
+/* 八度数字用下标——谱面就是这么标的。 */
+.note-octave {
+  font-size: 0.72em;
+  vertical-align: -0.24em;
+  letter-spacing: 0;
 }
 
 body {

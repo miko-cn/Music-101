@@ -6,7 +6,6 @@ import {
   degreeOfPitch,
   getChordPitches,
   getScalePitches,
-  keyName,
   pitchClassToName,
   romanNumeral,
   spellChordTones,
@@ -15,7 +14,9 @@ import {
   type PitchClass,
   type ScaleId,
 } from "../core/index.ts";
+import { toNotationName } from "../core/theory/notation.ts";
 import { Piano } from "./Piano.tsx";
+import { NoteName } from "./NoteName.tsx";
 
 const ROOTS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as PitchClass[];
 const SCALES: ScaleId[] = ["major", "naturalMinor", "harmonicMinor", "melodicMinor"];
@@ -65,7 +66,7 @@ export function TheoryBench() {
               onChange={setRoot}
               options={ROOTS.map((pitch) => ({
                 value: pitch,
-                label: pitchClassToName(pitch, preferFlat),
+                label: toNotationName(pitchClassToName(pitch, preferFlat)),
               }))}
             />
           </div>
@@ -114,12 +115,14 @@ export function TheoryBench() {
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
           <Card title="调内音" className="result-card">
-            <h2 className="result-heading">{keyName(root, scale, preferFlat)}</h2>
+            <h2 className="result-heading">
+              <NoteName name={tonicName} /> {SCALE_LABELS[scale]}
+            </h2>
             <ol className="degree-list">
               {scalePitches.map((pitch, index) => (
                 <li key={`${index}-${pitch}`}>
                   <span className="degree-index">{index + 1}</span>
-                  <span>{scaleNames[index]}</span>
+                  <NoteName name={scaleNames[index] ?? ""} />
                 </li>
               ))}
             </ol>
@@ -128,7 +131,7 @@ export function TheoryBench() {
         <Col xs={24} lg={12}>
           <Card title="和弦与级数" className="result-card">
             <p className="chord-symbol">
-              {tonicName}
+              <NoteName name={tonicName} />
               {quality} → {numeral}
             </p>
             <p className="numeral-label">级数</p>
@@ -139,7 +142,7 @@ export function TheoryBench() {
                 const degree = degreeOfPitch(pitch, root, scale);
                 return (
                   <Tag key={`${index}-${pitch}`} color={degree === null ? "gold" : "blue"}>
-                    {chordNames[index]}
+                    <NoteName name={chordNames[index] ?? ""} />
                     {degree === null ? " · 调外" : ` · ${degree} 级`}
                   </Tag>
                 );

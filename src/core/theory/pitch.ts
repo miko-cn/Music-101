@@ -73,9 +73,12 @@ export function midiToNoteName(midi: number, preferFlat = false): string {
  * 把音名解析为 MIDI 音高。
  * 不对 MIDI 0-127 以外的音名做隐式纠正（不静默折返），超范围直接抛错，
  * 以免下游拿到一个「看起来正常但其实是错的」音高。
+ *
+ * 记谱写法（♯ ♭ 𝄪 𝄫）也认：显示层用 `core/theory/notation.ts` 把它转成谱面符号，
+ * 解析器要是认不回来，就成了「显示进去就再也读不出来」的死路。
  */
 export function noteNameToMidi(noteName: string): number {
-  const match = /^([A-Ga-g])([#bx]*)(-?\d+)$/.exec(noteName.trim());
+  const match = /^([A-Ga-g])([#bx♯♭\u{1D12A}\u{1D12B}]*)(-?\d+)$/u.exec(noteName.trim());
   if (!match) throw new Error(`无法解析的音名: ${noteName}`);
   const base = LETTER_INDEX[match[1].toUpperCase()];
   if (base === undefined) throw new Error(`无法解析的音名: ${noteName}`);
@@ -88,14 +91,14 @@ export function noteNameToMidi(noteName: string): number {
   return midi;
 }
 
-/** `#` 升半音，`b` 降半音，`x` 是重升（两个升号）。 */
+/** `#` 升半音，`b` 降半音，`x` 是重升（两个升号）。记谱符号等价。 */
 function accidentalValue(token: string): number {
   let value = 0;
   for (const mark of token) {
-    if (mark === "#") value += 1;
-    else if (mark === "b") value -= 1;
-    else if (mark === "x") value += 2;
-  }
+    if (mark === "#" || mark === "♯") value += 1;
+    else if (mark === "b" || mark === "♭") value -= 1;
+    else if (mark === "x" || mark === "\u{1D12A}") value += 2;
+    else if (mark === "\u{1D12B}") value -= 2;  }
   return value;
 }
 

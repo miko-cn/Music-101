@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 import type { PitchClass } from "../core/theory/pitch.ts";
+import { toNotationName } from "../core/theory/notation.ts";
+import { NoteName } from "./NoteName.tsx";
 
 const WHITE_KEYS = [0, 2, 4, 5, 7, 9, 11] as PitchClass[];
 /** 黑键中心落在第 afterWhite 个白键的右边界上。 */
@@ -109,12 +111,12 @@ function KeyButton({
         .filter(Boolean)
         .join(" ")}
       aria-pressed={isRoot || isHeld}
-      aria-label={`${name}${keycap ? `，电脑键 ${keycap}` : ""}，${isRoot ? `${rootWord}，` : ""}${role}`}
+      aria-label={`${toNotationName(name)}${keycap ? `，电脑键 ${keycap}` : ""}，${isRoot ? `${rootWord}，` : ""}${role}`}
       style={style}
       onClick={onPick}
     >
       {keycap ? <span className="keycap">{keycap}</span> : null}
-      <span className="key-name">{name}</span>
+      <NoteName name={name} className="key-name" />
     </button>
   );
 }

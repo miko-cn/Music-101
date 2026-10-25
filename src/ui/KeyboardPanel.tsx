@@ -2,22 +2,24 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Drawer, Flex, Select, Space, Switch, Tag } from "antd";
 import { createEngine, type MusicEngine } from "../core/audio/engine.ts";
 import { midiToNoteName } from "../core/theory/pitch.ts";
+import { toNotationName } from "../core/theory/notation.ts";
 import { centeredKeyboardLayout, quizHighlight } from "../core/theory/keyboard.ts";
 import { Keyboard } from "./Keyboard.tsx";
+import { NoteName } from "./NoteName.tsx";
 
 /** 12 个音类，附带两种拼写，方便和谱面/软件里的写法对上。 */
 const PITCH_CLASS_OPTIONS = [
   { value: 0, label: "C" },
-  { value: 1, label: "C# / Db" },
+  { value: 1, label: "C♯ / D♭" },
   { value: 2, label: "D" },
-  { value: 3, label: "D# / Eb" },
+  { value: 3, label: "D♯ / E♭" },
   { value: 4, label: "E" },
   { value: 5, label: "F" },
-  { value: 6, label: "F# / Gb" },
+  { value: 6, label: "F♯ / G♭" },
   { value: 7, label: "G" },
-  { value: 8, label: "G# / Ab" },
+  { value: 8, label: "G♯ / A♭" },
   { value: 9, label: "A" },
-  { value: 10, label: "A# / Bb" },
+  { value: 10, label: "A♯ / B♭" },
   { value: 11, label: "B" },
 ];
 
@@ -238,7 +240,7 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
                     style={{ cursor: "pointer" }}
                     onClick={() => void play(midi)}
                   >
-                    {midiToNoteName(midi)}（MIDI {midi}）
+                    <NoteName name={midiToNoteName(midi)} />（MIDI {midi}）
                   </Tag>
                 ))}
               </Space>
@@ -254,8 +256,8 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
               !quiz.answered
                 ? "刚才播了一个音，在键盘上点一下它在哪。"
                 : quiz.correct
-                  ? `对了！那是 ${midiToNoteName(quiz.midi)}（MIDI ${quiz.midi}）`
-                  : `不对，那是 ${midiToNoteName(quiz.midi)}（MIDI ${quiz.midi}）`
+                  ? `对了！那是 ${toNotationName(midiToNoteName(quiz.midi))}（MIDI ${quiz.midi}）`
+                  : `不对，那是 ${toNotationName(midiToNoteName(quiz.midi))}（MIDI ${quiz.midi}）`
             }
             description={
               !quiz.answered ? (
