@@ -7,9 +7,9 @@ import { STAGE_LESSONS } from "../../src/content/stage1.ts";
 const ALL_LESSONS = [...STAGE_LESSONS, ...ARRANGING_LESSONS];
 
 describe("课程内容完整性", () => {
-  it("24 关全部配了记忆锚，且锚点没有重复", () => {
+  it("27 关全部配了记忆锚，且锚点没有重复", () => {
     const ids = Object.keys(ANCHORS).map(Number).sort((a, b) => a - b);
-    expect(ids).toEqual(Array.from({ length: 24 }, (_, index) => index + 1));
+    expect(ids).toEqual(Array.from({ length: 27 }, (_, index) => index + 1));
     const anchorIds = Object.values(ANCHORS).map((anchor) => anchor.id);
     expect(new Set(anchorIds).size).toBe(anchorIds.length);
   });

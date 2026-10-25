@@ -25,8 +25,8 @@ describe("定制化", () => {
     expect(classifyHand(8, 1, 0)).toEqual(["same-progression"]);
     expect(classifyHand(11, 1, 0)).toEqual(["low-end-clash"]);
     expect(classifyHand(13, 1, 0)).toEqual(["chorus-flat"]);
-    expect(classifyHand(22, 1, 0)).toEqual(["chorus-flat"]);
-    expect(classifyHand(23, 1, 0)).toEqual(["chorus-flat"]);
+    expect(classifyHand(25, 1, 0)).toEqual(["chorus-flat"]);
+    expect(classifyHand(26, 1, 0)).toEqual(["chorus-flat"]);
     expect(classifyHand(7, 0, 0)).toEqual([]);
     expect(classifyHand(11, 0, 0)).toEqual([]);
   });
@@ -73,7 +73,7 @@ describe("定制化", () => {
     expect(levelStatus(progress, 13)).toBe("retry");
     expect(levelStatus(progress, 9)).toBe("new");
     expect(recommendationLists(progress)).toEqual({ mastered: [10], retry: [13] });
-    for (let levelId = 1; levelId <= 24; levelId += 1) {
+    for (let levelId = 1; levelId <= 27; levelId += 1) {
       expect(levelLocked(progress, levelId)).toBe(false);
     }
   });

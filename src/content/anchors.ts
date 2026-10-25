@@ -269,6 +269,62 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
     ],
   },
   15: {
+    id: "function-t-s-d",
+    name: "功能三分",
+    hook: "I 主 IV 下 V 属，V 要回家。",
+    steps: [
+      "先认功能：I 和 vi 是 T（主），ii 和 IV 是 S（下属），V 和 vii° 是 D（属）。",
+      "T 稳定，停在这儿也行；S 铺垫，承上启下；D 悬着，必须往下解决。",
+      "名字的来历：IV 建在下属音上，所以叫下属；V 建在属音上，所以叫属。",
+      "一段里必须落回一次 T，否则整段都是悬着的。",
+      "连续两个 S 会平，连续两个 D 会慌。",
+    ],
+    takeaway: [
+      "I / vi = T（主），ii / IV = S（下属），V / vii° = D（属）。",
+      "V 想解决到 I——这个「想」就是 D 功能本身。",
+      "一个循环至少要有一次 T 落地。",
+      "S 接 S 会平，D 接 D 会慌。",
+    ],
+  },
+  16: {
+    id: "cadence-landing",
+    name: "收尾选型",
+    hook: "落在 I 才算完，落在 vi 是耍赖。",
+    steps: [
+      "看最后两个和弦，就能判断这是哪种收尾。",
+      "V → I = 正格终止：最稳最完整，流行副歌的标准结尾。",
+      "iv → I = 变格终止：更暗更有色彩，小调里常用。",
+      "V → vi = 阻碍终止：故意不解决，听着「没完」，但很上头。",
+      "停在 V 上 = 半个终止：句子没结束，等着接下一段。",
+    ],
+    takeaway: [
+      "正格 V→I：最稳，流行副歌的标准收尾。",
+      "变格 iv→I：暗色收尾，小调味。",
+      "阻碍 V→vi：故意的没解决，kawaii bass 常见。",
+      "停在 V 是半个终止，不是结束。",
+      "一首歌里只有一处真收尾，其余段落停在 V 才对。",
+    ],
+  },
+  17: {
+    id: "pivot-and-pedal",
+    name: "转调的门与底",
+    hook: "换过去要有门，换回来要有底。",
+    steps: [
+      "转调的难点不在换过去，在换回来。",
+      "门：找一个新旧两个调都成立的共同和弦当枢轴（C 大调的 IV 就是 D 大调的 V）。",
+      "遮：转调那一下用鼓点或音效盖住，别让耳朵去追那半秒的调性变化。",
+      "底：回来时把低音一直钉在主音上（主调持续音），上面换和弦。",
+      "主歌 C 大调、副歌 D 大调（升全音）是 BGM 最常见的转调。",
+    ],
+    takeaway: [
+      "转调难在回来，不在过去。",
+      "共同和弦当门：它在新旧调里都成立。",
+      "转调那一下用鼓盖住。",
+      "回来用主调持续音：低音钉在主音上，上面换和弦。",
+      "C → D（升全音）是 BGM 最常见的转调。",
+    ],
+  },
+  18: {
     id: "rank-by-register",
     name: "从低到高排队",
     hook: "kick 最低，贝斯次低，和弦再往上——各占一段。",
@@ -285,7 +341,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
       "频段规则排除装饰轨。",
     ],
   },
-  16: {
+  19: {
     id: "open-the-octave",
     name: "拉开八度",
     hook: "同一个音名，差一个八度一起响，才有厚度。",
@@ -302,7 +358,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
       "叠八度不会增加角色数。",
     ],
   },
-  17: {
+  20: {
     id: "velocity-breath",
     name: "力度差 = 呼吸",
     hook: "主歌收着，副歌推上去，全程一样就是不呼吸。",
@@ -319,7 +375,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
       "力度也是能量公式里的一项。",
     ],
   },
-  18: {
+  21: {
     id: "fx-at-turns",
     name: "效果用在转折处",
     hook: "效果负责接段落，不是从头糊到尾。",
@@ -336,7 +392,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
       "全程效果 = 所有角色糊成一团。",
     ],
   },
-  19: {
+  22: {
     id: "chorus-needs-saw",
     name: "副歌加锯齿",
     hook: "主歌留 kick + 贝斯，副歌铺 supersaw，短 chop 卡反拍。",
@@ -353,7 +409,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
       "拿掉锯齿层，副歌就空了。",
     ],
   },
-  20: {
+  23: {
     id: "bright-light-grain",
     name: "亮、轻、颗粒",
     hook: "和弦用大七或加九，拍手靠前，和弦抬到高八度。",
@@ -370,7 +426,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
       "减七太沉，不贴这个风格。",
     ],
   },
-  21: {
+  24: {
     id: "fragments-on-offbeats",
     name: "碎片卡空拍",
     hook: "短音切片，落在正拍之间的空位。",
@@ -387,7 +443,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
       "轨名 CHOP 是角色标记，不是音色。",
     ],
   },
-  22: {
+  25: {
     id: "add-a-track",
     name: "加轨 + 1.5 倍",
     hook: "主歌留两层，副歌加一条 supersaw，能量到 1.5 倍。",
@@ -404,7 +460,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
       "主歌的 kick 要保留。",
     ],
   },
-  23: {
+  26: {
     id: "four-four-eight",
     name: "16 小节 = 4 + 4 + 8",
     hook: "前奏 4、主歌 4、副歌 8，副歌多一条 supersaw。",
@@ -421,7 +477,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
       "这是能听完的最小骨架。",
     ],
   },
-  24: {
+  27: {
     id: "candidate-analysis",
     name: "候选式分析",
     hook: "不追求一次猜对，从候选里选最像的。",

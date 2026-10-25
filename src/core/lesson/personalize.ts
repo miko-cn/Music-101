@@ -34,16 +34,19 @@ const LEVEL_ABILITY: Record<number, AbilityId> = {
   12: "arrangement",
   13: "structure",
   14: "harmony",
-  15: "arrangement",
-  16: "arrangement",
-  17: "structure",
+  15: "harmony",
+  16: "harmony",
+  17: "harmony",
   18: "arrangement",
   19: "arrangement",
-  20: "arrangement",
-  21: "rhythm",
-  22: "structure",
-  23: "structure",
-  24: "structure",
+  20: "structure",
+  21: "arrangement",
+  22: "arrangement",
+  23: "arrangement",
+  24: "rhythm",
+  25: "structure",
+  26: "structure",
+  27: "structure",
 };
 
 /** 选错时才记。第 7 关的正确答案就是 I–V–vi–IV，选对不算老用。 */
@@ -51,8 +54,8 @@ const HAND_MISTAKES: Record<string, MistakeKind> = {
   "8:1": "same-progression",
   "11:1": "low-end-clash",
   "13:1": "chorus-flat",
-  "22:1": "chorus-flat",
-  "23:1": "chorus-flat",
+  "25:1": "chorus-flat",
+  "26:1": "chorus-flat",
 };
 
 export const MISTAKE_DRILLS: Record<MistakeKind, { levelId: number; label: string; text: string }> = {
@@ -156,7 +159,7 @@ export function statusText(status: LevelStatus, levelId: number): string {
 export function recommendationLists(progress: ProgressFile): { mastered: number[]; retry: number[] } {
   const mastered: number[] = [];
   const retry: number[] = [];
-  for (let levelId = 1; levelId <= 24; levelId += 1) {
+  for (let levelId = 1; levelId <= 27; levelId += 1) {
     const status = levelStatus(progress, levelId);
     if (status === "mastered") mastered.push(levelId);
     if (status === "retry") retry.push(levelId);

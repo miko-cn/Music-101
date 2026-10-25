@@ -90,6 +90,8 @@ export function App() {
                 value={view === "lesson" ? level : undefined}
                 placeholder="关卡"
                 style={{ minWidth: 220 }}
+                showSearch
+                optionFilterProp="label"
                 options={LESSON_OPTIONS.map((option) => ({ ...option, disabled: levelLocked(progress, option.value) }))}
                 onChange={(value) => {
                   setPendingRecipe(null);

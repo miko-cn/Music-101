@@ -1,7 +1,7 @@
 export const PROGRESS_SCHEMA = 2;
 const STORAGE_KEY = "music-101.progress";
 const LEVEL_MIN = 1;
-const LEVEL_MAX = 24;
+const LEVEL_MAX = 27;
 
 export const MISTAKE_KINDS = ["same-progression", "chorus-flat", "low-end-clash"] as const;
 export type MistakeKind = (typeof MISTAKE_KINDS)[number];

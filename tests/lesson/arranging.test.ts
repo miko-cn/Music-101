@@ -39,10 +39,10 @@ function noteOns(id: number) {
   );
 }
 
-describe("阶段二、三关 9–24", () => {
-  it("十六关都有至少 6 道听辨，正确答案能过关，选错不能过", () => {
+describe("阶段二、三关 9–27", () => {
+  it("十九关都有至少 6 道听辨，正确答案能过关，选错不能过", () => {
     expect(ARRANGING_LESSONS.map((lesson) => lesson.id)).toEqual([
-      9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+      9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
     ]);
     for (const lesson of ARRANGING_LESSONS) {
       expect(lesson.ear.length).toBeGreaterThanOrEqual(6);
@@ -116,8 +116,8 @@ describe("阶段二、三关 9–24", () => {
     expect(mean(chorus)).toBeGreaterThan(mean(verse) * 1.5);
   });
 
-  it("第 23 关导出 16 小节、150 BPM，并带副歌标记和 supersaw", () => {
-    const lesson = lessonById(23);
+  it("第 26 关导出 16 小节、150 BPM，并带副歌标记和 supersaw", () => {
+    const lesson = lessonById(26);
     const skeleton = stageSkeleton(lesson, 0);
     expect(skeleton.totalBars).toBe(16);
     expect(skeleton.bpm).toBe(150);
@@ -129,14 +129,14 @@ describe("阶段二、三关 9–24", () => {
     expect(markers).toContain("Chorus");
     const tempo = midi.tracks[0]?.events.find((event) => event.kind === "tempo");
     expect(tempo && tempo.kind === "tempo" ? tempo.microsecondsPerBeat : 0).toBe(400_000);
-    const saw = noteOns(23).filter((note) => note?.track === "SUPERSAW");
+    const saw = noteOns(26).filter((note) => note?.track === "SUPERSAW");
     expect(saw).toHaveLength(8);
     expect(saw[0]?.tick).toBe(8 * 4 * PPQ);
   });
 
-  it("第 24 关没选候选不过关，三项都选了就能过", () => {
-    const lesson = lessonById(24);
+  it("第 27 关没选候选不过关，三项都选了就能过", () => {
+    const lesson = lessonById(27);
     expect(stagePassed(lesson, emptyStageState(lesson))).toBe(false);
-    expect(stagePassed(lesson, passed(24))).toBe(true);
+    expect(stagePassed(lesson, passed(27))).toBe(true);
   });
 });
