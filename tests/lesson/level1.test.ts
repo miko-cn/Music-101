@@ -11,7 +11,7 @@ import {
   level1ToMidi,
   scoreEar,
 } from "../../src/core/lesson/level1.ts";
-import { LEVEL1_EAR, LEVEL1_EAR_PASS, LEVEL1_TARGET_PITCH } from "../../src/content/level1.ts";
+import { LEVEL1_EAR, LEVEL1_EAR_PASS, LEVEL1_TARGET_PITCH } from "../../src/content/lessons/level-01.ts";
 import { quarterSteps } from "../../src/core/sequencer/grid.ts";
 
 function passingState() {

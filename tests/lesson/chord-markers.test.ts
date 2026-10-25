@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { STAGE_LESSONS } from "../../src/content/stage1.ts";
-import { ARRANGING_LESSONS } from "../../src/content/arranging.ts";
+import { FLOW_LESSONS } from "../../src/content/index.ts";
 
 /**
  * MIDI 标记文本跟它写的音高必须是同一个和弦。
@@ -56,7 +55,7 @@ function parseChordText(text: string): { root: string; rootOffset: number; quali
   };
 }
 
-const ALL_LESSONS = [...STAGE_LESSONS, ...ARRANGING_LESSONS];
+const ALL_LESSONS = FLOW_LESSONS;
 
 function allChords(): { lesson: string; chord: Chord }[] {
   const out: { lesson: string; chord: Chord }[] = [];

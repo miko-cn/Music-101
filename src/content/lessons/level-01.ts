@@ -1,4 +1,9 @@
-import { anchorOf } from "./anchors.ts";
+// 第 1 关 · 音高与键盘
+//
+// 这一关走自己的流程：16 格步进器 + 琴键选音，不是「概念卡 + 单选题」那一套。
+// 所以它不是标准关卡，但编号、标题、阶段、能力、记忆锚照样进同一套体系，
+// 别的地方（进度、能力雷达、记忆点总表）不用为它单开一个特例。
+import type { MemoryAnchor, SpecialLessonEntry } from "../types.ts";
 
 export interface EarChoice {
   label: string;
@@ -14,7 +19,9 @@ export interface EarQuestion {
 }
 
 export const LEVEL1_BPM = 120;
+
 export const LEVEL1_TARGET_PITCH = 60;
+
 export const LEVEL1_EAR_PASS = 6;
 
 /** 第 1、5、9、13 格（从 1 数）打开，其余关掉。 */
@@ -127,4 +134,31 @@ export const LEVEL1_CONCEPT = [
   "导出的 MIDI 带到 Cubase 之后，音色要在那里重新选，两者不会是同一个声音。",
 ];
 
-export const LEVEL1_ANCHOR = anchorOf(1);
+export const lesson: SpecialLessonEntry = {
+  id: 1,
+  title: "音高与键盘",
+  stage: "foundation",
+  ability: "harmony",
+  anchor: {
+    id: "black-key-23",
+    name: "黑键 2-3 分组",
+    hook: "两黑键一组，三黑键一组；C 在二组左边，F 在三组左边。",
+    steps: [
+      "先看黑键：它们永远是 2 个一组、3 个一组循环出现的，不是均匀排的。",
+      "二黑键那一组，左边紧挨的白键是 C。",
+      "三黑键那一组，左边紧挨的白键是 F。",
+      "从 C 往上数：C D E F G A B，绕回 C 记成高八度。",
+      "中央 C = C4 = MIDI 60，所有 MIDI 编号都从它往两边数。",
+    ],
+    takeaway: [
+      "黑键永远 2-3 分组重复，这是键盘的骨架图。",
+      "C 在二黑键组左边，F 在三黑键组左边——两个定位点足够认全键盘。",
+      "音名循环 C D E F G A B，绕回 C 叫八度。",
+      "中央 C = C4 = MIDI 60，是全键盘编号的锚点。",
+    ],
+  },
+  concept: LEVEL1_CONCEPT,
+};
+
+/** 这一关的记忆锚（旧的导入路径从这里接过去）。 */
+export const LEVEL1_ANCHOR: MemoryAnchor = lesson.anchor;

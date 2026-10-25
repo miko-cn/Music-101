@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ARRANGING_LESSONS } from "../../src/content/arranging.ts";
+import { FLOW_LESSONS } from "../../src/content/index.ts";
 import { emptyStageState } from "../../src/core/lesson/stage1.ts";
 import {
   abilityScores,
@@ -111,7 +111,7 @@ describe("定制化", () => {
   });
 
   it("配方按关卡存下来，套用后手做选项回来", () => {
-    const lesson = ARRANGING_LESSONS.find((item) => item.id === 11);
+    const lesson = FLOW_LESSONS.find((item) => item.id === 11);
     if (!lesson) throw new Error("缺少第 11 关");
     const state = { ...emptyStageState(lesson), hand: 0 };
     const recipe = recipeFromStage(lesson, state);

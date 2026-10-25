@@ -90,12 +90,16 @@ export function ProgressBoard({
       </Card>
       <Card title="错误画像">
         <Flex vertical gap={8}>
-          {MISTAKE_KINDS.map((kind) => (
-            <p key={kind} className="lead">
-              {MISTAKE_DRILLS[kind].label}：{counts[kind]} 次
-              {counts[kind] >= 2 ? `。${MISTAKE_DRILLS[kind].text}` : ""}
-            </p>
-          ))}
+          {MISTAKE_KINDS.map((kind) => {
+            const drill = MISTAKE_DRILLS[kind];
+            if (!drill) return null;
+            return (
+              <p key={kind} className="lead">
+                {drill.label}：{counts[kind]} 次
+                {counts[kind] >= 2 ? `。${drill.text}` : ""}
+              </p>
+            );
+          })}
         </Flex>
       </Card>
       <Card title="关卡推荐">

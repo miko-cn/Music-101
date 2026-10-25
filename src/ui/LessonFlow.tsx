@@ -25,7 +25,7 @@ import { energySeries } from "../core/analyze/energy.ts";
 import { choiceEnergySong } from "../core/lesson/stage1.ts";
 import { candidatesFromPcm, demoClicks, type ReferenceCandidates } from "../core/reference/candidates.ts";
 import { referenceToMidi } from "../core/reference/export.ts";
-import type { StageLesson } from "../content/stage1.ts";
+import type { StageLesson } from "../content/types.ts";
 import { EnergyChart } from "./DiagnosticsLab.tsx";
 import { LessonCoach } from "./LessonCoach.tsx";
 import { MemoryAnchorCard } from "./MemoryAnchorCard.tsx";
@@ -236,7 +236,7 @@ export function LessonFlow({
                 }}
               >
                 {question.choices.map((choice, choiceIndex) => (
-                  <Radio key={choice.label} value={choiceIndex}>
+                  <Radio key={choiceIndex} value={choiceIndex}>
                     {choice.label}
                   </Radio>
                 ))}
@@ -301,7 +301,7 @@ export function LessonFlow({
             >
               <Flex vertical gap={8}>
                 {lesson.handChoices.map((choice, index) => (
-                  <Radio key={choice.label} value={index}>
+                  <Radio key={index} value={index}>
                     {choice.label}
                   </Radio>
                 ))}
@@ -455,7 +455,7 @@ function ReferenceHand({
           >
             <Flex vertical gap={4}>
               {candidates.bpms.map((bpm, index) => (
-                <Radio key={bpm} value={index}>
+                <Radio key={index} value={index}>
                   {bpm} BPM
                 </Radio>
               ))}
@@ -467,7 +467,7 @@ function ReferenceHand({
           >
             <Flex vertical gap={4}>
               {candidates.keys.map((label, index) => (
-                <Radio key={label} value={index}>
+                <Radio key={index} value={index}>
                   {label}
                 </Radio>
               ))}
@@ -479,7 +479,7 @@ function ReferenceHand({
           >
             <Flex vertical gap={4}>
               {candidates.structures.map((item, index) => (
-                <Radio key={item.label} value={index}>
+                <Radio key={index} value={index}>
                   {item.label}
                 </Radio>
               ))}

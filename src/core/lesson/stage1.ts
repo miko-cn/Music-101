@@ -3,7 +3,8 @@ import type { Diagnostic } from "../analyze/types.ts";
 import { GM_DRUM_PITCH, skeletonToMidi, type SongSkeleton } from "../midi/project.ts";
 import { PPQ } from "../midi/types.ts";
 import { writeMidiFile } from "../midi/writer.ts";
-import { stageLesson, type StageLesson } from "../../content/stage1.ts";
+import { stageLesson } from "../../content/index.ts";
+import type { StageLesson } from "../../content/types.ts";
 
 export interface StageState {
   earAnswers: (number | null)[];

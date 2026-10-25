@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { ANCHORS, anchorOf } from "../../src/content/anchors.ts";
-import { ARRANGING_LESSONS } from "../../src/content/arranging.ts";
-import { LEVEL1_ANCHOR, LEVEL1_CONCEPT } from "../../src/content/level1.ts";
-import { STAGE_LESSONS } from "../../src/content/stage1.ts";
+import { FLOW_LESSONS, LESSONS, anchorOf } from "../../src/content/index.ts";
+import { LEVEL1_ANCHOR, LEVEL1_CONCEPT } from "../../src/content/lessons/level-01.ts";
 
-const ALL_LESSONS = [...STAGE_LESSONS, ...ARRANGING_LESSONS];
+const ALL_LESSONS = FLOW_LESSONS;
+
+/** 全部记忆锚，从关卡自己身上收上来。 */
+const ANCHORS = Object.fromEntries(LESSONS.map((lesson) => [lesson.id, lesson.anchor]));
 
 describe("课程内容完整性", () => {
   it("27 关全部配了记忆锚，且锚点没有重复", () => {

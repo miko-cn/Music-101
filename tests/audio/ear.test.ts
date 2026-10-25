@@ -8,8 +8,7 @@ import {
   earChoiceSchedule,
   isTertianStack,
 } from "../../src/core/audio/ear.ts";
-import { ARRANGING_LESSONS } from "../../src/content/arranging.ts";
-import { STAGE_LESSONS } from "../../src/content/stage1.ts";
+import { FLOW_LESSONS } from "../../src/content/index.ts";
 
 describe("听辨选项的播法", () => {
   it("一个音就是单音", () => {
@@ -81,7 +80,7 @@ describe("听辨选项的播法", () => {
 });
 
 describe("课程内容的一致性守卫", () => {
-  const lessons = [...STAGE_LESSONS, ...ARRANGING_LESSONS];
+  const lessons = FLOW_LESSONS;
 
   it("所有关卡都有听辨题", () => {
     expect(lessons.length).toBeGreaterThan(0);

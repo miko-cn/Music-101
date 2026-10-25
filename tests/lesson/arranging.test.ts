@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ARRANGING_LESSONS } from "../../src/content/arranging.ts";
+import { FLOW_LESSONS } from "../../src/content/index.ts";
 import { energySeries } from "../../src/core/analyze/energy.ts";
 import {
   applyStageFix,
@@ -12,6 +12,9 @@ import {
 } from "../../src/core/lesson/stage1.ts";
 import { readMidiFile } from "../../src/core/midi/reader.ts";
 import { PPQ } from "../../src/core/midi/types.ts";
+
+/** 阶段二、三关：9–27。 */
+const ARRANGING_LESSONS = FLOW_LESSONS.filter((lesson) => lesson.id >= 9);
 
 function lessonById(id: number) {
   const lesson = ARRANGING_LESSONS.find((item) => item.id === id);
