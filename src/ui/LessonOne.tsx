@@ -11,7 +11,8 @@ import {
   scoreEar,
   type Level1State,
 } from "../core/lesson/level1.ts";
-import { computerKeyLabel, lessonKeyToMidi, lessonOctaveKey } from "../core/lesson/keys.ts";
+import { computerKeyLabel } from "../core/lesson/keys.ts";
+import { attachComputerKeyboard, type ComputerKeyboardHost } from "../core/lesson/keyboard.ts";
 import { applyRecipeToLevel1, buildAttempt, isMastered, recipeFromLevel1 } from "../core/lesson/personalize.ts";
 import { observeAttempt, recordVisit, saveRecipe, type ProgressFile, type ProgressUpdate, type Recipe } from "../core/lesson/progress.ts";
 import { midiToNoteName, midiToPitchClass, pitchClassToName, type PitchClass } from "../core/theory/pitch.ts";
@@ -72,6 +73,8 @@ export function LessonOne({
   const visitId = useRef(`1:${Date.now()}`);
   const usedFix = useRef(false);
   const engineRef = useRef<MusicEngine | null>(null);
+  /** 电脑键接线要用的界面状态。每次渲染更新，事件发生时读到的就是最新的。 */
+  const hostRef = useRef<ComputerKeyboardHost | null>(null);
   const scalePitches = useMemo(() => new Set(getScalePitches(0, "major")), []);
   const diagnostics = diagnoseLevel1(state);
   const passed = level1Passed(state);
@@ -109,59 +112,42 @@ export function LessonOne({
     );
   }, [step, passed, state.earAnswers, visitTick, onProgress]);
 
-  useEffect(() => {
-    const typingTarget = (event: KeyboardEvent) => {
-      const target = event.target;
-      return target instanceof HTMLElement && target.closest("input, textarea, select, .ant-select") !== null;
-    };
-    const hold = (pitch: PitchClass, down: boolean) => {
-      setHeld((current) => {
-        if (down === current.has(pitch)) return current;
-        const next = new Set(current);
-        if (down) next.add(pitch);
-        else next.delete(pitch);
-        return next;
-      });
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (typingTarget(event)) return;
-      const nextOctave = lessonOctaveKey(event.key, octave);
-      if (nextOctave !== null) {
-        event.preventDefault();
-        setOctave(nextOctave);
-        return;
-      }
-      const midi = lessonKeyToMidi(event.key, octave);
-      if (midi === null) return;
-      event.preventDefault();
-      hold(midiToPitchClass(midi), true);
-      if (!event.repeat) choosePitch(midi);
-    };
-    const onKeyUp = (event: KeyboardEvent) => {
-      const midi = lessonKeyToMidi(event.key, octave);
-      if (midi === null) return;
-      hold(midiToPitchClass(midi), false);
-    };
-    const clearHeld = () => setHeld(new Set());
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    window.addEventListener("blur", clearHeld);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-      window.removeEventListener("blur", clearHeld);
-    };
-  }, [octave]);
-
-  const engine = async () => {
+  /** 同步拿到引擎。起音必须同步完成，否则「快速点一下」会在松手之后才起音。 */
+  function getEngine(): MusicEngine | null {
     if (!engineRef.current) engineRef.current = createEngine();
-    await engineRef.current?.resume();
     return engineRef.current;
-  };
+  }
 
   const choosePitch = (midi: number) => {
     setState((current) => ({ ...current, pitch: midi }));
-    void engine().then((active) => active?.playPitch(midi));
+  };
+
+  // 电脑键接线：按下起音、松手制音，延音跟住按住时长。
+  // 规则只有一份（core/lesson/keyboard.ts），这里只把界面状态接上去。
+  hostRef.current = {
+    getOctave: () => octave,
+    getEngine,
+    onPress: (pitch, midi) => {
+      setHeld((current) => (current.has(pitch) ? current : new Set(current).add(pitch)));
+      choosePitch(midi);
+    },
+    onRelease: (pitch) => {
+      setHeld((current) => {
+        if (!current.has(pitch)) return current;
+        const next = new Set(current);
+        next.delete(pitch);
+        return next;
+      });
+    },
+    onOctave: (next) => setOctave(next),
+  };
+
+  useEffect(() => attachComputerKeyboard(() => hostRef.current as ComputerKeyboardHost), []);
+
+  const engine = async () => {
+    const active = getEngine();
+    await active?.resume();
+    return active;
   };
 
   const playQuestion = (midis: readonly number[]) => {
@@ -254,7 +240,11 @@ export function LessonOne({
             isRoot={(pitch) => selectedClass === pitch && selectedOctave === octave}
             inScale={(pitch) => scalePitches.has(pitch)}
             inChord={(pitch) => selectedClass === pitch}
-            onPick={(pitch) => choosePitch((octave + 1) * 12 + pitch)}
+            onPick={(pitch) => {
+              const midi = (octave + 1) * 12 + pitch;
+              choosePitch(midi);
+              void engine().then((active) => active?.playPitch(midi));
+            }}
           />
           <div className="stepper-block">
             <Stepper

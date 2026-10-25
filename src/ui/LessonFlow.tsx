@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Card, Flex, Radio, Steps } from "antd";
 import { createEngine, type MusicEngine } from "../core/audio/engine.ts";
-import { computerKeyLabel, lessonKeyToMidi, lessonOctaveKey } from "../core/lesson/keys.ts";
+import { computerKeyLabel } from "../core/lesson/keys.ts";
+import { attachComputerKeyboard, type ComputerKeyboardHost } from "../core/lesson/keyboard.ts";
 import {
   applyRecipeToStage,
   buildAttempt,
@@ -19,7 +20,7 @@ import {
   stageToMidi,
   type StageState,
 } from "../core/lesson/stage1.ts";
-import { midiToPitchClass, pitchClassToName, type PitchClass } from "../core/theory/pitch.ts";
+import { pitchClassToName, type PitchClass } from "../core/theory/pitch.ts";
 import { getScalePitches } from "../core/theory/scale.ts";
 import { energySeries } from "../core/analyze/energy.ts";
 import { choiceEnergySong } from "../core/lesson/stage1.ts";
@@ -63,8 +64,9 @@ export function LessonFlow({
   const [candidates, setCandidates] = useState<ReferenceCandidates | null>(null);
   const [visitTick, setVisitTick] = useState(0);
   const engineRef = useRef<MusicEngine | null>(null);
-  const seenLesson = useRef<number | null>(null);
-  const visitId = useRef(`${lesson.id}:${Date.now()}`);
+  /** 电脑键接线要用的界面状态。每次渲染更新，事件发生时读到的就是最新的。 */
+  const hostRef = useRef<ComputerKeyboardHost | null>(null);
+  const seenLesson = useRef<number | null>(null);  const visitId = useRef(`${lesson.id}:${Date.now()}`);
   const usedFix = useRef(false);
   const seenMistakes = useRef<ReturnType<typeof classifyHand>>([]);
   const lessonChanged = seenLesson.current !== null && seenLesson.current !== lesson.id;
@@ -93,48 +95,32 @@ export function LessonFlow({
     onConsumeRecipe();
   }, [pendingRecipe, lesson.id, onConsumeRecipe]);
 
-  useEffect(() => {
-    const typing = (event: KeyboardEvent) => {
-      const target = event.target;
-      return target instanceof HTMLElement && target.closest("input, textarea, select, .ant-select") !== null;
-    };
-    const hold = (pitch: PitchClass, down: boolean) => {
+  /** 同步拿到引擎。起音必须同步完成，否则「快速点一下」会在松手之后才起音。 */
+  function getEngine(): MusicEngine | null {
+    if (!engineRef.current) engineRef.current = createEngine();
+    return engineRef.current;
+  }
+
+  // 电脑键接线：按下起音、松手制音，延音跟住按住时长。
+  // 规则只有一份（core/lesson/keyboard.ts），这里只把界面状态接上去。
+  hostRef.current = {
+    getOctave: () => octave,
+    getEngine,
+    onPress: (pitch) => {
+      setHeld((current) => (current.has(pitch) ? current : new Set(current).add(pitch)));
+    },
+    onRelease: (pitch) => {
       setHeld((current) => {
-        if (down === current.has(pitch)) return current;
+        if (!current.has(pitch)) return current;
         const next = new Set(current);
-        if (down) next.add(pitch);
-        else next.delete(pitch);
+        next.delete(pitch);
         return next;
       });
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (typing(event)) return;
-      const nextOctave = lessonOctaveKey(event.key, octave);
-      if (nextOctave !== null) {
-        event.preventDefault();
-        setOctave(nextOctave);
-        return;
-      }
-      const midi = lessonKeyToMidi(event.key, octave);
-      if (midi === null) return;
-      event.preventDefault();
-      hold(midiToPitchClass(midi), true);
-      if (!event.repeat) {
-        void engine().then((active) => active?.playPitch(midi));
-      }
-    };
-    const onKeyUp = (event: KeyboardEvent) => {
-      const midi = lessonKeyToMidi(event.key, octave);
-      if (midi === null) return;
-      hold(midiToPitchClass(midi), false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-    };
-  }, [octave]);
+    },
+    onOctave: (next) => setOctave(next),
+  };
+
+  useEffect(() => attachComputerKeyboard(() => hostRef.current as ComputerKeyboardHost), []);
 
   const diagnostics = diagnoseStage(lesson, state);
   const passed = stagePassed(lesson, state);
@@ -167,9 +153,9 @@ export function LessonFlow({
   }, [lesson, step, passed, state.earAnswers, state.hand, visitTick, onProgress]);
 
   const engine = async () => {
-    if (!engineRef.current) engineRef.current = createEngine();
-    await engineRef.current?.resume();
-    return engineRef.current;
+    const active = getEngine();
+    await active?.resume();
+    return active;
   };
 
   const download = () => {

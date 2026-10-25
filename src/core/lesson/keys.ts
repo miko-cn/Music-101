@@ -44,3 +44,55 @@ export function lessonOctaveKey(key: string, octave: number): number | null {
   if (name === "x") return Math.min(8, octave + 1);
   return null;
 }
+
+/** 这个电脑键是不是音键（跟当前八度无关）。 */
+export function isNoteKey(key: string): boolean {
+  return KEY_MAP.some((item) => item.key === key.toLowerCase());
+}
+
+/**
+ * 电脑键的一次按下/松开，该做什么。
+ *
+ * 规则集中在这里，UI 只负责执行——
+ * 这样「按住的音要跟住按住时长」这条不会被某个组件写错。
+ */
+export type ComputerKeyAction =
+  /** 换八度。 */
+  | { kind: "octave"; octave: number }
+  /** 按下音键：起音。 */
+  | { kind: "press"; key: string; midi: number }
+  /** 松开音键：制音。 */
+  | { kind: "release"; key: string };
+
+/**
+ * 把一次键盘事件翻译成动作。
+ *
+ * 两条容易写错的规矩，这里定死：
+ *
+ * 1. 长按的自动重复（keydown 反复触发）不重新起音——
+ *    否则按住不放会变成一个音被反复打断重响。
+ * 2. 松手时只认「这是不是音键」，不看当前八度。
+ *    按着音的时候按 Z / X 换八度，松手那一刻算出来的音高已经变了，
+ *    按音高去匹配就会找不到当初按下的那个音，音会一直拖下去。
+ */
+export function computerKeyAction(input: {
+  key: string;
+  octave: number;
+  down: boolean;
+  repeat?: boolean;
+}): ComputerKeyAction | null {
+  const name = input.key.toLowerCase();
+
+  if (!input.down) {
+    if (!isNoteKey(input.key)) return null;
+    return { kind: "release", key: name };
+  }
+
+  const nextOctave = lessonOctaveKey(input.key, input.octave);
+  if (nextOctave !== null) return { kind: "octave", octave: nextOctave };
+
+  const midi = lessonKeyToMidi(input.key, input.octave);
+  if (midi === null) return null;
+  if (input.repeat) return null;
+  return { kind: "press", key: name, midi };
+}

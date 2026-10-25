@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { computerKeyLabel, lessonKeyToMidi, lessonOctaveKey } from "../../src/core/lesson/keys.ts";
+import {
+  computerKeyAction,
+  computerKeyLabel,
+  isNoteKey,
+  lessonKeyToMidi,
+  lessonOctaveKey,
+} from "../../src/core/lesson/keys.ts";
 import { noteNameToMidi } from "../../src/core/theory/pitch.ts";
 
 describe("钢琴式电脑键", () => {
@@ -40,5 +46,69 @@ describe("钢琴式电脑键", () => {
     expect(lessonOctaveKey("w", 4)).toBeNull();
     expect(lessonOctaveKey("e", 4)).toBeNull();
     expect(lessonOctaveKey("q", 4)).toBeNull();
+  });
+});
+
+describe("电脑键的按下与松开", () => {
+  it("按下音键 = 起音，松手 = 制音", () => {
+    expect(computerKeyAction({ key: "a", octave: 4, down: true })).toEqual({
+      kind: "press",
+      key: "a",
+      midi: noteNameToMidi("C4"),
+    });
+    expect(computerKeyAction({ key: "a", octave: 4, down: false })).toEqual({
+      kind: "release",
+      key: "a",
+    });
+  });
+
+  it("大写键也算同一个键（按住 Shift 弹琴）", () => {
+    expect(computerKeyAction({ key: "A", octave: 4, down: true })).toEqual({
+      kind: "press",
+      key: "a",
+      midi: noteNameToMidi("C4"),
+    });
+  });
+
+  it("长按的自动重复不重新起音", () => {
+    // 否则按住不放会变成一个音被反复打断重响。
+    expect(computerKeyAction({ key: "a", octave: 4, down: true, repeat: true })).toBeNull();
+  });
+
+  it("Z / X 是换八度，不是音键", () => {
+    expect(computerKeyAction({ key: "z", octave: 4, down: true })).toEqual({
+      kind: "octave",
+      octave: 3,
+    });
+    expect(computerKeyAction({ key: "x", octave: 4, down: true })).toEqual({
+      kind: "octave",
+      octave: 5,
+    });
+    // 松开 Z / X 不该去制音——它不是音键。
+    expect(computerKeyAction({ key: "z", octave: 4, down: false })).toBeNull();
+    expect(isNoteKey("z")).toBe(false);
+    expect(isNoteKey("a")).toBe(true);
+  });
+
+  it("不相关的键不产生动作", () => {
+    expect(computerKeyAction({ key: "q", octave: 4, down: true })).toBeNull();
+    expect(computerKeyAction({ key: "q", octave: 4, down: false })).toBeNull();
+    expect(computerKeyAction({ key: "Enter", octave: 4, down: true })).toBeNull();
+  });
+
+  it("按着音换八度之后松手，仍然认得当初那把键", () => {
+    // 松手只看「是不是音键」，不看当前八度——
+    // 否则换过八度之后按音高去匹配就找不到那个音，音会一直拖下去。
+    const down = computerKeyAction({ key: "a", octave: 4, down: true });
+    expect(down?.kind).toBe("press");
+    const up = computerKeyAction({ key: "a", octave: 5, down: false });
+    expect(up).toEqual({ kind: "release", key: "a" });
+  });
+
+  it("八度推到超出音域时，松手依然能制音", () => {
+    const down = computerKeyAction({ key: "a", octave: 8, down: true });
+    expect(down?.kind).toBe("press");
+    const up = computerKeyAction({ key: "a", octave: 0, down: false });
+    expect(up).toEqual({ kind: "release", key: "a" });
   });
 });
