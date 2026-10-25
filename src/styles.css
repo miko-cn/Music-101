@@ -458,6 +458,14 @@ body {
   font-size: 1rem;
 }
 
+/* 黑键的降号拼法（C♯ / D♭ 是同一个键）。比主行小一号、淡一点，
+   免得两个看起来一样重、让人分不清哪个是「主」拼法。 */
+.keyboard-key-name.is-alt {
+  font-size: 0.8em;
+  opacity: 0.72;
+  margin-top: 3px;
+}
+
 .keyboard-key-midi {
   font-size: 0.68rem;
   opacity: 0.65;

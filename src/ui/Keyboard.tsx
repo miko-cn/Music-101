@@ -161,6 +161,9 @@ function KeyButton({
   style?: CSSProperties;
 }) {
   const name = midiToNoteName(midi);
+  // 黑键有两种拼法：C♯ 和 D♭ 是同一个键。初学者最常混的就是这个，
+  // 所以两个都印出来——上面是升号拼法（键盘默认），下面是降号拼法。
+  const altName = kind === "black" ? midiToNoteName(midi, true) : null;
   // 指针按下的时刻。用它区分「鼠标点的」和「键盘 Enter 触发的」——
   // 鼠标那一下已经在 pointerdown 里起音了，click 不该再响一次。
   const pointerAt = useRef(0);
@@ -171,6 +174,10 @@ function KeyButton({
     event.currentTarget.setPointerCapture?.(event.pointerId);
     onPress?.(midi);
   };
+
+  const ariaLabel = altName
+    ? `${toNotationName(name)} 或 ${toNotationName(altName)}`
+    : toNotationName(name);
 
   return (
     <button
@@ -184,7 +191,7 @@ function KeyButton({
       ]
         .filter(Boolean)
         .join(" ")}
-      aria-label={`${toNotationName(name)}${showMidi ? `，MIDI ${midi}` : ""}`}
+      aria-label={`${ariaLabel}${showMidi ? `，MIDI ${midi}` : ""}`}
       style={style}
       onPointerDown={handlePointerDown}
       onPointerUp={() => onRelease?.(midi)}
@@ -198,7 +205,10 @@ function KeyButton({
       }}
     >
       {showNames ? (
-        <NoteName name={name} className="keyboard-key-name" />
+        <>
+          <NoteName name={name} className="keyboard-key-name" />
+          {altName ? <NoteName name={altName} className="keyboard-key-name is-alt" /> : null}
+        </>
       ) : null}
       {showMidi ? <span className="keyboard-key-midi">{midi}</span> : null}
     </button>
