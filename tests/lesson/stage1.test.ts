@@ -7,7 +7,10 @@ import {
   stagePassed,
   stageToMidi,
 } from "../../src/core/lesson/stage1.ts";
-import { STAGE_LESSONS, stageLesson } from "../../src/content/stage1.ts";
+import { FLOW_LESSONS, stageLesson } from "../../src/content/index.ts";
+
+/** 阶段一关：2–8。 */
+const STAGE_LESSONS = FLOW_LESSONS.filter((lesson) => lesson.id <= 8);
 
 function passedState(id: number) {
   const lesson = stageLesson(id);

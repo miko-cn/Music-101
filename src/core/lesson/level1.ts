@@ -10,7 +10,7 @@ import {
   LEVEL1_TARGET_PITCH,
   LEVEL1_TARGET_STEPS,
   type EarQuestion,
-} from "../../content/level1.ts";
+} from "../../content/lessons/level-01.ts";
 
 export interface Level1State {
   earAnswers: (number | null)[];

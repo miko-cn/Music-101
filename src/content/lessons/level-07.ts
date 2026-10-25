@@ -1,0 +1,178 @@
+// 第 7 关 · I–V–vi–IV
+import { defineLesson, chord, choice } from "../helpers.ts";
+import type { StageLessonEntry } from "../types.ts";
+
+export const lesson: StageLessonEntry = defineLesson({
+  id: 7,
+  title: "I–V–vi–IV",
+  stage: "foundation",
+  ability: "harmony",
+  anchor: {
+    id: "roman-numeral-case",
+    name: "罗马数字大小写",
+    hook: "数字是第几级，大写小写是大三还是小三。",
+    steps: [
+      "先数根音在音阶里的第几级 → 得到数字。",
+      "看这个级上的三和弦是大三还是小三 → 决定大小写。",
+      "C 大调对照表：I=C, ii=Dm, iii=Em, IV=F, V=G, vi=Am, vii°=B°。",
+      "加减号放在后面：vii°、V+、ii°5。",
+      "进行名 = 把这些数字连起来，比如 I–V–vi–IV。",
+    ],
+    takeaway: [
+      "罗马数字 = 级数（数字）+ 性质（大小写）。",
+      "C 大调：I=C, ii=Dm, iii=Em, IV=F, V=G, vi=Am, vii°=B°。",
+      "大写 = 大三和弦，小写 = 小三和弦，加 ° = 减和弦。",
+      "ii 和 iii 永远小写；VI 永远大写。",
+      "I–V–vi–IV = C → G → Am → F，是流行 BGM 的默认骨架。",
+    ],
+  },
+  concept: [
+    "罗马数字是「级数 + 性质」的合体。数字告诉你根音在音阶里的第几级，大小写告诉你和弦的性质。",
+    "C 大调里：C 是第 1 级 → I；D 是第 2 级，三和弦是 Dm → ii；E → iii；F → IV；G → V；A 是第 6 级，性质是小三 → vi；B → vii°（减和弦）。",
+    "所以 I–V–vi–IV 在 C 大调里就是 C → G → Am → F。四个和弦全在调内，而且「两个大调夹一个小调」的明暗排列本身就很好听。",
+    "大小写规则：大写 = 大三和弦，小写 = 小三和弦，后面加 ° = 减。三度级数（iii）永远小写，二度级数（ii）也永远小写，因为它们天然是小三和弦。",
+    "进行名字就是把这些数字连起来：I–V–vi–IV、vi–IV–I–V 都是常见的四小节循环。开头不同，情绪完全不同：I–V–vi–IV 从家出发往上走，vi–IV–I–V 从「不安」开始再回家。",
+    "编曲里的用处：这个进行几乎就是流行/日系 BGM 的默认骨架。你只要会听级数，遇到一首新歌就能很快判断它是不是这一套。",
+  ],
+  earPass: 6,
+  ear: [
+    {
+      id: "which-v",
+      prompt: "哪个是 V 级？",
+      choices: [
+        { label: "G B D", midis: [67, 71, 74] },
+        { label: "A C E", midis: [69, 72, 76] },
+        { label: "D F A", midis: [62, 65, 69] },
+      ],
+      correct: 0,
+      explain: "C 大调的第 5 级是 G，所以 V 是 G 大三和弦。",
+    },
+    {
+      id: "which-vi",
+      prompt: "哪个是 vi 级？",
+      choices: [
+        { label: "A C E", midis: [69, 72, 76] },
+        { label: "F A C", midis: [65, 69, 72] },
+        { label: "G B D", midis: [67, 71, 74] },
+      ],
+      correct: 0,
+      explain: "第 6 级是 A。大调里第 6 级天然是小三和弦，记成小写 vi。",
+    },
+    {
+      id: "which-iv",
+      prompt: "哪个是 IV 级？",
+      choices: [
+        { label: "F A C", midis: [65, 69, 72] },
+        { label: "G B D", midis: [67, 71, 74] },
+        { label: "B♭ D F", midis: [70, 74, 77] },
+      ],
+      correct: 0,
+      explain: "第 4 级是 F，IV 是 F 大三和弦。",
+    },
+    {
+      id: "lowercase-means",
+      prompt: "哪个是小写级数（小三和弦）？",
+      choices: [
+        { label: "Am", midis: [69, 72, 76] },
+        { label: "G", midis: [67, 71, 74] },
+        { label: "F", midis: [65, 69, 72] },
+      ],
+      correct: 0,
+      explain: "小写字母代表小三和弦。Am 是小写，G 和 F 是大写大三和弦。",
+    },
+    {
+      id: "second-chord",
+      prompt: "I–V–vi–IV 的第二个和弦是？",
+      choices: [
+        { label: "G", midis: [67, 71, 74] },
+        { label: "Am", midis: [69, 72, 76] },
+        { label: "F", midis: [65, 69, 72] },
+      ],
+      correct: 0,
+      explain: "顺序就是 I、V、vi、IV，第二个是 V = G。",
+    },
+    {
+      id: "which-ii",
+      prompt: "C 大调的 ii 是？",
+      choices: [
+        { label: "Dm", midis: [62, 65, 69] },
+        { label: "D", midis: [62, 66, 69] },
+        { label: "Bdim", midis: [71, 74, 77] },
+      ],
+      correct: 0,
+      explain: "第 2 级是 D，三和弦天然是小三，记成 ii（小写）。",
+    },
+    {
+      id: "in-key-prog",
+      prompt: "哪条进行全部在 C 大调里？",
+      choices: [
+        { label: "C G Am F", midis: [60, 67, 69, 65] },
+        { label: "C G B♭ F", midis: [60, 67, 70, 65] },
+        { label: "C G♭ Am F", midis: [60, 66, 69, 65] },
+      ],
+      correct: 0,
+      explain: "B♭ 和 G♭ 都不在 C 大调里。C、G、A、F 都在。",
+    },
+    {
+      id: "which-vii",
+      prompt: "C 大调的 vii° 是什么？",
+      choices: [
+        { label: "Bdim", midis: [71, 74, 77] },
+        { label: "B", midis: [71, 75, 78] },
+        { label: "Bm", midis: [71, 74, 78] },
+      ],
+      correct: 0,
+      explain: "第 7 级 B 上叠三音是减和弦，记成 vii°。它最想往下解决到 I。",
+    },
+  ],
+  handPrompt: "选出 I–V–vi–IV。",
+  handChoices: [
+    choice(
+      "C → G → Am → F",
+      [],
+      [
+        chord(0, [60, 64, 67], "C (I)"),
+        chord(1, [67, 71, 74], "G (V)"),
+        chord(2, [69, 72, 76], "Am (vi)"),
+        chord(3, [65, 69, 72], "F (IV)"),
+      ],
+    ),
+    choice(
+      "C → Am → F → G",
+      [],
+      [
+        chord(0, [60, 64, 67], "C (I)"),
+        chord(1, [69, 72, 76], "Am (vi)"),
+        chord(2, [65, 69, 72], "F (IV)"),
+        chord(3, [67, 71, 74], "G (V)"),
+      ],
+    ),
+    choice(
+      "C → F → G → Am",
+      [],
+      [
+        chord(0, [60, 64, 67], "C (I)"),
+        chord(1, [65, 69, 72], "F (IV)"),
+        chord(2, [67, 71, 74], "G (V)"),
+        chord(3, [69, 72, 76], "Am (vi)"),
+      ],
+    ),
+    choice(
+      "C → G → B♭ → F",
+      [],
+      [
+        chord(0, [60, 64, 67], "C (I)"),
+        chord(1, [67, 71, 74], "G (V)"),
+        chord(2, [70, 74, 77], "Bb (♭VII)"),
+        chord(3, [65, 69, 72], "F (IV)"),
+      ],
+    ),
+  ],
+  handCorrect: 0,
+  bpm: 120,
+  keyRoot: 0,
+  keyScale: "major",
+  totalBars: 4,
+  marker: "Level7",
+  prereq: [5, 6],
+});

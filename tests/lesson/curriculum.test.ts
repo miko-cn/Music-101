@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { ANCHORS, anchorOf } from "../../src/content/anchors.ts";
-import { ARRANGING_LESSONS } from "../../src/content/arranging.ts";
-import { LEVEL1_ANCHOR, LEVEL1_CONCEPT } from "../../src/content/level1.ts";
-import { STAGE_LESSONS } from "../../src/content/stage1.ts";
+import { FLOW_LESSONS, LESSONS, anchorOf } from "../../src/content/index.ts";
+import { LEVEL1_ANCHOR, LEVEL1_CONCEPT } from "../../src/content/lessons/level-01.ts";
 
-const ALL_LESSONS = [...STAGE_LESSONS, ...ARRANGING_LESSONS];
+const ALL_LESSONS = FLOW_LESSONS;
+
+/** 全部记忆锚，从关卡自己身上收上来。 */
+const ANCHORS = Object.fromEntries(LESSONS.map((lesson) => [lesson.id, lesson.anchor]));
 
 describe("课程内容完整性", () => {
   it("27 关全部配了记忆锚，且锚点没有重复", () => {
@@ -46,6 +47,23 @@ describe("课程内容完整性", () => {
         expect(seen.has(question.id), `第 ${lesson.id} 关题目 id 重复：${question.id}`).toBe(false);
         seen.add(question.id);
       }
+    }
+  });
+
+  it("听辨题和手做选项的文字都不重复（同名选项等于同一道题出现两次）", () => {
+    for (const lesson of ALL_LESSONS) {
+      for (const question of lesson.ear) {
+        const labels = question.choices.map((choice) => choice.label);
+        expect(
+          new Set(labels).size,
+          `第 ${lesson.id} 关「${question.id}」有同名选项：${labels.join(" / ")}`,
+        ).toBe(labels.length);
+      }
+      const handLabels = lesson.handChoices.map((choice) => choice.label);
+      expect(
+        new Set(handLabels).size,
+        `第 ${lesson.id} 关手做有同名选项：${handLabels.join(" / ")}`,
+      ).toBe(handLabels.length);
     }
   });
 

@@ -1,80 +1,21 @@
-import type { StageLesson } from "../../content/stage1.ts";
-import type { Level1State } from "./level1.ts";
 import {
-  MISTAKE_KINDS,
-  type Attempt,
-  type MistakeKind,
-  type ProgressFile,
-  type Recipe,
-  type RecipePick,
-} from "./progress.ts";
+  ABILITIES,
+  FLOW_LESSONS,
+  MAX_LEVEL_ID,
+  abilityOf as contentAbilityOf,
+  levelsForAbility,
+  lessonById,
+} from "../../content/index.ts";
+import { MISTAKE_LABEL, MISTAKE_SUMMARY } from "../../content/mistakes.ts";
+import { isStageLesson } from "../../content/types.ts";
+import type { AbilityId, StageLesson } from "../../content/types.ts";
+import type { Level1State } from "./level1.ts";
+import { MISTAKE_KINDS, type MistakeKind } from "./mistakes.ts";
+import type { Attempt, ProgressFile, Recipe, RecipePick } from "./progress.ts";
 import type { StageState } from "./stage1.ts";
 
-export type AbilityId = "harmony" | "rhythm" | "arrangement" | "structure";
-
-export const ABILITIES: readonly { id: AbilityId; label: string }[] = [
-  { id: "harmony", label: "和声" },
-  { id: "rhythm", label: "节奏" },
-  { id: "arrangement", label: "配器" },
-  { id: "structure", label: "结构" },
-];
-
-export const LEVEL_ABILITY: Record<number, AbilityId> = {
-  1: "harmony",
-  2: "harmony",
-  3: "harmony",
-  4: "harmony",
-  5: "harmony",
-  6: "harmony",
-  7: "harmony",
-  8: "harmony",
-  9: "arrangement",
-  10: "rhythm",
-  11: "arrangement",
-  12: "arrangement",
-  13: "structure",
-  14: "harmony",
-  15: "harmony",
-  16: "harmony",
-  17: "harmony",
-  18: "arrangement",
-  19: "arrangement",
-  20: "structure",
-  21: "arrangement",
-  22: "arrangement",
-  23: "arrangement",
-  24: "rhythm",
-  25: "structure",
-  26: "structure",
-  27: "structure",
-};
-
-/** 选错时才记。第 7 关的正确答案就是 I–V–vi–IV，选对不算老用。 */
-const HAND_MISTAKES: Record<string, MistakeKind> = {
-  "8:1": "same-progression",
-  "11:1": "low-end-clash",
-  "13:1": "chorus-flat",
-  "25:1": "chorus-flat",
-  "26:1": "chorus-flat",
-};
-
-export const MISTAKE_DRILLS: Record<MistakeKind, { levelId: number; label: string; text: string }> = {
-  "same-progression": {
-    levelId: 8,
-    label: "同一条进行",
-    text: "同一条大调进行已经出现了两次以上。先重开第 8 关，把借用和弦用上。",
-  },
-  "chorus-flat": {
-    levelId: 13,
-    label: "副歌不抬层",
-    text: "副歌有两次以上没有抬层。先重开第 13 关，看能量曲线。",
-  },
-  "low-end-clash": {
-    levelId: 11,
-    label: "808 抢 kick",
-    text: "808 有两次以上压进 kick 的音区。先重开第 11 关，根音放在 MIDI 36。",
-  },
-};
+export type { AbilityId } from "../../content/types.ts";
+export { ABILITIES };
 
 export interface AbilityScore {
   id: AbilityId;
@@ -100,23 +41,67 @@ export interface DifficultyAdvice {
 
 export type LevelStatus = "mastered" | "retry" | "new";
 
+export interface MistakeDrill {
+  /** 去哪一关补。 */
+  levelId: number;
+  label: string;
+  text: string;
+}
+
+/** 找到能补救某一类错误的关卡——关号最小的那个。 */
+function findFix(kind: MistakeKind): { levelId: number; advice: string } | null {
+  for (const lesson of FLOW_LESSONS) {
+    for (const fix of lesson.fixes ?? []) {
+      if (fix.kind === kind) return { levelId: lesson.id, advice: fix.advice };
+    }
+  }
+  return null;
+}
+
+/**
+ * 每一类错误该去哪一关补。
+ *
+ * 关号来自关卡自己的 fixes 声明——以后加一关能补救新的错误类型时，
+ * 不用回到这里改数字。
+ */
+export const MISTAKE_DRILLS: Record<MistakeKind, MistakeDrill | null> = Object.fromEntries(
+  MISTAKE_KINDS.map((kind) => {
+    const fix = findFix(kind);
+    if (!fix) return [kind, null];
+    return [
+      kind,
+      {
+        levelId: fix.levelId,
+        label: MISTAKE_LABEL[kind],
+        text: `${MISTAKE_SUMMARY[kind]}先重开第 ${fix.levelId} 关，${fix.advice}。`,
+      },
+    ];
+  }),
+) as Record<MistakeKind, MistakeDrill | null>;
+
 export function abilityOf(levelId: number): AbilityId | null {
-  return LEVEL_ABILITY[levelId] ?? null;
+  return contentAbilityOf(levelId);
 }
 
 export function levelsFor(ability: AbilityId): number[] {
-  return Object.entries(LEVEL_ABILITY)
-    .filter((entry) => entry[1] === ability)
-    .map((entry) => Number(entry[0]));
+  return levelsForAbility(ability);
 }
 
 export function isMastered(progress: ProgressFile, levelId: number): boolean {
   return progress.passedLevels.includes(levelId) || (levelId === 1 && progress.level1Passed);
 }
 
+/**
+ * 手做选错时算哪一类错误。
+ *
+ * 哪一题选错算什么错，由关卡自己声明（mistakeKinds），
+ * 这里只做查表，不再手写「关号:题号」的对照表。
+ */
 export function classifyHand(levelId: number, hand: number | null, handCorrect: number): MistakeKind[] {
   if (hand === null || hand === handCorrect) return [];
-  const kind = HAND_MISTAKES[`${levelId}:${hand}`];
+  const lesson = lessonById(levelId);
+  if (!lesson || !isStageLesson(lesson)) return [];
+  const kind = lesson.mistakeKinds?.[hand];
   return kind ? [kind] : [];
 }
 
@@ -137,6 +122,7 @@ export function activeDrills(progress: ProgressFile, levelId: number): DrillHint
   const found: DrillHint[] = [];
   for (const kind of MISTAKE_KINDS) {
     const drill = MISTAKE_DRILLS[kind];
+    if (!drill) continue;
     const count = counts[kind];
     if (count < 2 || levelId <= drill.levelId) continue;
     found.push({ kind, levelId: drill.levelId, label: drill.label, text: drill.text, count });
@@ -159,7 +145,7 @@ export function statusText(status: LevelStatus, levelId: number): string {
 export function recommendationLists(progress: ProgressFile): { mastered: number[]; retry: number[] } {
   const mastered: number[] = [];
   const retry: number[] = [];
-  for (let levelId = 1; levelId <= 27; levelId += 1) {
+  for (let levelId = 1; levelId <= MAX_LEVEL_ID; levelId += 1) {
     const status = levelStatus(progress, levelId);
     if (status === "mastered") mastered.push(levelId);
     if (status === "retry") retry.push(levelId);
@@ -265,7 +251,7 @@ export function recipeFromLevel1(state: Level1State): Recipe {
   return {
     id: `1:${summary}`.slice(0, 160),
     levelId: 1,
-    title: "音高与键盘",
+    title: lessonById(1)?.title ?? "音高与键盘",
     summary,
     hand: null,
     drums: null,

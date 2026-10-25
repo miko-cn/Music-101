@@ -24,7 +24,7 @@ import {
   LEVEL1_EAR,
   LEVEL1_EAR_PASS,
   LEVEL1_TARGET_PITCH,
-} from "../content/level1.ts";
+} from "../content/lessons/level-01.ts";
 import { LessonCoach } from "./LessonCoach.tsx";
 import { NoteName } from "./NoteName.tsx";
 import { MemoryAnchorCard } from "./MemoryAnchorCard.tsx";

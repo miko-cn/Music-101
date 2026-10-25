@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, ConfigProvider, Flex, Layout, Select, Tooltip, theme } from "antd";
 import zhCN from "antd/locale/zh_CN";
-import { ARRANGING_LESSONS } from "./content/arranging.ts";
-import { STAGE_LESSONS } from "./content/stage1.ts";
+import { LESSONS, lessonById } from "./content/index.ts";
+import { isStageLesson } from "./content/types.ts";
 import { levelLocked } from "./core/lesson/personalize.ts";
 import { loadProgress, saveProgress, type ProgressUpdate, type Recipe } from "./core/lesson/progress.ts";
 import { DiagnosticsLab } from "./ui/DiagnosticsLab.tsx";
@@ -17,12 +17,11 @@ const { Header, Content } = Layout;
 
 type View = "bench" | "lesson" | "diagnostics" | "progress" | "anchors";
 
-const FLOW_LESSONS = [...STAGE_LESSONS, ...ARRANGING_LESSONS];
-
-const LESSON_OPTIONS = [
-  { value: 1, label: "第 1 关 · 音高与键盘" },
-  ...FLOW_LESSONS.map((lesson) => ({ value: lesson.id, label: `第 ${lesson.id} 关 · ${lesson.title}` })),
-];
+/** 关卡下拉：全部关卡，标题都从关卡文件里来。 */
+const LESSON_OPTIONS = LESSONS.map((lesson) => ({
+  value: lesson.id,
+  label: `第 ${lesson.id} 关 · ${lesson.title}`,
+}));
 
 export function App() {
   const [view, setView] = useState<View>("lesson");
@@ -32,7 +31,9 @@ export function App() {
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const progressRef = useRef(progress);
   progressRef.current = progress;
-  const stage = FLOW_LESSONS.find((lesson) => lesson.id === level);
+  // 第 1 关走自己的流程，不是标准关卡；这里按「是不是标准关卡」分流，不再写死关号。
+  const entry = lessonById(level);
+  const stage = entry && isStageLesson(entry) ? entry : null;
 
   // 全局快捷键：K 随时呼出键盘查位置（关卡里弹琴用的是 A S D F G H J / W E T Y U，不冲突）
   useEffect(() => {
@@ -129,8 +130,9 @@ export function App() {
                 setView("lesson");
               }}
             />
-          ) : level === 1 || !stage ? (
-            <LessonOne
+          ) : stage ? (
+            <LessonFlow
+              lesson={stage}
               progress={progress}
               onProgress={onProgress}
               pendingRecipe={pendingRecipe}
@@ -138,8 +140,7 @@ export function App() {
               onOpenLevel={openLevel}
             />
           ) : (
-            <LessonFlow
-              lesson={stage}
+            <LessonOne
               progress={progress}
               onProgress={onProgress}
               pendingRecipe={pendingRecipe}

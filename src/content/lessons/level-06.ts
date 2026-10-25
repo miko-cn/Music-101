@@ -1,0 +1,142 @@
+// 第 6 关 · 七和弦与色彩
+import { defineLesson, chord, choice } from "../helpers.ts";
+import type { StageLessonEntry } from "../types.ts";
+
+export const lesson: StageLessonEntry = defineLesson({
+  id: 6,
+  title: "七和弦与色彩",
+  stage: "foundation",
+  ability: "harmony",
+  anchor: {
+    id: "root-three-five-seven",
+    name: "根三五七",
+    hook: "七和弦就是三和弦上面再叠一个三度。",
+    steps: [
+      "根音、三音、五音、七音，四层三度叠起来。",
+      "三音先定大/小：大三度 → 大系，小三度 → 小系。",
+      "五音在自然小调里是纯五度。",
+      "七音定颜色：七音离八度差半音 → maj7（亮）；低半音 → 属七（想往下解决）。",
+      "要更透就用 add9：三和弦上加九度，不动三音五音。",
+    ],
+    takeaway: [
+      "七和弦 = 根音 + 三音 + 五音 + 七音。",
+      "maj7 的七音是导音（B），离八度只差半音，所以亮。",
+      "属七的七音是降七度（B♭），想往下解决到主音。",
+      "五种常见性质：maj7 / 7 / m7 / m7♭5 / dim7。",
+      "add9 保留大三度，比 maj7 更透；future bass 的甜味主要靠它。",
+    ],
+  },
+  concept: [
+    "七和弦就是三和弦上面再叠一层三度：根音、三音、五音、七音。C E G 再往上叠就是 B，C E G B。",
+    "性质还是看内部音程，但这次七音决定颜色。 Cmaj7 的七音是 B，七音和五音之间是大三度；C7 的七音是 B♭，是小三度。",
+    "为什么 maj7 亮：因为七音 B 是导音，离下一个八度只差半音，整个和弦被「往上拉」。为什么属七紧：七音 B♭ 是降七度，它想要往下解决到 C。",
+    "五种最常见的七和弦性质：maj7（根大三+大七）、7（根大三+小七）、m7（根小三+小七）、m7♭5（根小三+减五+小七）、dim7（根小三+减五+减七）。",
+    "add9 是另一类：在三和弦上加一个九度，但不动三音和五音。Cadd9 = C E G D，比 Cmaj7 更透，因为它的七度位置还是空的。",
+    "编曲里的用处：future bass / kawaii bass 最常见的两个色彩就是 maj7 和 add9，用在副歌的上层旋律或铺底 pad 上，一首歌的「甜度」基本由它决定。",
+  ],
+  earPass: 6,
+  ear: [
+    {
+      id: "which-maj7",
+      prompt: "哪个是大七和弦？",
+      choices: [
+        { label: "C E G B", midis: [60, 64, 67, 71] },
+        { label: "C E G B♭", midis: [60, 64, 67, 70] },
+        { label: "C E♭ G B", midis: [60, 63, 67, 71] },
+      ],
+      correct: 0,
+      explain: "七音是 B 而不是 B♭，且三音是大三度 E，所以是 Cmaj7。",
+    },
+    {
+      id: "which-dom7",
+      prompt: "哪个是属七和弦？",
+      choices: [
+        { label: "C E G B♭", midis: [60, 64, 67, 70] },
+        { label: "C E G B", midis: [60, 64, 67, 71] },
+        { label: "C E♭ G B♭", midis: [60, 63, 67, 70] },
+      ],
+      correct: 0,
+      explain: "属七 = 大三和弦 + 小七。七音是降七度 B♭。",
+    },
+    {
+      id: "maj7-seventh",
+      prompt: "Cmaj7 的七音是？",
+      choices: [
+        { label: "B", midis: [60, 71] },
+        { label: "B♭", midis: [60, 70] },
+        { label: "A", midis: [60, 69] },
+      ],
+      correct: 0,
+      explain: "maj7 的七音是导音 B，离八度只差半音，所以亮。",
+    },
+    {
+      id: "dom7-seventh",
+      prompt: "C7 的七音是？",
+      choices: [
+        { label: "B♭", midis: [60, 70] },
+        { label: "B", midis: [60, 71] },
+        { label: "A", midis: [60, 69] },
+      ],
+      correct: 0,
+      explain: "C7 的七音是降七度 B♭，它想要往下解决到 C。",
+    },
+    {
+      id: "cm7",
+      prompt: "哪个是 Cm7？",
+      choices: [
+        { label: "C E♭ G B♭", midis: [60, 63, 67, 70] },
+        { label: "C E G B♭", midis: [60, 64, 67, 70] },
+        { label: "C E♭ G B", midis: [60, 63, 67, 71] },
+      ],
+      correct: 0,
+      explain: "m7 = 小三和弦 + 小七。所以三音要降半音，七音也是降的。",
+    },
+    {
+      id: "resolve",
+      prompt: "哪个最想往下解决、听起来最紧？",
+      choices: [
+        { label: "C E G B♭", midis: [60, 64, 67, 70] },
+        { label: "C E G B", midis: [60, 64, 67, 71] },
+        { label: "C E G", midis: [60, 64, 67] },
+      ],
+      correct: 0,
+      explain: "属七的降七度更紧，大七更亮、更松。",
+    },
+    {
+      id: "add9",
+      prompt: "哪个是加了九度的和弦？",
+      choices: [
+        { label: "C E G D", midis: [60, 64, 67, 74] },
+        { label: "C E G B♭", midis: [60, 64, 67, 70] },
+        { label: "C E G", midis: [60, 64, 67] },
+      ],
+      correct: 0,
+      explain: "多出来的 D 是根音上面的九度，而且三音 E 没动，所以是 add9 不是 maj7。",
+    },
+    {
+      id: "minor-maj7",
+      prompt: "哪个是 Cm(maj7)？",
+      choices: [
+        { label: "C E♭ G B", midis: [60, 63, 67, 71] },
+        { label: "C E G B", midis: [60, 64, 67, 71] },
+        { label: "C E♭ G B♭", midis: [60, 63, 67, 70] },
+      ],
+      correct: 0,
+      explain: "小七和弦 + 大七度 = Cm(maj7)：三音降半音，七音是 B。这个组合又暗又亮，很 kawaii。",
+    },
+  ],
+  handPrompt: "选出 C 大七和弦。",
+  handChoices: [
+    choice("C E G B♭", [], [chord(0, [60, 64, 67, 70], "C7")]),
+    choice("C E G B", [], [chord(0, [60, 64, 67, 71], "Cmaj7")]),
+    choice("C E♭ G B♭", [], [chord(0, [60, 63, 67, 70], "Cm7")]),
+    choice("C E♭ G B", [], [chord(0, [60, 63, 67, 71], "Cm(maj7)")]),
+  ],
+  handCorrect: 1,
+  bpm: 120,
+  keyRoot: 0,
+  keyScale: "major",
+  totalBars: 1,
+  marker: "Level6",
+  prereq: [4, 5],
+});

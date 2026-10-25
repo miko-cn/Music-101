@@ -1,4 +1,4 @@
-import type { MemoryAnchor } from "../content/anchors.ts";
+import type { MemoryAnchor } from "../content/types.ts";
 
 /**
  * 记忆锚卡片。

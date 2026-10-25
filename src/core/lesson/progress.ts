@@ -1,12 +1,17 @@
+import { MAX_LEVEL_ID } from "../../content/index.ts";
+import { MISTAKE_KINDS, type MistakeKind } from "./mistakes.ts";
+
 export const PROGRESS_SCHEMA = 3;
 const STORAGE_KEY = "music-101.progress";
 const LEVEL_MIN = 1;
-const LEVEL_MAX = 27;
+/** 关卡上限跟着课程走——加了新关，这里自动放宽。 */
+const LEVEL_MAX = MAX_LEVEL_ID;
 /** 活动流最多留多少条：够半年热力图（每天一条也够 800 天）。 */
 const ACTIVITY_MAX = 800;
 
-export const MISTAKE_KINDS = ["same-progression", "chorus-flat", "low-end-clash"] as const;
-export type MistakeKind = (typeof MISTAKE_KINDS)[number];
+/** 旧的导入路径还从这儿拿，定义搬到 mistakes.ts 了。 */
+export { MISTAKE_KINDS };
+export type { MistakeKind };
 
 export interface Attempt {
   visitId: string;
