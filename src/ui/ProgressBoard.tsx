@@ -50,7 +50,7 @@ export function ProgressBoard({
         <p className="hint">可重开：{lists.retry.length === 0 ? "还没有" : lists.retry.map((id) => `第 ${id} 关`).join("、")}</p>
       </Card>
       <Card title="难度">
-        {advice ? <Alert type={advice.kind === "harder" ? "info" : "warning"} showIcon message={advice.text} /> : <p className="hint">还看不出连续轻松或连续卡住。</p>}
+        {advice ? <Alert type={advice.kind === "harder" ? "info" : "warning"} showIcon title={advice.text} /> : <p className="hint">还看不出连续轻松或连续卡住。</p>}
       </Card>
       <Card title="配方库">
         {progress.recipes.length === 0 ? (

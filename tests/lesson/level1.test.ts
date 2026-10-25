@@ -11,7 +11,7 @@ import {
   level1ToMidi,
   scoreEar,
 } from "../../src/core/lesson/level1.ts";
-import { LEVEL1_EAR, LEVEL1_TARGET_PITCH } from "../../src/content/level1.ts";
+import { LEVEL1_EAR, LEVEL1_EAR_PASS, LEVEL1_TARGET_PITCH } from "../../src/content/level1.ts";
 import { quarterSteps } from "../../src/core/sequencer/grid.ts";
 
 function passingState() {
@@ -25,16 +25,22 @@ function passingState() {
 describe("第 1 关", () => {
   it("目标音是 C4", () => {
     expect(LEVEL1_TARGET_PITCH).toBe(noteNameToMidi("C4"));
-    expect(LEVEL1_EAR).toHaveLength(5);
+    expect(LEVEL1_EAR.length).toBeGreaterThanOrEqual(8);
   });
 
-  it("听辨至少对 4 题，手做要对，才算过关", () => {
+  it("听辨答错到阈值以下就不过关，手做也要对", () => {
     const state = passingState();
     expect(level1Passed(state)).toBe(true);
-    state.earAnswers[0] = state.earAnswers[0] === 0 ? 1 : 0;
-    expect(scoreEar(state.earAnswers).correct).toBe(4);
+    // 答错一道，仍在阈值内
+    state.earAnswers[0] = LEVEL1_EAR[0].correct === 0 ? 1 : 0;
+    expect(scoreEar(state.earAnswers).correct).toBe(LEVEL1_EAR.length - 1);
     expect(level1Passed(state)).toBe(true);
-    state.earAnswers[1] = state.earAnswers[1] === 0 ? 1 : 0;
+    // 答错到阈值以下，就不算过关
+    const wrongCount = LEVEL1_EAR.length - LEVEL1_EAR_PASS + 1;
+    for (let i = 0; i < wrongCount; i += 1) {
+      state.earAnswers[i] = LEVEL1_EAR[i].correct === 0 ? 1 : 0;
+    }
+    expect(scoreEar(state.earAnswers).correct).toBe(LEVEL1_EAR_PASS - 1);
     expect(level1Passed(state)).toBe(false);
   });
 

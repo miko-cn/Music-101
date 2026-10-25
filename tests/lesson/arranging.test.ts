@@ -40,13 +40,13 @@ function noteOns(id: number) {
 }
 
 describe("阶段二、三关 9–24", () => {
-  it("十六关都有 5 道听辨，正确答案能过关，选错不能过", () => {
+  it("十六关都有至少 6 道听辨，正确答案能过关，选错不能过", () => {
     expect(ARRANGING_LESSONS.map((lesson) => lesson.id)).toEqual([
       9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
     ]);
     for (const lesson of ARRANGING_LESSONS) {
-      expect(lesson.ear).toHaveLength(5);
-      expect(lesson.concept.length).toBeGreaterThan(0);
+      expect(lesson.ear.length).toBeGreaterThanOrEqual(6);
+      expect(lesson.concept.length).toBeGreaterThanOrEqual(3);
       expect(stagePassed(lesson, passed(lesson.id))).toBe(true);
       if (!lesson.drums && !lesson.reference) {
         const wrong = { ...passed(lesson.id), hand: (lesson.handCorrect + 1) % lesson.handChoices.length };

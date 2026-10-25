@@ -20,13 +20,13 @@ export function LessonCoach({
 
   return (
     <Flex vertical gap={8}>
-      {text ? <Alert type={status === "mastered" ? "success" : "warning"} showIcon message={text} /> : null}
+      {text ? <Alert type={status === "mastered" ? "success" : "warning"} showIcon title={text} /> : null}
       {drills.map((drill) => (
         <Alert
           key={drill.kind}
           type="warning"
           showIcon
-          message={drill.text}
+          title={drill.text}
           action={
             <Button size="small" onClick={() => onOpenLevel(drill.levelId)}>
               去第 {drill.levelId} 关
@@ -38,7 +38,7 @@ export function LessonCoach({
         <Alert
           type={advice.kind === "harder" ? "info" : "warning"}
           showIcon
-          message={advice.text}
+          title={advice.text}
           action={
             advice.reviewLevel === null ? undefined : (
               <Button size="small" onClick={() => onOpenLevel(advice.reviewLevel ?? 1)}>

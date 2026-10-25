@@ -18,12 +18,15 @@ import { midiToNoteName, midiToPitchClass, pitchClassToName, type PitchClass } f
 import { getScalePitches } from "../core/theory/scale.ts";
 import { quarterSteps, resizeSteps, type BarCount } from "../core/sequencer/grid.ts";
 import {
+  LEVEL1_ANCHOR,
   LEVEL1_BPM,
   LEVEL1_CONCEPT,
   LEVEL1_EAR,
+  LEVEL1_EAR_PASS,
   LEVEL1_TARGET_PITCH,
 } from "../content/level1.ts";
 import { LessonCoach } from "./LessonCoach.tsx";
+import { MemoryAnchorCard } from "./MemoryAnchorCard.tsx";
 import { Piano } from "./Piano.tsx";
 import { Stepper } from "./Stepper.tsx";
 
@@ -32,6 +35,7 @@ const STEPS = [
   { title: "听辨" },
   { title: "手做" },
   { title: "诊断" },
+  { title: "记忆点" },
   { title: "导出" },
 ];
 
@@ -193,6 +197,7 @@ export function LessonOne({
           <p className="hint">
             白键 A S D F G H J 是 C D E F G A B，黑键 W E T Y U 是 C# D# F# G# A#。Z 低八度，X 高八度。
           </p>
+          <MemoryAnchorCard anchor={LEVEL1_ANCHOR} />
         </Card>
       )}
       {step === 1 && (
@@ -273,7 +278,7 @@ export function LessonOne({
               <Alert
                 key={item.id}
                 type={item.severity === "error" ? "error" : item.severity === "warning" ? "warning" : "success"}
-                message={item.message}
+                title={item.message}
                 action={
                   item.fix ? (
                     <Button size="small" onClick={() => applyFix(item.fix?.actionId ?? "")}>
@@ -287,13 +292,24 @@ export function LessonOne({
         </Card>
       )}
       {step === 4 && (
+        <Card title="记忆点">
+          <MemoryAnchorCard anchor={LEVEL1_ANCHOR} showTakeaway />
+          <h2 className="result-heading anchor-takeaway-title">过关标准</h2>
+          <ul className="anchor-takeaway">
+            <li>听辨：{LEVEL1_EAR.length} 题里至少对 {LEVEL1_EAR_PASS} 题</li>
+            <li>手做：点出 C4，并打满四个四分音符</li>
+            <li>诊断：没有 error 就算过关</li>
+          </ul>
+        </Card>
+      )}
+      {step === 5 && (
         <Card title="导出到 Cubase">
           <p className="lead">
             导出的是音高和节奏，不是音色。网页里的合成器只帮你听个高低；拖进 Cubase 之后要自己选乐器。
           </p>
           <Alert
             type={passed ? "success" : "warning"}
-            message={passed ? "可以导出 level1.mid。" : "还没过关。回到听辨、手做或诊断看缺哪一步。"}
+            title={passed ? "可以导出 level1.mid。" : "还没过关。回到听辨、手做或诊断看缺哪一步。"}
           />
           <Button type="primary" disabled={!passed} onClick={download}>
             下载 level1.mid

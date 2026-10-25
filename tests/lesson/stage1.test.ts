@@ -25,10 +25,10 @@ function pitchesOf(id: number): number[] {
 }
 
 describe("阶段一关 2–8", () => {
-  it("七关都有 5 道听辨，而且正确答案能过关", () => {
+  it("七关都有至少 8 道听辨，而且正确答案能过关", () => {
     expect(STAGE_LESSONS.map((lesson) => lesson.id)).toEqual([2, 3, 4, 5, 6, 7, 8]);
     for (const lesson of STAGE_LESSONS) {
-      expect(lesson.ear).toHaveLength(5);
+      expect(lesson.ear.length).toBeGreaterThanOrEqual(8);
       expect(stagePassed(lesson, passedState(lesson.id))).toBe(true);
       const wrong = { ...passedState(lesson.id), hand: (lesson.handCorrect + 1) % lesson.handChoices.length };
       expect(stagePassed(lesson, wrong)).toBe(false);

@@ -28,6 +28,7 @@ import { referenceToMidi } from "../core/reference/export.ts";
 import type { StageLesson } from "../content/stage1.ts";
 import { EnergyChart } from "./DiagnosticsLab.tsx";
 import { LessonCoach } from "./LessonCoach.tsx";
+import { MemoryAnchorCard } from "./MemoryAnchorCard.tsx";
 import { Piano } from "./Piano.tsx";
 import { Stepper } from "./Stepper.tsx";
 
@@ -36,6 +37,7 @@ const STEPS = [
   { title: "听辨" },
   { title: "手做" },
   { title: "诊断" },
+  { title: "记忆点" },
   { title: "导出" },
 ];
 
@@ -210,6 +212,7 @@ export function LessonFlow({
               void engine().then((active) => active?.playPitch((octave + 1) * 12 + pitch));
             }}
           />
+          <MemoryAnchorCard anchor={lesson.anchor} />
         </Card>
       )}
       {step === 1 && (
@@ -316,7 +319,7 @@ export function LessonFlow({
               <Alert
                 key={item.id}
                 type={item.severity === "error" ? "error" : item.severity === "warning" ? "warning" : "success"}
-                message={item.message}
+                title={item.message}
                 action={
                   item.fix?.actionId === STAGE_FIX_HAND ? (
                     <Button
@@ -337,9 +340,32 @@ export function LessonFlow({
         </Card>
       )}
       {step === 4 && (
+        <Card title="记忆点">
+          <MemoryAnchorCard anchor={lesson.anchor} showTakeaway />
+          <h2 className="result-heading anchor-takeaway-title">过关标准</h2>
+          <ul className="anchor-takeaway">
+            <li>听辨：{lesson.ear.length} 题里至少对 {lesson.earPass} 题</li>
+            <li>
+              手做：
+              {lesson.drums
+                ? "把鼓型打到目标格"
+                : lesson.reference
+                  ? "从候选里把 BPM、调、结构各选一个"
+                  : "选出正确的那一个"}
+            </li>
+            <li>诊断：没有 error 就算过关</li>
+          </ul>
+          {lesson.prereq && lesson.prereq.length > 0 && (
+            <p className="hint">
+              这一关的地基是第 {lesson.prereq.join("、")} 关。上面哪一条卡住了，就回去重做那几关。
+            </p>
+          )}
+        </Card>
+      )}
+      {step === 5 && (
         <Card title="导出">
           <p className="lead">导出的是音高和和弦，不是 Cubase 里的音色。拖进去之后要自己选乐器。</p>
-          <Alert type={passed ? "success" : "warning"} message={passed ? "可以导出。" : "还没过关。"} />
+          <Alert type={passed ? "success" : "warning"} title={passed ? "可以导出。" : "还没过关。"} />
           <Button type="primary" disabled={!passed} onClick={download}>
             下载 level{lesson.id}.mid
           </Button>

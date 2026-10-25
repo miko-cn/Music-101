@@ -85,7 +85,7 @@ export function DiagnosticsLab() {
               }}
             />
           </label>
-          {fileError ? <Alert type="error" showIcon message={fileError} /> : null}
+          {fileError ? <Alert type="error" showIcon title={fileError} /> : null}
           {imported && fileName ? <MidiSummary imported={imported} fileName={fileName} /> : null}
           {imported ? (
             <Flex gap={12} wrap>
@@ -144,13 +144,13 @@ export function DiagnosticsLab() {
       <Card title="诊断">
         <Flex vertical gap={12}>
           {diagnostics.length === 0 ? (
-            <Alert type="success" message="这六条规则都没有意见。" />
+            <Alert type="success" title="这六条规则都没有意见。" />
           ) : (
             diagnostics.map((item) => (
               <Alert
                 key={item.id}
                 type={item.severity === "error" ? "error" : item.severity === "warning" ? "warning" : "info"}
-                message={diagnosticText(item)}
+                title={diagnosticText(item)}
               />
             ))
           )}
