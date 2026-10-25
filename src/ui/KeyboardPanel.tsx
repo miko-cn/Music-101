@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Drawer, Flex, Select, Space, Switch, Tag } from "antd";
-import { createEngine, type MusicEngine } from "../core/audio/engine.ts";
+import { sharedEngine } from "../core/audio/engine.ts";
+import { computerKeyboard } from "../core/lesson/computer-keyboard.ts";
 import { midiToNoteName } from "../core/theory/pitch.ts";
 import { toNotationName } from "../core/theory/notation.ts";
 import { centeredKeyboardLayout, quizHighlight } from "../core/theory/keyboard.ts";
@@ -53,14 +54,13 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
   const [target, setTarget] = useState<number | null>(null);
   const [quiz, setQuiz] = useState<{ midi: number; answered: boolean; correct: boolean } | null>(null);
   const [pressed, setPressed] = useState<ReadonlySet<number>>(new Set());
-  const engineRef = useRef<MusicEngine | null>(null);
+  const [octave, setOctave] = useState(() => computerKeyboard.getOctave());
+  /** 最近按下的那个键：既是给学习者的反馈，也说明刚才那一下到底是什么音。 */
+  const [lastMidi, setLastMidi] = useState<number | null>(null);
   /** 正在响的音：MIDI 音高 → 引擎里的句柄。 */
   const voicesRef = useRef(new Map<number, number>());
 
-  const getEngine = (): MusicEngine | null => {
-    if (!engineRef.current) engineRef.current = createEngine();
-    return engineRef.current;
-  };
+  const getEngine = () => sharedEngine();
 
   const engine = async () => {
     const active = getEngine();
@@ -94,10 +94,36 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
   // 面板关掉时把还在响的音制住，别让余音留在后台。
   useEffect(() => {
     return () => {
-      for (const id of voicesRef.current.values()) engineRef.current?.releasePitch(id);
+      for (const id of voicesRef.current.values()) sharedEngine()?.releasePitch(id);
       voicesRef.current.clear();
     };
   }, []);
+
+  /**
+   * 电脑键也走这个面板：按下哪个键，这里就亮哪个键。
+   *
+   * 声音由全站唯一的电脑键服务负责，这里只负责亮。
+   * 面板关着的时候不订阅——没人在看键盘时，按 A 不该到处乱响。
+   */
+  useEffect(() => {
+    if (!open) return;
+    setOctave(computerKeyboard.getOctave());
+    return computerKeyboard.subscribe({
+      onPress: (_pitch, midi) => {
+        setPressed((current) => new Set(current).add(midi));
+        setLastMidi(midi);
+      },
+      onRelease: (_pitch, midi) => {
+        setPressed((current) => {
+          if (!current.has(midi)) return current;
+          const next = new Set(current);
+          next.delete(midi);
+          return next;
+        });
+      },
+      onOctave: (next) => setOctave(next),
+    });
+  }, [open]);
 
   const flash = (midi: number) => {
     setPressed(new Set([midi]));
@@ -107,6 +133,7 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
   /** 按下：起音。必须同步完成，否则「快速点一下」会在松手之后才起音。 */
   const press = (midi: number) => {
     setPressed((current) => new Set(current).add(midi));
+    setLastMidi(midi);
     const active = getEngine();
     if (active) {
       void active.resume();
@@ -131,7 +158,7 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
     const id = voicesRef.current.get(midi);
     if (id === undefined) return;
     voicesRef.current.delete(midi);
-    engineRef.current?.releasePitch(id);
+    sharedEngine()?.releasePitch(id);
   };
 
   /** 一次性的试听音（找这个音、听音测验）。 */
@@ -213,6 +240,11 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
           />
         </Flex>
 
+        <p className="hint">
+          电脑键 <strong>A S D F G H J</strong> 是白键，<strong>W E T Y U</strong> 是黑键，
+          <strong>Z / X</strong> 换八度（当前八度 {octave}）。按住哪个键，这里就亮哪个键。
+        </p>
+
         <Keyboard
           centerMidi={CENTER_MIDI}
           octaves={octaves}
@@ -226,6 +258,12 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
           onRelease={release}
           label="全局参考键盘"
         />
+
+        {lastMidi !== null && (
+          <p className="hint">
+            刚才按下：<NoteName name={midiToNoteName(lastMidi)} />（MIDI {lastMidi}）
+          </p>
+        )}
 
         <p className="hint">
           黑键永远是「2 个一组、3 个一组」循环出现的。2 个黑键那一组，左边紧挨的白键是 <strong>C</strong>；

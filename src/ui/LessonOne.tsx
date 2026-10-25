@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Flex, Radio, Steps } from "antd";
-import { createEngine, type MusicEngine } from "../core/audio/engine.ts";
+import { sharedEngine } from "../core/audio/engine.ts";
 import {
   LEVEL1_FIX_PITCH,
   applyLevel1Fix,
@@ -12,7 +12,7 @@ import {
   type Level1State,
 } from "../core/lesson/level1.ts";
 import { computerKeyLabel } from "../core/lesson/keys.ts";
-import { attachComputerKeyboard, type ComputerKeyboardHost } from "../core/lesson/keyboard.ts";
+import { computerKeyboard } from "../core/lesson/computer-keyboard.ts";
 import { applyRecipeToLevel1, buildAttempt, isMastered, recipeFromLevel1 } from "../core/lesson/personalize.ts";
 import { observeAttempt, recordVisit, saveRecipe, type ProgressFile, type ProgressUpdate, type Recipe } from "../core/lesson/progress.ts";
 import { midiToNoteName, midiToPitchClass, pitchClassToName, type PitchClass } from "../core/theory/pitch.ts";
@@ -64,7 +64,7 @@ export function LessonOne({
 }) {
   const mastered = isMastered(progress, 1);
   const [step, setStep] = useState(() => (mastered ? 4 : 0));
-  const [octave, setOctave] = useState(4);
+  const [octave, setOctave] = useState(() => computerKeyboard.getOctave());
   const [bars, setBars] = useState<BarCount>(1);
   const [state, setState] = useState<Level1State>(() => (mastered ? solvedLevel1() : emptyLevel1State()));
   const [visitTick, setVisitTick] = useState(0);
@@ -72,9 +72,6 @@ export function LessonOne({
   const seenLesson = useRef<number | null>(null);
   const visitId = useRef(`1:${Date.now()}`);
   const usedFix = useRef(false);
-  const engineRef = useRef<MusicEngine | null>(null);
-  /** 电脑键接线要用的界面状态。每次渲染更新，事件发生时读到的就是最新的。 */
-  const hostRef = useRef<ComputerKeyboardHost | null>(null);
   const scalePitches = useMemo(() => new Set(getScalePitches(0, "major")), []);
   const diagnostics = diagnoseLevel1(state);
   const passed = level1Passed(state);
@@ -112,40 +109,37 @@ export function LessonOne({
     );
   }, [step, passed, state.earAnswers, visitTick, onProgress]);
 
-  /** 同步拿到引擎。起音必须同步完成，否则「快速点一下」会在松手之后才起音。 */
-  function getEngine(): MusicEngine | null {
-    if (!engineRef.current) engineRef.current = createEngine();
-    return engineRef.current;
-  }
-
   const choosePitch = (midi: number) => {
     setState((current) => ({ ...current, pitch: midi }));
   };
 
-  // 电脑键接线：按下起音、松手制音，延音跟住按住时长。
-  // 规则只有一份（core/lesson/keyboard.ts），这里只把界面状态接上去。
-  hostRef.current = {
-    getOctave: () => octave,
-    getEngine,
-    onPress: (pitch, midi) => {
-      setHeld((current) => (current.has(pitch) ? current : new Set(current).add(pitch)));
-      choosePitch(midi);
-    },
-    onRelease: (pitch) => {
-      setHeld((current) => {
-        if (!current.has(pitch)) return current;
-        const next = new Set(current);
-        next.delete(pitch);
-        return next;
-      });
-    },
-    onOctave: (next) => setOctave(next),
-  };
-
-  useEffect(() => attachComputerKeyboard(() => hostRef.current as ComputerKeyboardHost), []);
+  /**
+   * 电脑键由全站唯一的服务负责发声，这里只订阅：
+   * 按下点亮琴键、选中音高，松手熄灭琴键。
+   */
+  useEffect(() => {
+    const unsubscribe = computerKeyboard.subscribe({
+      onPress: (pitch, midi) => {
+        setHeld((current) => (current.has(pitch) ? current : new Set(current).add(pitch)));
+        choosePitch(midi);
+      },
+      onRelease: (pitch) => {
+        setHeld((current) => {
+          if (!current.has(pitch)) return current;
+          const next = new Set(current);
+          next.delete(pitch);
+          return next;
+        });
+      },
+      onOctave: (next) => setOctave(next),
+    });
+    // 每关都从中央 C 附近开始。
+    computerKeyboard.setOctave(4);
+    return unsubscribe;
+  }, []);
 
   const engine = async () => {
-    const active = getEngine();
+    const active = sharedEngine();
     await active?.resume();
     return active;
   };
@@ -158,7 +152,7 @@ export function LessonOne({
     usedFix.current = true;
     setVisitTick((value) => value + 1);
     setState((current) => applyLevel1Fix(current, actionId));
-    if (actionId === LEVEL1_FIX_PITCH) setOctave(4);
+    if (actionId === LEVEL1_FIX_PITCH) computerKeyboard.setOctave(4);
   };
 
   const download = () => {

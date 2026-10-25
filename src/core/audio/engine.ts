@@ -390,3 +390,20 @@ function createNoise(context: AudioContext, seconds: number): AudioBuffer {
 }
 
 export { sidechainAutomation };
+
+let shared: MusicEngine | null = null;
+let sharedReady = false;
+
+/**
+ * 全站共用一个引擎，也就是只开一个 AudioContext。
+ *
+ * 关卡页、全局键盘面板、电脑键服务都用它——
+ * 几个 AudioContext 各响各的，同一个音会听出两层厚度，还多占资源。
+ */
+export function sharedEngine(): MusicEngine | null {
+  if (!sharedReady) {
+    shared = createEngine();
+    sharedReady = true;
+  }
+  return shared;
+}

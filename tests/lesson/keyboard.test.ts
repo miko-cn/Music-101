@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   attachComputerKeyboard,
+  createComputerKeyboardService,
   createKeyboardController,
   isTypingTarget,
+  type ComputerKeyboardListener,
   type KeyboardEngine,
   type KeyboardEventTarget,
 } from "../../src/core/lesson/keyboard.ts";
@@ -34,15 +36,15 @@ function fakeHost(engine: KeyboardEngine | null) {
   const host = {
     octave: 4,
     pressed: [] as { pitch: PitchClass; midi: number }[],
-    released: [] as PitchClass[],
+    released: [] as { pitch: PitchClass; midi: number }[],
     octaves: [] as number[],
     getOctave: () => host.octave,
     getEngine: () => engine,
     onPress: (pitch: PitchClass, midi: number) => {
       host.pressed.push({ pitch, midi });
     },
-    onRelease: (pitch: PitchClass) => {
-      host.released.push(pitch);
+    onRelease: (pitch: PitchClass, midi: number) => {
+      host.released.push({ pitch, midi });
     },
     onOctave: (octave: number) => {
       host.octaves.push(octave);
@@ -75,6 +77,24 @@ function fakeTarget() {
   };
 }
 
+function fakeListener() {
+  const listener = {
+    pressed: [] as { pitch: PitchClass; midi: number }[],
+    released: [] as { pitch: PitchClass; midi: number }[],
+    octaves: [] as number[],
+    onPress(pitch: PitchClass, midi: number) {
+      listener.pressed.push({ pitch, midi });
+    },
+    onRelease(pitch: PitchClass, midi: number) {
+      listener.released.push({ pitch, midi });
+    },
+    onOctave(octave: number) {
+      listener.octaves.push(octave);
+    },
+  };
+  return listener;
+}
+
 describe("电脑键接声音", () => {
   it("按下起音、松手制音——延音跟住按住时长", () => {
     const { engine, pressed, released } = fakeEngine();
@@ -99,7 +119,7 @@ describe("电脑键接声音", () => {
     controller.keyDown({ key: "a" });
     expect(host.pressed).toEqual([{ pitch: 0, midi: noteNameToMidi("C4") }]);
     controller.keyUp({ key: "a" });
-    expect(host.released).toEqual([0]);
+    expect(host.released).toEqual([{ pitch: 0, midi: noteNameToMidi("C4") }]);
   });
 
   it("长按的自动重复不重新起音", () => {
@@ -158,7 +178,7 @@ describe("电脑键接声音", () => {
 
     controller.blur();
     expect(released.sort()).toEqual([1, 2]);
-    expect(host.released.sort()).toEqual([0, 4]);
+    expect(host.released.map((item) => item.pitch).sort()).toEqual([0, 4]);
     expect(controller.soundingCount()).toBe(0);
   });
 
@@ -181,7 +201,7 @@ describe("电脑键接声音", () => {
     controller.keyDown({ key: "a" });
     expect(host.pressed).toEqual([{ pitch: 0, midi: noteNameToMidi("C4") }]);
     controller.keyUp({ key: "a" });
-    expect(host.released).toEqual([0]);
+    expect(host.released).toEqual([{ pitch: 0, midi: noteNameToMidi("C4") }]);
   });
 });
 
@@ -219,6 +239,85 @@ describe("键盘接到浏览器上", () => {
   });
 });
 
+describe("全站唯一的电脑键盘", () => {
+  function setup() {
+    const { engine, pressed, released } = fakeEngine();
+    const fake = fakeTarget();
+    const service = createComputerKeyboardService({
+      attach: (host) => attachComputerKeyboard(host, fake.target),
+      getEngine: () => engine,
+    });
+    return { service, fake, pressed, released };
+  }
+
+  it("第一个订阅者来了才接上键盘，最后一个走了就摘掉", () => {
+    const { service, fake } = setup();
+    expect(fake.count("keydown")).toBe(0);
+
+    const first = fakeListener();
+    const unsubscribeFirst = service.subscribe(first);
+    expect(fake.count("keydown")).toBe(1);
+
+    const second = fakeListener();
+    const unsubscribeSecond = service.subscribe(second);
+    expect(fake.count("keydown")).toBe(1);
+
+    unsubscribeSecond();
+    expect(fake.count("keydown")).toBe(1);
+    unsubscribeFirst();
+    expect(fake.count("keydown")).toBe(0);
+  });
+
+  it("所有订阅者都收到按下和松开", () => {
+    const { service, fake } = setup();
+    const lesson = fakeListener();
+    const panel = fakeListener();
+    service.subscribe(lesson);
+    service.subscribe(panel);
+
+    fake.fire("keydown", { key: "a" });
+    fake.fire("keyup", { key: "a" });
+
+    expect(lesson.pressed).toEqual([{ pitch: 0, midi: noteNameToMidi("C4") }]);
+    expect(panel.pressed).toEqual([{ pitch: 0, midi: noteNameToMidi("C4") }]);
+    expect(lesson.released).toEqual([{ pitch: 0, midi: noteNameToMidi("C4") }]);
+    expect(panel.released).toEqual([{ pitch: 0, midi: noteNameToMidi("C4") }]);
+  });
+
+  it("两个订阅者也不会响两遍——声音只有一处", () => {
+    const { service, fake, pressed } = setup();
+    service.subscribe(fakeListener());
+    service.subscribe(fakeListener());
+
+    fake.fire("keydown", { key: "a" });
+    expect(pressed).toEqual([noteNameToMidi("C4")]);
+  });
+
+  it("八度是全站一份，谁改的大家都看得见", () => {
+    const { service, fake } = setup();
+    const lesson = fakeListener();
+    const panel = fakeListener();
+    service.subscribe(lesson);
+    service.subscribe(panel);
+
+    fake.fire("keydown", { key: "x" });
+    expect(service.getOctave()).toBe(5);
+    expect(lesson.octaves).toEqual([5]);
+    expect(panel.octaves).toEqual([5]);
+
+    service.setOctave(3);
+    expect(service.getOctave()).toBe(3);
+    expect(panel.octaves).toEqual([5, 3]);
+  });
+
+  it("没人订阅时按键盘不响", () => {
+    const { service, fake, pressed } = setup();
+    fake.fire("keydown", { key: "a" });
+    expect(pressed).toEqual([]);
+    expect(service.getOctave()).toBe(4);
+  });
+});
+
 describe("输入框里的键盘事件", () => {
   it("只有输入框、文本域、下拉框才算在打字", () => {
     expect(isTypingTarget({ closest: () => ({}) })).toBe(true);
@@ -226,5 +325,16 @@ describe("输入框里的键盘事件", () => {
     expect(isTypingTarget(null)).toBe(false);
     expect(isTypingTarget(undefined)).toBe(false);
     expect(isTypingTarget({})).toBe(false);
+  });
+});
+
+describe("订阅者接口", () => {
+  it("订阅者只需要三个回调", () => {
+    const listener: ComputerKeyboardListener = {
+      onPress: () => undefined,
+      onRelease: () => undefined,
+      onOctave: () => undefined,
+    };
+    expect(typeof listener.onPress).toBe("function");
   });
 });

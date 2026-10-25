@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Card, Flex, Radio, Steps } from "antd";
-import { createEngine, type MusicEngine } from "../core/audio/engine.ts";
+import { sharedEngine } from "../core/audio/engine.ts";
 import { computerKeyLabel } from "../core/lesson/keys.ts";
-import { attachComputerKeyboard, type ComputerKeyboardHost } from "../core/lesson/keyboard.ts";
+import { computerKeyboard } from "../core/lesson/computer-keyboard.ts";
 import {
   applyRecipeToStage,
   buildAttempt,
@@ -58,15 +58,13 @@ export function LessonFlow({
   onOpenLevel: (levelId: number) => void;
 }) {
   const [step, setStep] = useState(0);
-  const [octave, setOctave] = useState(4);
+  const [octave, setOctave] = useState(() => computerKeyboard.getOctave());
   const [held, setHeld] = useState<ReadonlySet<PitchClass>>(() => new Set());
   const [state, setState] = useState<StageState>(() => emptyStageState(lesson));
   const [candidates, setCandidates] = useState<ReferenceCandidates | null>(null);
   const [visitTick, setVisitTick] = useState(0);
-  const engineRef = useRef<MusicEngine | null>(null);
-  /** 电脑键接线要用的界面状态。每次渲染更新，事件发生时读到的就是最新的。 */
-  const hostRef = useRef<ComputerKeyboardHost | null>(null);
-  const seenLesson = useRef<number | null>(null);  const visitId = useRef(`${lesson.id}:${Date.now()}`);
+  const seenLesson = useRef<number | null>(null);
+  const visitId = useRef(`${lesson.id}:${Date.now()}`);
   const usedFix = useRef(false);
   const seenMistakes = useRef<ReturnType<typeof classifyHand>>([]);
   const lessonChanged = seenLesson.current !== null && seenLesson.current !== lesson.id;
@@ -95,32 +93,28 @@ export function LessonFlow({
     onConsumeRecipe();
   }, [pendingRecipe, lesson.id, onConsumeRecipe]);
 
-  /** 同步拿到引擎。起音必须同步完成，否则「快速点一下」会在松手之后才起音。 */
-  function getEngine(): MusicEngine | null {
-    if (!engineRef.current) engineRef.current = createEngine();
-    return engineRef.current;
-  }
-
-  // 电脑键接线：按下起音、松手制音，延音跟住按住时长。
-  // 规则只有一份（core/lesson/keyboard.ts），这里只把界面状态接上去。
-  hostRef.current = {
-    getOctave: () => octave,
-    getEngine,
-    onPress: (pitch) => {
-      setHeld((current) => (current.has(pitch) ? current : new Set(current).add(pitch)));
-    },
-    onRelease: (pitch) => {
-      setHeld((current) => {
-        if (!current.has(pitch)) return current;
-        const next = new Set(current);
-        next.delete(pitch);
-        return next;
-      });
-    },
-    onOctave: (next) => setOctave(next),
-  };
-
-  useEffect(() => attachComputerKeyboard(() => hostRef.current as ComputerKeyboardHost), []);
+  /**
+   * 电脑键由全站唯一的服务负责发声，这里只订阅：按下点亮琴键，松手熄灭。
+   */
+  useEffect(() => {
+    const unsubscribe = computerKeyboard.subscribe({
+      onPress: (pitch) => {
+        setHeld((current) => (current.has(pitch) ? current : new Set(current).add(pitch)));
+      },
+      onRelease: (pitch) => {
+        setHeld((current) => {
+          if (!current.has(pitch)) return current;
+          const next = new Set(current);
+          next.delete(pitch);
+          return next;
+        });
+      },
+      onOctave: (next) => setOctave(next),
+    });
+    // 每关都从中央 C 附近开始。
+    computerKeyboard.setOctave(4);
+    return unsubscribe;
+  }, []);
 
   const diagnostics = diagnoseStage(lesson, state);
   const passed = stagePassed(lesson, state);
@@ -153,7 +147,7 @@ export function LessonFlow({
   }, [lesson, step, passed, state.earAnswers, state.hand, visitTick, onProgress]);
 
   const engine = async () => {
-    const active = getEngine();
+    const active = sharedEngine();
     await active?.resume();
     return active;
   };
