@@ -31,9 +31,17 @@
  * 变音记号优先交给 Noto Music（真正的记谱字形），
  * 字母落到 Cambria / Times 这类衬线体上。
  */
+/*
+ * 记谱字体的 ♯ ♭ 是按五线谱比例画的：两根竖线之间只有约 0.03em 的缝。
+ * 任何有意义的描边都会把缝填死——「加粗」和「不挤」在它身上是死结。
+ *
+ * 所以变音记号优先用**正文字体**的 ♯（粗、竖线间距宽，跟你看的谱面软件一个路子），
+ * 记谱字体放到最后兜底，保证任何系统上都不会变成豆腐块。
+ * 字母仍然走衬线体，跟正文分开。
+ */
 .note-name {
-  font-family: "Noto Music Symbols", "Cambria", "Palatino Linotype", "Times New Roman",
-    "Liberation Serif", "DejaVu Serif", serif;
+  font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif",
+    "DejaVu Serif", "Noto Music Symbols", serif;
   font-variant-numeric: lining-nums tabular-nums;
   letter-spacing: 0.01em;
   white-space: nowrap;
@@ -50,19 +58,15 @@
  * line-height: 0 是为了不让放大的符号把行盒撑高。
  */
 .note-accidental {
-  font-size: 1.3em;
+  font-size: 1em;
   line-height: 0;
   /* 放大之后变音记号会贴到字母上，留一点缝。 */
-  padding: 0 0.03em 0 0.06em;
-  /* 记谱字体的笔画是雕刻线，细到正常缩放下只剩半像素的灰丝。
-     描边把它撑成看得见的实心笔画——这比放大更管用：
-     放大只会让符号更稀疏，描边才真的增加墨量。 */
-  -webkit-text-stroke: 0.035em currentColor;
+  padding: 0 0.04em 0 0.06em;
 }
 
 .note-accidental.is-sharp {
   position: relative;
-  top: -0.12em;
+  top: -0.05em;
 }
 
 .note-accidental.is-flat {
