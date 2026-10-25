@@ -307,6 +307,11 @@ describe("midiToPitchClass", () => {
     expect(midiToPitchClass(-1)).toBe(11);
     expect(midiToPitchClass(-13)).toBe(11);
   });
+
+  it("非整数音高抛错，避免下游拼出 undefined 音名", () => {
+    expect(() => midiToPitchClass(60.5)).toThrow(/整数/);
+    expect(() => midiToPitchClass(Number.NaN)).toThrow(/整数/);
+  });
 });
 
 describe("midiToNoteName", () => {
@@ -318,7 +323,12 @@ describe("midiToNoteName", () => {
 
   it("preferFlat 时用降号拼写", () => {
     expect(midiToNoteName(70, true)).toBe("Bb4");
-    expect(midiToNoteName(58, true)).toBe("A#3");
+    expect(midiToNoteName(58, true)).toBe("Bb3");
+  });
+
+  it("负八度用 floor 计算，不会截断成 B-1", () => {
+    expect(midiToNoteName(0)).toBe("C-1");
+    expect(midiToNoteName(-1)).toBe("B-2");
   });
 });
 
@@ -331,8 +341,29 @@ describe("noteNameToMidi", () => {
     expect(noteNameToMidi("C-1")).toBe(0);
   });
 
+  it("变化音不折回同八度：Cb4 = B3，B#3 = C4", () => {
+    expect(noteNameToMidi("Cb4")).toBe(59);
+    expect(noteNameToMidi("B#3")).toBe(60);
+  });
+
+  it("小写字母同样可解析", () => {
+    expect(noteNameToMidi("c4")).toBe(60);
+    expect(noteNameToMidi("a4")).toBe(69);
+  });
+
   it("非法音名抛错", () => {
     expect(() => noteNameToMidi("H4")).toThrow();
+  });
+
+  it("超出 MIDI 0-127 范围的音名抛错", () => {
+    expect(() => noteNameToMidi("C999")).toThrow(/0-127/);
+    expect(() => noteNameToMidi("C-3")).toThrow(/0-127/);
+  });
+
+  it("MIDI 0-127 全域往返一致", () => {
+    for (let midi = 0; midi <= 127; midi += 1) {
+      expect(noteNameToMidi(midiToNoteName(midi))).toBe(midi);
+    }
   });
 });
 
@@ -371,7 +402,7 @@ describe("getInterval", () => {
     expect(getInterval(60, 72).shortName).toBe("P8");
   });
 
-  it("小二度与大三度区分得开", () => {
+  it("小二度与大二度区分得开", () => {
     expect(getInterval(60, 61).shortName).toBe("m2");
     expect(getInterval(60, 62).shortName).toBe("M2");
   });
@@ -383,6 +414,17 @@ describe("getInterval", () => {
   it("协和度排序：纯五 > 三度 > 二度", () => {
     expect(getInterval(60, 67).consonance).toBeGreaterThan(getInterval(60, 64).consonance);
     expect(getInterval(60, 64).consonance).toBeGreaterThan(getInterval(60, 62).consonance);
+  });
+
+  it("复合音程折叠为等效的简单音程，同音记作纯一度", () => {
+    expect(getInterval(60, 60).shortName).toBe("P1");
+    expect(getInterval(60, 72).shortName).toBe("P8");
+    expect(getInterval(60, 84).shortName).toBe("P8");
+  });
+
+  it("非法音程抛错，而不是静默返回 undefined", () => {
+    expect(() => getInterval(60, 61.5)).toThrow(/非法音程/);
+    expect(() => getInterval(60, Number.NaN)).toThrow(/非法音程/);
   });
 });
 ```
@@ -405,9 +447,24 @@ export type PitchClass = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 export const SHARP_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const;
 export const FLAT_NAMES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"] as const;
 
-const LETTER_INDEX: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+/**
+ * 字母到「以 C 为基准的半音偏移」的对照表。
+ * 故意声明成 `number | undefined`：只有这样，下面 `base === undefined` 的防御性检查
+ * 才是编译器可见的真检查，而不是永远为假的死代码。
+ */
+const LETTER_INDEX: Record<string, number | undefined> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
+/** 黑键对应的音级集合（C#、D#、F#、G#、A#）。提到模块级常量，避免每次调用都新建数组。 */
+const BLACK_KEY_PITCH_CLASSES: readonly number[] = [1, 3, 6, 8, 10];
+
+/**
+ * 把 MIDI 音高映射到 0-11 的音级。
+ * 非整数输入会一路走到音名查表并拼出 "undefined4" 之类的垃圾结果，所以在这里直接拒绝。
+ */
 export function midiToPitchClass(midi: number): PitchClass {
+  if (!Number.isInteger(midi)) throw new Error(`MIDI 音高必须是整数: ${midi}`);
+  // JS 的 `%` 对负数返回负余数（-1 % 12 === -1），单次取模会得到负音级；
+  // 先 +12 再取一次模，才能把负音高稳定折回 0-11。
   return ((((midi % 12) + 12) % 12) as PitchClass);
 }
 
@@ -417,10 +474,17 @@ export function pitchClassToName(pitchClass: number, preferFlat = false): string
 }
 
 export function midiToNoteName(midi: number, preferFlat = false): string {
+  // 负八度必须用 floor 而不是截断：Math.floor(-1 / 12) === -1，截断会得到 0，
+  // 把 B-2 错算成 B-1；floor 才能让 C-1 落在 MIDI 0 上。
   const octave = Math.floor(midi / 12) - 1;
   return `${pitchClassToName(midi, preferFlat)}${octave}`;
 }
 
+/**
+ * 把音名解析为 MIDI 音高。
+ * 不对 MIDI 0-127 以外的音名做隐式纠正（不静默折返），超范围直接抛错，
+ * 以免下游拿到一个「看起来正常但其实是错的」音高。
+ */
 export function noteNameToMidi(noteName: string): number {
   const match = /^([A-Ga-g])([#b]?)(-?\d+)$/.exec(noteName.trim());
   if (!match) throw new Error(`无法解析的音名: ${noteName}`);
@@ -428,11 +492,15 @@ export function noteNameToMidi(noteName: string): number {
   if (base === undefined) throw new Error(`无法解析的音名: ${noteName}`);
   const accidental = match[2] === "#" ? 1 : match[2] === "b" ? -1 : 0;
   const octave = Number(match[3]);
-  return (octave + 1) * 12 + (((base + accidental) % 12) + 12) % 12;
+  // 变化音按线性半音数叠加，不能折回同一八度：
+  // Cb4 = B3 = 59、B#3 = C4 = 60、F#3 = 54、Bb2 = 46、C-1 = 0。
+  const midi = (octave + 1) * 12 + base + accidental;
+  if (midi < 0 || midi > 127) throw new Error(`音名超出 MIDI 范围(0-127): ${noteName}`);
+  return midi;
 }
 
 export function isBlackKey(pitchClass: number): boolean {
-  return [1, 3, 6, 8, 10].includes(midiToPitchClass(pitchClass));
+  return BLACK_KEY_PITCH_CLASSES.includes(midiToPitchClass(pitchClass));
 }
 
 export function midiToFrequency(midi: number): number {
@@ -458,18 +526,30 @@ export const INTERVALS: readonly Interval[] = [
   { semitones: 4, name: "大三度", shortName: "M3", consonance: 5 },
   { semitones: 5, name: "纯四度", shortName: "P4", consonance: 4 },
   { semitones: 6, name: "三全音", shortName: "TT", consonance: 1 },
-  { semitones: 7, name: "纯五度", shortName: "P5", consonance: 5 },
+  { semitones: 7, name: "纯五度", shortName: "P5", consonance: 6 },
   { semitones: 8, name: "小六度", shortName: "m6", consonance: 3 },
-  { semitones: 9, name: "大六度", shortName: "M6", consonance: 3 },
+  { semitones: 9, name: "大六度", shortName: "M6", consonance: 4 },
   { semitones: 10, name: "小七度", shortName: "m7", consonance: 3 },
   { semitones: 11, name: "大七度", shortName: "M7", consonance: 3 },
   { semitones: 12, name: "纯八度", shortName: "P8", consonance: 5 },
 ];
 
+/**
+ * 计算两个 MIDI 音高之间的音程（不区分方向）。
+ *
+ * 复合音程（超过纯八度）会被折叠为其等效的简单音程，例如 60→84 记作 P8；
+ * 只有同音（a === b）才记作纯一度 P1。
+ */
 export function getInterval(a: number, b: number): Interval {
   const raw = Math.abs(b - a);
+  // 非整数音距在音程表里没有对应项，会静默返回 undefined，先行拒绝。
+  if (!Number.isInteger(raw)) throw new Error(`非法音程: ${a} → ${b}`);
+  // 整八度要折成 12 而不是 0：纯一度（同音）与纯八度语义不同，0 只留给同音。
   const semitones = raw % 12 === 0 && raw > 0 ? 12 : raw % 12;
-  return INTERVALS[semitones];
+  // 显式标注 `Interval | undefined` 让判空成为编译器可见的真检查。
+  const found: Interval | undefined = INTERVALS[semitones];
+  if (found === undefined) throw new Error(`非法音程: ${a} → ${b}`);
+  return found;
 }
 ```
 
@@ -481,7 +561,7 @@ export function getInterval(a: number, b: number): Interval {
 npx vitest run tests/theory/pitch.test.ts tests/theory/interval.test.ts
 ```
 
-预期：PASS，两个文件共 9 个用例全部通过。
+预期：PASS，两个文件共 20 个用例全部通过。
 
 - [ ] **步骤 7：类型检查**
 
@@ -520,7 +600,7 @@ describe("getScalePitches", () => {
   });
 
   it("A 自然小调", () => {
-    expect(getScalePitches(9, "naturalMinor")).toEqual([9, 11, 0, 2, 4, 5, 6]);
+    expect(getScalePitches(9, "naturalMinor")).toEqual([9, 11, 0, 2, 4, 5, 7]);
   });
 
   it("A 和声小调的第 7 级升高", () => {
@@ -534,14 +614,14 @@ describe("getScalePitches", () => {
 
 describe("isInScale / degreeOfPitch", () => {
   it("判定调内与级数", () => {
-    expect(isInScale(60, 9, "major")).toBe(true);
     expect(isInScale(61, 9, "major")).toBe(true);
+    expect(isInScale(60, 9, "major")).toBe(false);
     expect(isInScale(60, 9, "naturalMinor")).toBe(true);
     expect(isInScale(61, 9, "naturalMinor")).toBe(false);
   });
 
   it("级数从 1 开始，不在调内返回 null", () => {
-    expect(degreeOfPitch(60, 9, "major")).toBe(3);
+    expect(degreeOfPitch(61, 9, "major")).toBe(3);
     expect(degreeOfPitch(57, 9, "major")).toBe(1);
     expect(degreeOfPitch(61, 9, "naturalMinor")).toBeNull();
   });
@@ -558,15 +638,24 @@ describe("keyName", () => {
 - [ ] **步骤 2：运行测试验证失败**
 
 运行：`npx vitest run tests/theory/scale.test.ts`
-预期：FAIL，`Failed to resolve import "../../src/core/theory/scale.ts"`。
+预期：FAIL，`Cannot find module "../../src/core/theory/scale.ts"`。
 
 - [ ] **步骤 3：实现 `src/core/theory/scale.ts`**
 
 ```ts
 import { midiToPitchClass, pitchClassToName, type PitchClass } from "./pitch.ts";
 
+/** 支持的音阶种类。 */
 export type ScaleId = "major" | "naturalMinor" | "harmonicMinor" | "melodicMinor";
 
+/**
+ * 各音阶相对主音的半音偏移（从第 1 级开始）。
+ *
+ * 三种小调只差在第 6、7 级：
+ * - 自然小调：6、7 级都用小调音（偏移 8、10），最「安静」；
+ * - 和声小调：第 7 级升高半音（偏移 11），形成导音以支撑属和弦（V）；
+ * - 旋律小调：第 6、7 级都升高（偏移 9、11），上行时形成大调色彩。
+ */
 export const SCALE_INTERVALS: Record<ScaleId, readonly number[]> = {
   major: [0, 2, 4, 5, 7, 9, 11],
   naturalMinor: [0, 2, 3, 5, 7, 8, 10],
@@ -574,6 +663,7 @@ export const SCALE_INTERVALS: Record<ScaleId, readonly number[]> = {
   melodicMinor: [0, 2, 3, 5, 7, 9, 11],
 };
 
+/** 音阶的中文名称，用于展示调名。 */
 export const SCALE_LABELS: Record<ScaleId, string> = {
   major: "大调",
   naturalMinor: "自然小调",
@@ -581,21 +671,34 @@ export const SCALE_LABELS: Record<ScaleId, string> = {
   melodicMinor: "旋律小调",
 };
 
+/**
+ * 取得某个音阶的全部音级（0-11），按级数从低到高排列。
+ * 根音超过 C 之后音级会「绕回」到 0，所以统一用 `midiToPitchClass` 折回 0-11，
+ * 该函数同时也会拒绝非整数输入，避免把非法音高折成看似正常的音级。
+ */
 export function getScalePitches(root: PitchClass, scale: ScaleId): PitchClass[] {
-  return SCALE_INTERVALS[scale].map(
-    (offset) => ((((root + offset) % 12) + 12) % 12) as PitchClass,
-  );
+  return SCALE_INTERVALS[scale].map((offset) => midiToPitchClass(root + offset));
 }
 
+/**
+ * 判断某个 MIDI 音高是否属于该音阶。
+ * 只看音级（不区分八度），因此高八度的同名字符也判定为调内。
+ */
 export function isInScale(pitch: number, root: PitchClass, scale: ScaleId): boolean {
   return getScalePitches(root, scale).includes(midiToPitchClass(pitch));
 }
 
+/**
+ * 返回某个 MIDI 音高在音阶中的级数。
+ * 级数从 1 开始计数（主音为 1 级）；不在调内时返回 `null`，
+ * 表示「该音没有级数」而不是一个伪造的 0 或负数。
+ */
 export function degreeOfPitch(pitch: number, root: PitchClass, scale: ScaleId): number | null {
   const index = getScalePitches(root, scale).indexOf(midiToPitchClass(pitch));
   return index === -1 ? null : index + 1;
 }
 
+/** 生成可读的调名，例如 "A 大调"、"F# 自然小调"。 */
 export function keyName(root: PitchClass, scale: ScaleId, preferFlat = false): string {
   return `${pitchClassToName(root, preferFlat)} ${SCALE_LABELS[scale]}`;
 }
@@ -604,7 +707,7 @@ export function keyName(root: PitchClass, scale: ScaleId, preferFlat = false): s
 - [ ] **步骤 4：运行测试验证通过**
 
 运行：`npx vitest run tests/theory/scale.test.ts`
-预期：PASS，4 个用例通过。
+预期：PASS，3 个 describe 组共 7 个用例通过。
 
 - [ ] **步骤 5：Commit**
 
@@ -655,21 +758,24 @@ describe("getChordPitches", () => {
 
 describe("matchChord", () => {
   it("识别大三和弦", () => {
-    expect(matchChord([57, 60, 64], 9)).toEqual({ root: 9, quality: "maj" });
+    // A 大三和弦 = A(57) C#(61) E(64)
+    expect(matchChord([57, 61, 64], 9)).toEqual({ root: 9, quality: "maj" });
   });
 
   it("识别小三和弦", () => {
-    expect(matchChord([57, 59, 62], 9)).toEqual({ root: 9, quality: "min" });
+    // A 小三和弦 = A(57) C(60) E(64)
+    expect(matchChord([57, 60, 64], 9)).toEqual({ root: 9, quality: "min" });
   });
 
   it("优先匹配更具体的色彩和弦", () => {
-    expect(matchChord([57, 60, 64, 67], 9)).toEqual({ root: 9, quality: "maj7" });
-    expect(matchChord([57, 60, 64, 71], 9)).toEqual({ root: 9, quality: "add9" });
-    expect(matchChord([57, 59, 62, 65], 9)).toEqual({ root: 9, quality: "min7" });
+    expect(matchChord([57, 61, 64, 68], 9)).toEqual({ root: 9, quality: "maj7" });
+    expect(matchChord([57, 61, 64, 71], 9)).toEqual({ root: 9, quality: "add9" });
+    expect(matchChord([57, 60, 64, 67], 9)).toEqual({ root: 9, quality: "min7" });
   });
 
   it("无法归类时返回 null", () => {
-    expect(matchChord([57, 60, 63], 9)).toBeNull();
+    // 只有 C D E，缺少根音 A，任何和弦模板都凑不齐，返回 null 而不是硬凑一个
+    expect(matchChord([60, 61, 62], 9)).toBeNull();
   });
 });
 
@@ -679,7 +785,7 @@ describe("romanNumeral", () => {
     expect(romanNumeral({ root: 11, quality: "min" }, 9)).toBe("ii");
     expect(romanNumeral({ root: 2, quality: "maj" }, 9)).toBe("IV");
     expect(romanNumeral({ root: 4, quality: "maj" }, 9)).toBe("V");
-    expect(romanNumeral({ root: 7, quality: "min" }, 9)).toBe("vi");
+    expect(romanNumeral({ root: 6, quality: "min" }, 9)).toBe("vi");
   });
 
   it("大调：借用和弦加 ♭ 前缀", () => {
@@ -697,8 +803,10 @@ describe("romanNumeral", () => {
     expect(romanNumeral({ root: 11, quality: "dim" }, 9)).toBe("ii°");
   });
 
-  it("无法归类时返回 ?", () => {
-    expect(romanNumeral({ root: 1, quality: "maj" }, 9)).toBe("?");
+  it("7 级 + 降半音参考已覆盖全部 12 个根音，不会出现 ?", () => {
+    // A 调里 C# 正好是第 3 级参考音 → III；D# 比第 5 级参考音 E 低半音 → ♭V
+    expect(romanNumeral({ root: 1, quality: "maj" }, 9)).toBe("III");
+    expect(romanNumeral({ root: 3, quality: "maj" }, 9)).toBe("♭V");
   });
 });
 ```
@@ -713,6 +821,7 @@ describe("romanNumeral", () => {
 ```ts
 import { midiToPitchClass, type PitchClass } from "./pitch.ts";
 
+/** 支持的和弦性质。 */
 export type ChordQuality =
   | "maj"
   | "min"
@@ -727,11 +836,16 @@ export type ChordQuality =
   | "m7b5"
   | "dim7";
 
+/** 一个和弦：根音（音级 0-11）+ 性质。 */
 export interface Chord {
   root: PitchClass;
   quality: ChordQuality;
 }
 
+/**
+ * 各性质相对根音的半音偏移。
+ * 偏移可以超过 11（add9 的 14），取音级时统一折回 0-11。
+ */
 export const CHORD_INTERVALS: Record<ChordQuality, readonly number[]> = {
   maj: [0, 4, 7],
   min: [0, 3, 7],
@@ -747,6 +861,7 @@ export const CHORD_INTERVALS: Record<ChordQuality, readonly number[]> = {
   dim7: [0, 3, 6, 9],
 };
 
+/** 和弦性质的中文名称，用于界面展示。 */
 export const CHORD_LABELS: Record<ChordQuality, string> = {
   maj: "大三和弦",
   min: "小三和弦",
@@ -762,7 +877,11 @@ export const CHORD_LABELS: Record<ChordQuality, string> = {
   dim7: "减七和弦",
 };
 
-/** 匹配顺序即优先级：越具体的和弦越靠前。 */
+/**
+ * 匹配顺序即优先级：越具体的和弦越靠前。
+ * 例如同样是「根音 + 大三 + 纯五」，add9 / maj7 / dom7 的音更多，
+ * 应该先于三和弦被识别出来，否则所有七和弦都会被误判成大三和弦。
+ */
 export const CHORD_MATCH_ORDER: readonly ChordQuality[] = [
   "add9",
   "maj7",
@@ -778,18 +897,20 @@ export const CHORD_MATCH_ORDER: readonly ChordQuality[] = [
   "min",
 ];
 
+/** 取得和弦包含的全部音级（0-11），按从根音向上的顺序排列。 */
 export function getChordPitches(chord: Chord): PitchClass[] {
-  return CHORD_INTERVALS[chord.quality].map(
-    (offset) => ((((chord.root + offset) % 12) + 12) % 12) as PitchClass,
-  );
+  return CHORD_INTERVALS[chord.quality].map((offset) => midiToPitchClass(chord.root + offset));
 }
 
+/**
+ * 判断一组音高能否构成以 `root` 为根音的和弦。
+ * 只比对音级（不区分八度），因此高八度的同名字符也算在内；
+ * 只要和弦所需的音全部出现即判定匹配（多余音不阻止匹配）。
+ */
 export function matchChord(pitches: readonly number[], root: PitchClass): Chord | null {
   const present = new Set(pitches.map(midiToPitchClass));
   for (const quality of CHORD_MATCH_ORDER) {
-    const needed = CHORD_INTERVALS[quality].map(
-      (offset) => ((((root + offset) % 12) + 12) % 12) as PitchClass,
-    );
+    const needed = CHORD_INTERVALS[quality].map((offset) => midiToPitchClass(root + offset));
     if (needed.every((pitch) => present.has(pitch))) {
       return { root, quality };
     }
@@ -798,14 +919,20 @@ export function matchChord(pitches: readonly number[], root: PitchClass): Chord 
 }
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"] as const;
+
+/**
+ * 参考级数：相对调中心音的固定半音偏移 [0, 2, 4, 5, 7, 9, 11]。
+ * 大调与小调都用这套「平行大调」参考，因为流行/摇滚记谱习惯如此
+ * （A 小调里的 F 大三和弦记作 ♭VI，而不是理论上的 submediant）。
+ */
 const DEGREE_OFFSETS = [0, 2, 4, 5, 7, 9, 11] as const;
 
+/** 参考级对应的音级序列（自然级）。 */
 function referenceDegrees(keyRoot: PitchClass): PitchClass[] {
-  return DEGREE_OFFSETS.map(
-    (offset) => ((((keyRoot + offset) % 12) + 12) % 12) as PitchClass,
-  );
+  return DEGREE_OFFSETS.map((offset) => midiToPitchClass(keyRoot + offset));
 }
 
+/** 按和弦性质决定罗马数字的大小写：小三和弦小写，减三和弦小写并加 °。 */
 function applyCase(base: string, quality: ChordQuality): string {
   if (quality === "min" || quality === "min7" || quality === "m7b5") {
     return base.toLowerCase();
@@ -816,9 +943,18 @@ function applyCase(base: string, quality: ChordQuality): string {
   return base;
 }
 
+/**
+ * 计算和弦在给定调中的罗马数字级数。
+ *
+ * 规则（与关卡 7/8 的判定一致）：
+ * - 根音正好落在第 d 级的参考音上 → 该级罗马数字，按性质决定大小写；
+ * - 根音比第 d 级的参考音低半音 → 该级加 ♭ 前缀（借用和弦）；
+ * - 都不匹配 → "?"（7 个自然级 + 7 个降半音级已覆盖全部 12 个根音，
+ *   所以这个分支实际上不可达，仅作兜底）。
+ */
 export function romanNumeral(chord: Chord, keyRoot: PitchClass): string {
   const degrees = referenceDegrees(keyRoot);
-  const lowered = degrees.map((pitch) => ((((pitch + 11) % 12) + 12) % 12) as PitchClass);
+  const lowered = degrees.map((pitch) => midiToPitchClass(pitch - 1));
 
   for (let index = 0; index < degrees.length; index += 1) {
     if (degrees[index] === chord.root) {
@@ -837,7 +973,7 @@ export function romanNumeral(chord: Chord, keyRoot: PitchClass): string {
 - [ ] **步骤 4：运行测试验证通过**
 
 运行：`npx vitest run tests/theory/chord.test.ts`
-预期：PASS，5 个用例通过。
+预期：PASS，10 个用例通过。
 
 若 `♭VI` 用例失败：确认 `referenceDegrees` 用的是 `keyRoot` 加固定偏移（平行大调参考），而不是调内音阶音级。
 
@@ -952,8 +1088,13 @@ describe("writeMidiFile", () => {
 - [ ] **步骤 3：实现 `src/core/midi/types.ts`**
 
 ```ts
+/** 每四分音符的 tick 数，M1 全局统一为 480。 */
 export const PPQ = 480;
 
+/**
+ * 单一轨内的事件联合类型。
+ * 只保留 M1 真正需要的事件，避免读入时产生无法表达的数据。
+ */
 export type MidiEvent =
   | { kind: "noteOn"; tick: number; pitch: number; velocity: number; channel: number }
   | { kind: "noteOff"; tick: number; pitch: number; velocity: number; channel: number }
@@ -962,11 +1103,13 @@ export type MidiEvent =
   | { kind: "trackName"; tick: number; text: string };
 
 export interface MidiTrack {
+  /** 轨名，同时会写进轨首的 track name meta 事件。 */
   name: string;
   events: MidiEvent[];
 }
 
 export interface MidiFile {
+  /** 0 = 单轨，1 = 多轨。 */
   format: 0 | 1;
   ppq: number;
   tracks: MidiTrack[];
@@ -979,10 +1122,22 @@ export interface MidiFile {
 import type { MidiEvent, MidiFile, MidiTrack } from "./types.ts";
 
 const META_TRACK_NAME = 0x03;
+/**
+ * 0x06 在 SMF 里是 Marker。
+ * MMA 的 Chord Name 与 Marker 共用这一号段，写出端若同时写和弦 meta 事件，
+ * 读入端无法区分，会把和弦名误当成段落标记。
+ * 因此 M1 只写 Marker，不写和弦 meta 事件。
+ */
 const META_MARKER = 0x06;
-const META_TIMECODE = 0x51;
+const META_TEMPO = 0x51;
 const META_END_OF_TRACK = 0x2f;
 
+/**
+ * 同一 tick 内的事件顺序。
+ * noteOff 必须排在 noteOn 之前：SMF 按字节顺序播放，若同 tick 先出现 noteOn，
+ * 前一个同音高的音会被立刻切断，表现为音符被“吃掉”。
+ * tempo / trackName / marker 之间没有先后依赖，给同样的序值即可保持原有顺序。
+ */
 const EVENT_ORDER: Record<MidiEvent["kind"], number> = {
   tempo: 0,
   trackName: 0,
@@ -991,6 +1146,7 @@ const EVENT_ORDER: Record<MidiEvent["kind"], number> = {
   noteOn: 2,
 };
 
+/** 把非负整数编码成 SMF 的可变长度数量（VLQ）：每字节 7 位，高位表示还有后续字节。 */
 export function encodeVariableLength(value: number): number[] {
   if (!Number.isInteger(value) || value < 0) {
     throw new Error(`VLQ 需要非负整数，收到 ${value}`);
@@ -1016,17 +1172,28 @@ function u32(value: number): number[] {
   return [(value >>> 24) & 0xff, (value >>> 16) & 0xff, (value >>> 8) & 0xff, value & 0xff];
 }
 
+/** 文本统一用 UTF-8 编码，长度按字节数算（meta 长度也是字节数）。 */
 function encodeText(text: string): number[] {
   const bytes = Array.from(new TextEncoder().encode(text));
   return [...encodeVariableLength(bytes.length), ...bytes];
 }
 
 function sortEvents(events: readonly MidiEvent[]): MidiEvent[] {
+  // Array.prototype.sort 自 ES2019 起是稳定排序，序值相同的事件保持原有先后，
+  // 这样“写出→读入”才能逐字段相等。
   return [...events].sort((a, b) =>
     a.tick !== b.tick ? a.tick - b.tick : EVENT_ORDER[a.kind] - EVENT_ORDER[b.kind],
   );
 }
 
+/**
+ * 写出单条轨。
+ * 轨名写两处：模型里的 MidiTrack.name 字段 + 轨首的 track name meta 事件。
+ * 字节流只包含事件列表本身——轨名由列表里的 trackName 事件承载，
+ * 读入端再以 track name meta 为准还原 MidiTrack.name；
+ * 若在此额外补一条 trackName 事件，读回后的事件列表会比原来多一条，
+ * 破坏“写出→读入逐字段相等”的往返约束。
+ */
 function encodeTrack(track: MidiTrack): number[] {
   const body: number[] = [];
   let lastTick = 0;
@@ -1038,7 +1205,7 @@ function encodeTrack(track: MidiTrack): number[] {
       case "tempo":
         body.push(
           0xff,
-          META_TIMECODE,
+          META_TEMPO,
           0x03,
           (event.microsecondsPerBeat >>> 16) & 0xff,
           (event.microsecondsPerBeat >>> 8) & 0xff,
@@ -1052,17 +1219,24 @@ function encodeTrack(track: MidiTrack): number[] {
         body.push(0xff, META_MARKER, ...encodeText(event.text));
         break;
       case "noteOn":
-        body.push(0x90 | (event.channel & 0x0f), event.pitch & 0x7f, event.velocity & 0x7f);
+        if (event.velocity === 0) {
+          // 力度 0 的 noteOn 在 SMF 语义上就是 note off，直接写成 0x80 状态字节。
+          body.push(0x80 | (event.channel & 0x0f), event.pitch & 0x7f, 0);
+        } else {
+          body.push(0x90 | (event.channel & 0x0f), event.pitch & 0x7f, event.velocity & 0x7f);
+        }
         break;
       case "noteOff":
         body.push(0x80 | (event.channel & 0x0f), event.pitch & 0x7f, event.velocity & 0x7f);
         break;
     }
   }
+  // 每条轨必须以 end of track meta 收尾，否则部分软件会拒绝播放该轨。
   body.push(0x00, 0xff, META_END_OF_TRACK, 0x00);
   return body;
 }
 
+/** 把领域模型序列化成标准 MIDI 文件（SMF format 0/1）的字节流。 */
 export function writeMidiFile(file: MidiFile): Uint8Array {
   const parts: number[] = [
     ...ascii("MThd"),
@@ -1088,6 +1262,10 @@ export function writeMidiFile(file: MidiFile): Uint8Array {
 
 运行：`npm run typecheck`
 预期：退出码 0。
+
+> **实现说明（轨名写两处）：** `MidiTrack.name` 字段与轨首的 track name meta 事件都承载轨名。
+> 写出端只写事件列表本身，**不额外补一条 trackName 事件**——否则读回后的事件列表会多出一条，
+> 破坏任务 6 的“写出→读入逐字段相等”。读入端以 track name meta 为准还原 `MidiTrack.name`。
 
 - [ ] **步骤 7：Commit**
 
@@ -1121,8 +1299,8 @@ const demo: MidiFile = {
       name: "Music-101",
       events: [
         { kind: "trackName", tick: 0, text: "Music-101" },
-import { getChordPitches, romanNumeral, type Chord } from "../src/core/theory/chord.ts";
-import type { PitchClass } from "../src/core/theory/pitch.ts";
+        { kind: "tempo", tick: 0, microsecondsPerBeat: 400000 },
+        { kind: "marker", tick: 1920, text: "Chorus" },
     },
     {
       name: "KICK",
@@ -1239,19 +1417,31 @@ import type { MidiEvent, MidiFile, MidiTrack } from "./types.ts";
 
 const META_TRACK_NAME = 0x03;
 const META_MARKER = 0x06;
-const META_TIMECODE = 0x51;
+const META_TEMPO = 0x51;
 const META_END_OF_TRACK = 0x2f;
 
-function readVariableLength(bytes: Uint8Array, start: number): [number, number] {
+const decoder = new TextDecoder();
+
+function fail(message: string): never {
+  throw new Error(`不是合法的 MIDI 文件：${message}`);
+}
+
+/** 读取 VLQ（可变长度数量），返回数值与新的读取位置。 */
+function readVariableLength(bytes: Uint8Array, start: number, end: number): [number, number] {
   let value = 0;
   let position = start;
-  for (;;) {
+  for (let count = 0; count < 4; count += 1) {
+    if (position >= end) {
+      fail("VLQ 长度越界");
+    }
     const byte = bytes[position];
     position += 1;
     value = (value << 7) | (byte & 0x7f);
-    if ((byte & 0x80) === 0) break;
+    if ((byte & 0x80) === 0) {
+      return [value, position];
+    }
   }
-  return [value, position];
+  return fail("VLQ 超过 4 字节");
 }
 
 function readTrack(bytes: Uint8Array, start: number, end: number): MidiTrack {
@@ -1262,50 +1452,81 @@ function readTrack(bytes: Uint8Array, start: number, end: number): MidiTrack {
   let name = "";
 
   while (position < end) {
-    const [delta, afterDelta] = readVariableLength(bytes, position);
+    const [delta, afterDelta] = readVariableLength(bytes, position, end);
     position = afterDelta;
     tick += delta;
 
+    if (position >= end) {
+      fail("事件缺少状态字节");
+    }
     let status = bytes[position];
     if (status < 0x80) {
+      // 运行状态：复用上一个状态字节。
+      if (runningStatus === 0) {
+        fail("出现没有状态字节的数据");
+      }
       status = runningStatus;
     } else {
       position += 1;
-      runningStatus = status;
+      if (status < 0xf0) {
+        runningStatus = status;
+      }
     }
-
-    if (status === 0xff) {
+      } else if (metaType === META_TRACK_NAME) {
+        const text = decoder.decode(data);
+        // 轨名以轨首的 track name meta 为准：若出现多个，取第一个。
+        if (name === "") {
+          name = text;
+        }
+        events.push({ kind: "trackName", tick, text });
+      }
       const metaType = bytes[position];
       position += 1;
-      const [length, afterLength] = readVariableLength(bytes, position);
+      const [length, afterLength] = readVariableLength(bytes, position, end);
       position = afterLength;
+      if (position + length > end) {
+        fail("meta 事件数据越界");
+      }
       const data = bytes.subarray(position, position + length);
       position += length;
 
-      if (metaType === META_TIMECODE) {
+      if (metaType === META_TEMPO) {
+        if (data.length < 3) {
+          fail("tempo 事件长度不足 3 字节");
+        }
         events.push({
           kind: "tempo",
           tick,
           microsecondsPerBeat: (data[0] << 16) | (data[1] << 8) | data[2],
         });
       } else if (metaType === META_TRACK_NAME) {
-        name = new TextDecoder().decode(data);
-        events.push({ kind: "trackName", tick, text: name });
+        const text = decoder.decode(data);
+        name = text;
+        events.push({ kind: "trackName", tick, text });
       } else if (metaType === META_MARKER) {
-        events.push({ kind: "marker", tick, text: new TextDecoder().decode(data) });
+        events.push({ kind: "marker", tick, text: decoder.decode(data) });
       } else if (metaType === META_END_OF_TRACK) {
         break;
       }
+      // 其他 meta 事件（文本、拍号、乐器名等）M1 不需要，直接忽略。
     } else if (status === 0xf0 || status === 0xf7) {
-      const [length, afterLength] = readVariableLength(bytes, position);
-      position = afterLength + length;
+      const [length, afterLength] = readVariableLength(bytes, position, end);
+      position = afterLength;
+      if (position + length > end) {
+        fail("sysex 事件数据越界");
+      }
+      position += length;
     } else {
       const messageType = status & 0xf0;
       const channel = status & 0x0f;
       if (messageType === 0x90 || messageType === 0x80) {
+        if (position + 2 > end) {
+          fail("音符事件数据越界");
+        }
         const pitch = bytes[position];
         const velocity = bytes[position + 1];
         position += 2;
+        // 力度为 0 的 noteOn 在 SMF 里等同于 note off。
         if (messageType === 0x90 && velocity > 0) {
           events.push({ kind: "noteOn", tick, pitch, velocity, channel });
         } else {
@@ -1323,10 +1544,16 @@ function readTrack(bytes: Uint8Array, start: number, end: number): MidiTrack {
 }
 
 export function readMidiFile(bytes: Uint8Array): MidiFile {
+  if (bytes.length < 14) {
+    fail("数据长度不足一个 MThd 头");
+  }
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let position = 0;
 
   const readAscii = (count: number): string => {
+    if (position + count > bytes.length) {
+      fail("块标识越界");
+    }
     let text = "";
     for (let index = 0; index < count; index += 1) {
       text += String.fromCharCode(bytes[position]);
@@ -1336,10 +1563,13 @@ export function readMidiFile(bytes: Uint8Array): MidiFile {
   };
 
   if (readAscii(4) !== "MThd") {
-    throw new Error("不是合法的 MIDI 文件：缺少 MThd 头");
+    fail("缺少 MThd 头");
   }
   const headerLength = view.getUint32(position);
   position += 4;
+  if (headerLength < 6) {
+    fail("MThd 头长度非法");
+  }
   const format = view.getUint16(position);
   position += 2;
   const trackCount = view.getUint16(position);
@@ -1355,11 +1585,18 @@ export function readMidiFile(bytes: Uint8Array): MidiFile {
     const chunkLength = view.getUint32(position);
     position += 4;
     const chunkEnd = position + chunkLength;
+    if (chunkEnd > bytes.length) {
+      fail(`${chunkId} 块长度越界`);
+    }
     if (chunkId === "MTrk") {
       tracks.push(readTrack(bytes, position, chunkEnd));
       parsed += 1;
     }
     position = chunkEnd;
+  }
+
+  if (tracks.length !== trackCount) {
+    fail(`轨数不足：声明 ${trackCount} 轨，实际读到 ${tracks.length} 轨`);
   }
 
   return { format: format === 0 ? 0 : 1, ppq, tracks };
@@ -1750,31 +1987,55 @@ for (let bar = 0; bar < TOTAL_BARS; bar += 1) {
 }
 
 const bassNotes: SkeletonNote[] = [];
+const subNotes: SkeletonNote[] = [];
 const supersawNotes: SkeletonNote[] = [];
 const chords: SkeletonChord[] = [];
+
+/**
+ * 以根音为基准把和弦音排进同一个八度。
+ * 直接给音级加常数会让 C#（音级 1）落到根音下方，得到 F#3 + A3 + C#3 这种错位排列。
+ */
+function voiceChord(pitches: readonly number[], root: number, base: number): number[] {
+  return pitches.map(
+    (pitch) => base + root + ((((pitch - root) % 12) + 12) % 12),
+  );
+}
 
 for (const entry of PROGRESSION) {
   const pitches = getChordPitches(entry.chord);
   const numeral = romanNumeral(entry.chord, KEY_ROOT);
   chords.push({
     tick: barToTick(entry.startBar, BEATS_PER_BAR),
-    pitches: pitches.map((pitch) => 48 + pitch),
+    pitches: voiceChord(pitches, entry.chord.root, 48),
     text: `${entry.label} (${numeral})`,
   });
 
   for (let bar = entry.startBar; bar < entry.startBar + 2; bar += 1) {
     const base = barToTick(bar, BEATS_PER_BAR);
+    // 808：低八度根音长音，只占低频，把瞬态空间留给 kick
+    for (const beat of [0, 2]) {
+      subNotes.push({
+        tick: base + beat * PPQ,
+        dur: PPQ * 2 - 20,
+        pitch: 24 + entry.chord.root,
+        vel: 100,
+      });
+    }
+    // BASS：中八度根音，每拍一个
     for (let beat = 0; beat < BEATS_PER_BAR; beat += 1) {
       bassNotes.push({
         tick: base + beat * PPQ,
         dur: PPQ - 20,
-        pitch: 24 + pitches[0],
+        pitch: 36 + entry.chord.root,
         vel: 100,
       });
     }
-    for (const pitch of pitches) {
-      supersawNotes.push({ tick: base, dur: PPQ * 4 - 20, pitch: 48 + pitch, vel: 80 });
-      supersawNotes.push({ tick: base, dur: PPQ * 4 - 20, pitch: 60 + pitch, vel: 70 });
+    // SUPERSAW：两个高八度层的和弦音
+    for (const pitch of voiceChord(pitches, entry.chord.root, 60)) {
+      supersawNotes.push({ tick: base, dur: PPQ * 4 - 20, pitch, vel: 80 });
+    }
+    for (const pitch of voiceChord(pitches, entry.chord.root, 72)) {
+      supersawNotes.push({ tick: base, dur: PPQ * 4 - 20, pitch, vel: 70 });
     }
   }
 }
@@ -1788,7 +2049,7 @@ const skeleton: SongSkeleton = {
   sections,
   tracks: [
     { role: "KICK", channel: 9, notes: kickNotes },
-    { role: "808", channel: 0, notes: bassNotes },
+    { role: "808", channel: 0, notes: subNotes },
     { role: "BASS", channel: 1, notes: bassNotes },
     { role: "SUPERSAW", channel: 2, notes: supersawNotes },
   ],
@@ -1813,7 +2074,7 @@ console.log(`进行：${chords.map((chord) => chord.text).join(" | ")}`);
 预期输出：
 
 ```
-已生成 D:\Workspace\Github\Music-101\Music-101\out\music101-test.mid
+已生成 D:\Workspace\Github\Music-101\Music-101\.worktrees\m1-foundation\out\music101-test.mid
 轨道：KICK, 808, BASS, SUPERSAW + CHORDS
 速度 150 BPM，8 小节，段落：Intro / Verse / PreChorus / Chorus
 进行：F#m (i) | D (♭VI) | B (IV) | F# (I)
@@ -1829,14 +2090,12 @@ node -e "const b=require('fs').readFileSync('out/music101-test.mid');console.log
 
 预期：`bytes` 大于 1000，`head MThd`。
 
-- [ ] **步骤 4：把 `out/` 加入 `.gitignore`**
+- [ ] **步骤 4：确认 `.gitignore` 已忽略 `out/`**
 
-在 `.gitignore` 末尾追加：
+任务 1 已在 `.gitignore` 中加入 `out/`。本步骤只需**确认**该行存在，不要重复追加（避免重复条目）。
 
-```
-# 生成的演示 MIDI（构建产物）
-out/
-```
+运行：`Select-String -Path .gitignore -Pattern '^out/$'`
+预期：匹配到一行 `out/`。
 
 - [ ] **步骤 5：类型检查**
 
@@ -1849,6 +2108,8 @@ out/
 git add scripts/make-test-midi.ts .gitignore
 git commit -m "feat(scripts): add CLI to generate a demo MIDI for Cubase import checks"
 ```
+
+> 注意：M1 在 worktree `feature/m1-foundation` 中开发，产物位于 `D:\Workspace\Github\Music-101\Music-101\.worktrees\m1-foundation\out\music101-test.mid`；Cubase 导入验证应使用这个路径。
 
 ---
 
@@ -2003,7 +2264,7 @@ git commit -m "feat(ui): wire theory core into the app shell"
 在文件名输入框中输入完整路径：
 
 ```
-D:\Workspace\Github\Music-101\Music-101\out\music101-test.mid
+D:\Workspace\Github\Music-101\Music-101\.worktrees\m1-foundation\out\music101-test.mid
 ```
 
 然后确认（回车）。

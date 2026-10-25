@@ -1,0 +1,127 @@
+import { useCallback, useRef, useState } from "react";
+import { Button, ConfigProvider, Flex, Layout, Select, theme } from "antd";
+import zhCN from "antd/locale/zh_CN";
+import { ARRANGING_LESSONS } from "./content/arranging.ts";
+import { STAGE_LESSONS } from "./content/stage1.ts";
+import { levelLocked } from "./core/lesson/personalize.ts";
+import { loadProgress, saveProgress, type ProgressUpdate, type Recipe } from "./core/lesson/progress.ts";
+import { DiagnosticsLab } from "./ui/DiagnosticsLab.tsx";
+import { LessonFlow } from "./ui/LessonFlow.tsx";
+import { LessonOne } from "./ui/LessonOne.tsx";
+import { ProgressBoard } from "./ui/ProgressBoard.tsx";
+import { TheoryBench } from "./ui/TheoryBench.tsx";
+
+const { Header, Content } = Layout;
+
+type View = "bench" | "lesson" | "diagnostics" | "progress";
+
+const FLOW_LESSONS = [...STAGE_LESSONS, ...ARRANGING_LESSONS];
+
+const LESSON_OPTIONS = [
+  { value: 1, label: "第 1 关 · 音高与键盘" },
+  ...FLOW_LESSONS.map((lesson) => ({ value: lesson.id, label: `第 ${lesson.id} 关 · ${lesson.title}` })),
+];
+
+export function App() {
+  const [view, setView] = useState<View>("lesson");
+  const [level, setLevel] = useState(1);
+  const [progress, setProgress] = useState(() => loadProgress(typeof localStorage === "undefined" ? null : localStorage));
+  const [pendingRecipe, setPendingRecipe] = useState<Recipe | null>(null);
+  const progressRef = useRef(progress);
+  progressRef.current = progress;
+  const stage = FLOW_LESSONS.find((lesson) => lesson.id === level);
+  const onProgress = useCallback((update: ProgressUpdate) => {
+    const next = update(progressRef.current);
+    progressRef.current = next;
+    setProgress(next);
+    if (typeof localStorage !== "undefined") saveProgress(localStorage, next);
+  }, []);
+  const onConsumeRecipe = useCallback(() => setPendingRecipe(null), []);
+  const openLevel = (nextLevel: number) => {
+    setPendingRecipe(null);
+    setLevel(nextLevel);
+    setView("lesson");
+  };
+
+  return (
+    <ConfigProvider
+      locale={zhCN}
+      theme={{
+        algorithm: theme.darkAlgorithm,
+        token: {
+          fontFamily: 'system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif',
+          colorBgLayout: "#12121a",
+          borderRadius: 10,
+        },
+      }}
+    >
+      <Layout className="site">
+        <Header className="site-header">
+          <Flex align="center" justify="space-between" gap={12} wrap style={{ width: "100%" }}>
+            <div>
+              <h1 className="site-title">Music-101</h1>
+              <p className="site-subtitle">kawaii bass / future bass 编曲速成</p>
+            </div>
+            <Flex gap={8} wrap>
+              <Button type={view === "bench" ? "primary" : "default"} onClick={() => setView("bench")}>
+                乐理工作台
+              </Button>
+              <Select
+                aria-label="关卡"
+                value={view === "lesson" ? level : undefined}
+                placeholder="关卡"
+                style={{ minWidth: 220 }}
+                options={LESSON_OPTIONS.map((option) => ({ ...option, disabled: levelLocked(progress, option.value) }))}
+                onChange={(value) => {
+                  setPendingRecipe(null);
+                  setLevel(value);
+                  setView("lesson");
+                }}
+              />
+              <Button type={view === "diagnostics" ? "primary" : "default"} onClick={() => setView("diagnostics")}>
+                诊断
+              </Button>
+              <Button type={view === "progress" ? "primary" : "default"} onClick={() => setView("progress")}>
+                进度
+              </Button>
+            </Flex>
+          </Flex>
+        </Header>
+        <Content className="bench">
+          {view === "bench" ? (
+            <TheoryBench />
+          ) : view === "diagnostics" ? (
+            <DiagnosticsLab />
+          ) : view === "progress" ? (
+            <ProgressBoard
+              progress={progress}
+              onProgress={onProgress}
+              onApply={(recipe) => {
+                setPendingRecipe(recipe);
+                setLevel(recipe.levelId);
+                setView("lesson");
+              }}
+            />
+          ) : level === 1 || !stage ? (
+            <LessonOne
+              progress={progress}
+              onProgress={onProgress}
+              pendingRecipe={pendingRecipe}
+              onConsumeRecipe={onConsumeRecipe}
+              onOpenLevel={openLevel}
+            />
+          ) : (
+            <LessonFlow
+              lesson={stage}
+              progress={progress}
+              onProgress={onProgress}
+              pendingRecipe={pendingRecipe}
+              onConsumeRecipe={onConsumeRecipe}
+              onOpenLevel={openLevel}
+            />
+          )}
+        </Content>
+      </Layout>
+    </ConfigProvider>
+  );
+}
