@@ -45,7 +45,7 @@ export const lesson: StageLessonEntry = defineLesson({
     ear("verse", "主歌相对副歌？", "层更少", "层更多", "主歌把空间留给副歌。", [36, 48], [36, 48, 72], { label: "一样多", midis: [36, 48] }),
     ear("kick", "踢在这种骨架里？", "主歌副歌都在", "只在前奏出现一次", "踢把拍子钉住。", [36, 36], [36], { label: "只在副歌", midis: [36] }),
     ear("not-style", "下面哪个不像这个骨架？", "副歌把 supersaw 拿掉", "副歌加上锯齿和弦", "拿掉锯齿，副歌就空了。", [36, 48], [36, 48, 72], { label: "主歌保留两层", midis: [36, 48] }),
-    ear("808-job", "这个骨架里 808 的任务是？", "接住根音和低频", "加高频", "808 管低频根音，高频是 supersaw 和 chop 的活。", [36], [72], { label: "加高频", midis: [72] }),
+    ear("808-job", "这个骨架里 808 的任务是？", "接住根音和低频", "加高频", "808 管低频根音，高频是 supersaw 和 chop 的活。", [36], [72], { label: "打鼓点", midis: [72] }),
   ],
   handPrompt: "选出 Future bass 的副歌骨架。",
   handChoices: [

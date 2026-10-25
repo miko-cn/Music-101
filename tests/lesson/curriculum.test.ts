@@ -50,6 +50,23 @@ describe("课程内容完整性", () => {
     }
   });
 
+  it("听辨题和手做选项的文字都不重复（同名选项等于同一道题出现两次）", () => {
+    for (const lesson of ALL_LESSONS) {
+      for (const question of lesson.ear) {
+        const labels = question.choices.map((choice) => choice.label);
+        expect(
+          new Set(labels).size,
+          `第 ${lesson.id} 关「${question.id}」有同名选项：${labels.join(" / ")}`,
+        ).toBe(labels.length);
+      }
+      const handLabels = lesson.handChoices.map((choice) => choice.label);
+      expect(
+        new Set(handLabels).size,
+        `第 ${lesson.id} 关手做有同名选项：${handLabels.join(" / ")}`,
+      ).toBe(handLabels.length);
+    }
+  });
+
   it("过关阈值合理：既不能满分为过，也不能宽松到全靠蒙", () => {
     for (const lesson of ALL_LESSONS) {
       const ratio = lesson.earPass / lesson.ear.length;

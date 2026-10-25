@@ -42,7 +42,7 @@ export const lesson: StageLessonEntry = defineLesson({
     ear("back", "kick 离开之后音量怎样？", "再抬回来", "一直保持很小", "抬回来才听得见和弦，也才有一抽一抽的感觉。", [36, 36], [36], { label: "保持满音量", midis: [36] }),
     ear("not-midi", "导出的 MIDI 里有没有侧链曲线？", "没有，得到 Cubase 里再做", "有，拖进去就自动泵", "MIDI 带的是音高和节奏。泵动是混音，不在这个文件里。", [36], [36], { label: "有，但只在最后", midis: [36] }),
     ear("grid-kick", "四四拍的 kick 一小节抽几次？", "四次", "一次", "每拍一个 kick，就抽四次。", [36, 36, 36, 36], [36], { label: "两次", midis: [36, 36] }),
-    ear("duck-what", "侧链压下去的是哪一类音？", "持续的长音", "所有音", "kick 自己也压就没法听了。被压的是 808、supersaw 这类一直响的音。", [36], [36], { label: "所有音", midis: [36] }),
+    ear("duck-what", "侧链压下去的是哪一类音？", "持续的长音", "所有音", "kick 自己也压就没法听了。被压的是 808、supersaw 这类一直响的音。", [36], [36], { label: "只有底鼓", midis: [36] }),
   ],
   handPrompt: "泵动应该跟谁走？",
   handChoices: [

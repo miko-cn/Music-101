@@ -41,7 +41,7 @@ export const lesson: StageLessonEntry = defineLesson({
     ear("register", "和弦音区？", "偏高", "和 808 同一个八度", "高八度才明亮。", [84], [36], { label: "很低", midis: [48] }),
     ear("not", "下面哪个不像？", "全程小调减七", "大七、加九、拍手", "减七的色彩太沉。", [60, 63, 66, 69], [60, 64, 67, 74], { label: "高八度和弦", midis: [84] }),
     ear("bass", "贝斯还要不要？", "要，但别盖住高音和弦", "不要低音", "低音还在，只是不独占。", [48], [48], { label: "要并且独占低频", midis: [28] }),
-    ear("vs-future", "这个风格相对 future bass 更？", "亮、轻", "暗、重", "亮和轻是这个风格的两根支柱，其余元素可以不变。", [84], [48], { label: "暗、重", midis: [28] }),
+    ear("vs-future", "这个风格相对 future bass 更？", "亮、轻", "暗、重", "亮和轻是这个风格的两根支柱，其余元素可以不变。", [84], [48], { label: "圆、厚", midis: [28] }),
   ],
   handPrompt: "选出更像 kawaii bass 的四小节。",
   handChoices: [

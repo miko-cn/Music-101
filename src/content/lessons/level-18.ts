@@ -40,7 +40,7 @@ export const lesson: StageLessonEntry = defineLesson({
     ear("same-note", "两条轨都只弹 MIDI 60，容易怎样？", "挤在中频", "自动分成高低", "音高一样，重心就挨在一起。", [60, 60], [60], { label: "没有影响", midis: [60] }),
     ear("role", "贝斯的角色是？", "接在 kick 上面的根音", "代替踩镲", "贝斯管和声的低音，不管节奏的帽子。", [48], [42], { label: "负责高频", midis: [84] }),
     ear("count", "频段规则会拿掉哪类轨？", "FX 和 CHOP", "BASS", "装饰轨不参加频段比较。", [72], [48], { label: "KICK", midis: [36] }),
-    ear("kick-bass-close", "kick 和贝斯都在 MIDI 36 附近，会怎样？", "低频互相盖住", "完全正常", "两个角色挤在同一段低频，鼓点和根音会糊。", [36, 36], [36], { label: "完全正常", midis: [36] }),
+    ear("kick-bass-close", "kick 和贝斯都在 MIDI 36 附近，会怎样？", "低频互相盖住", "完全正常", "两个角色挤在同一段低频，鼓点和根音会糊。", [36, 36], [36], { label: "低频会厚一点", midis: [36] }),
   ],
   handPrompt: "选出频段分开的编配。",
   handChoices: [
