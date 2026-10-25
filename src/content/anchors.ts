@@ -69,7 +69,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
     ],
     takeaway: [
       "每个音程有两件事：大小 + 性质。别把两者混成一个。",
-      "数大小第一个音算 1，而且按音名数：C 到 C# 也是二度。",
+      "数大小第一个音算 1，而且按音名数：C 到 C♯ 也是二度。",
       "定性质用主音想象法，不要去数半音——数半音慢而且容易错。",
       "纯一、纯四、纯五、纯八最稳；小二度最挤，七度和三全音最紧张。",
     ],
@@ -82,13 +82,14 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
       "从根音开始，每往上隔一个音叠一层：三音、五音。",
       "先定大小：看三音是几度——大三度就是大和弦，小三度就是小和弦。",
       "五音不用管：在自然小调里它永远是纯五度。",
-      "想换情绪就动三音：降半音变暗（C E G → C Eb G），升半音变怪（C Eb G → C E G#）。",
+      "想换情绪就动三音：降半音变暗（C E G → C E♭ G）；要更拧巴就升五音（C E G → C E G♯）。",
     ],
     takeaway: [
       "三和弦 = 根音 + 三音 + 五音，是按三度叠出来的。",
       "大/小只由三音决定，五音在自然小调里永远是纯五度。",
-      "记号：大写 = 大三（C），小写 = 小三（cm），加 o = 减（co）。",
+      "记号：大写 = 大三（C），小写 = 小三（cm），加 ° = 减（C°）。",
       "同根音换性质（加 m）是最快的情绪切换。",
+      "升五音得到增和弦（C E G♯），听上去拧巴，不是亮。",
     ],
   },
   5: {
@@ -96,15 +97,15 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
     name: "五度圈",
     hook: "C 在 12 点，顺时针加升号，逆时针加降号。",
     steps: [
-      "先记住大调音阶的顺序：W‑W‑H‑W‑W‑W‑H。",
+      "先记住大调音阶的顺序：W‑W‑H‑W‑W‑W‑H（W 是全音，H 是半音）。",
       "在五度圈上找到 C，摆在 12 点钟。",
       "顺时针每走一格，调号多一个升号（C → G → D → A → E → B）。",
-      "逆时针每走一格，调号多一个降号（C → F → Bb → Eb）。",
+      "逆时针每走一格，调号多一个降号（C → F → B♭ → E♭）。",
       "调号定下来了，剩下的音就是调内音；不在里面的就是调外音。",
     ],
     takeaway: [
       "C 大调 = C D E F G A B，全是白键。",
-      "大调音阶的半音全音顺序固定：W‑W‑H‑W‑W‑W‑H。",
+      "大调音阶的半音全音顺序固定：W‑W‑H‑W‑W‑W‑H（W 全音，H 半音）。",
       "主音 = 调名里那个音 = 第 1 级 = 听起来「回家」的音。",
       "五度圈：C 在 12 点，顺时针升号，逆时针降号。",
       "调内音之外的叫调外音，它不是错，是有意的借用。",
@@ -124,7 +125,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
     takeaway: [
       "七和弦 = 根音 + 三音 + 五音 + 七音。",
       "maj7 的七音是导音（B），离八度只差半音，所以亮。",
-      "属七的七音是降七度（Bb），想往下解决到主音。",
+      "属七的七音是降七度（B♭），想往下解决到主音。",
       "五种常见性质：maj7 / 7 / m7 / m7♭5 / dim7。",
       "add9 保留大三度，比 maj7 更透；future bass 的甜味主要靠它。",
     ],
@@ -143,7 +144,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
     takeaway: [
       "罗马数字 = 级数（数字）+ 性质（大小写）。",
       "C 大调：I=C, ii=Dm, iii=Em, IV=F, V=G, vi=Am, vii°=B°。",
-      "大写 = 大三和弦，小写 = 小三和弦，加 o = 减和弦。",
+      "大写 = 大三和弦，小写 = 小三和弦，加 ° = 减和弦。",
       "ii 和 iii 永远小写；VI 永远大写。",
       "I–V–vi–IV = C → G → Am → F，是流行 BGM 的默认骨架。",
     ],
@@ -162,7 +163,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
     takeaway: [
       "A 自然小调 = A B C D E F G = 同名大调降 3、6、7 级。",
       "小调主和弦是小三，记成 i（小写）。",
-      "和声小调升第 7 级（G→G#），为了做出 i→V→i 的解决。",
+      "和声小调升第 7 级（G→G♯），为了做出 i→V→i 的解决。",
       "借用和弦：♭III、♭VI、♭VII、iv —— 都不在调内，但特别常用。",
       "i–♭VI–♭III–♭VII = Am→F→C→G，和 vi–IV–I–V 是同一串声音。",
     ],
@@ -188,13 +189,13 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
     name: "强拍归踢，反拍归军鼓",
     hook: "踢占强拍，军鼓拍手占反拍，踩镲铺八分。",
     steps: [
-      "四件套 = kick、snare、clap、hat。",
+      "四件套 = kick（踢）、snare（军鼓）、clap（拍手）、hat（踩镲）。",
       "踢落在第 1、9 格（第 1、3 拍），这是强拍。",
       "军鼓和拍手落在第 5、13 格（第 2、4 拍），这是反拍。",
       "踩镲铺满八分音符：每拍两下，16 格里占偶数位。",
     ],
     takeaway: [
-      "四件套 = kick / snare / clap / hat。",
+      "四件套 = kick（踢）/ snare（军鼓）/ clap（拍手）/ hat（踩镲）。",
       "踢 = 强拍，军鼓 + 拍手 = 反拍。",
       "踩镲 = 八分音符铺底。",
       "1–4 格是第 1 拍，5–8 格是第 2 拍，9–12 是第 3 拍。",
@@ -262,7 +263,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
       "解决不是把和弦弹响一点，是换回主和弦。",
     ],
     takeaway: [
-      "V = 音阶第 5 级（C 大调是 G 大三）。",
+      "V = 音阶第 5 级（C 大调是 G 大三和弦）。",
       "V → I 是解决；停在 V 上句子没结束。",
       "张力来自和弦走向，不是来自调外音。",
     ],
@@ -273,12 +274,12 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
     hook: "kick 最低，贝斯次低，和弦再往上——各占一段。",
     steps: [
       "先给每条轨定角色。",
-      "kick 占最低，bass 往上一点，supersaw 再往上。",
+      "kick 占最低，贝斯往上一点，supersaw 再往上。",
       "两条轨音高太近 → 频率重心撞在一起，中频打架。",
       "FX 和 CHOP 是装饰轨，不参加频段比较。",
     ],
     takeaway: [
-      "kick < bass < supersaw 是默认站位。",
+      "kick < 贝斯 < supersaw 是默认站位。",
       "两条轨音高一样 = 重心撞在一起。",
       "中频糊 = 大家都挤在中央 C 附近。",
       "频段规则排除装饰轨。",
@@ -326,7 +327,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
       "先分清：哪些是乐器，哪些是效果。",
       "MIDI 里的 FX 轨只标记「这里该有个效果」，不带插件。",
       "扫频 / 上升适合放在进副歌前的那一小节。",
-      "全程失真会把 kick 和 bass 的分工一起抹掉。",
+      "全程失真会把 kick 和贝斯的分工一起抹掉。",
     ],
     takeaway: [
       "效果 = 转折处的胶水。",
@@ -340,7 +341,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
     name: "副歌加锯齿",
     hook: "主歌留 kick + 贝斯，副歌铺 supersaw，短 chop 卡反拍。",
     steps: [
-      "主歌：kick + bass，只两层。",
+      "主歌：kick + 贝斯，只两层。",
       "副歌：加上一条 supersaw 和弦层。",
       "chop 要短，卡在反拍上。",
       "kick 贯穿始终，把拍子钉住。",
@@ -391,7 +392,7 @@ export const ANCHORS: Record<number, MemoryAnchor> = {
     name: "加轨 + 1.5 倍",
     hook: "主歌留两层，副歌加一条 supersaw，能量到 1.5 倍。",
     steps: [
-      "主歌：kick + bass。",
+      "主歌：kick + 贝斯。",
       "副歌：加一条 supersaw 轨。",
       "层数多 1，同时平均能量 ≥ 主歌的 1.5 倍。",
       "kick 不删——节奏底盘要留着，上面再加层。",
