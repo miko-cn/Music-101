@@ -319,6 +319,145 @@ body {
   box-shadow: inset 0 -10px 0 #69b1ff, inset 0 0 0 3px #ffd666;
 }
 
+/* 每日学习热力图：一列一周，7 行（周一到周日） */
+.heatmap {
+  --cell: 12px;
+  --gap: 3px;
+  --step: calc(var(--cell) + var(--gap));
+}
+
+.heatmap-months {
+  position: relative;
+  height: 16px;
+  margin-left: 22px;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.heatmap-months span {
+  position: absolute;
+  white-space: nowrap;
+}
+
+.heatmap-body {
+  display: flex;
+  gap: 6px;
+}
+
+.heatmap-weekdays {
+  position: relative;
+  width: 16px;
+  height: calc(var(--step) * 7 - var(--gap));
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.heatmap-weekdays span {
+  position: absolute;
+  line-height: var(--cell);
+}
+
+.heatmap-grid {
+  display: flex;
+  gap: var(--gap);
+}
+
+.heatmap-week {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.heatmap-cell {
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.heatmap-cell.level-1 {
+  background: #0e4429;
+  border-color: #0e4429;
+}
+
+.heatmap-cell.level-2 {
+  background: #006d32;
+  border-color: #006d32;
+}
+
+.heatmap-cell.level-3 {
+  background: #26a641;
+  border-color: #26a641;
+}
+
+.heatmap-cell.level-4 {
+  background: #39d353;
+  border-color: #39d353;
+}
+
+.heatmap-cell.is-future {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.heatmap-stats {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.heatmap-stats p {
+  margin: 0 0 0.3rem;
+}
+
+.heatmap-stats strong {
+  font-size: 1.1rem;
+  color: #ececf3;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+}
+
+.heatmap-legend .heatmap-cell {
+  display: inline-block;
+}
+
+/* 记忆点总表 */
+.anchor-row {
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.anchor-name {
+  font-size: 1rem;
+}
+
+.anchor-hook {
+  margin: 0.45rem 0 0.5rem;
+  font-size: 1rem;
+  color: #ffe58f;
+}
+
+.anchor-steps,
+.anchor-takeaways {
+  margin: 0.3rem 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.7;
+}
+
+.anchor-takeaways {
+  color: rgba(255, 255, 255, 0.62);
+}
+
 .piano-legend {
   display: flex;
   flex-wrap: wrap;

@@ -1,7 +1,9 @@
-export const PROGRESS_SCHEMA = 2;
+export const PROGRESS_SCHEMA = 3;
 const STORAGE_KEY = "music-101.progress";
 const LEVEL_MIN = 1;
 const LEVEL_MAX = 27;
+/** 活动流最多留多少条：够半年热力图（每天一条也够 800 天）。 */
+const ACTIVITY_MAX = 800;
 
 export const MISTAKE_KINDS = ["same-progression", "chorus-flat", "low-end-clash"] as const;
 export type MistakeKind = (typeof MISTAKE_KINDS)[number];
@@ -33,12 +35,30 @@ export interface Recipe {
   steps: boolean[] | null;
 }
 
+/**
+ * 一次学习活动：某个时刻进入了某一关。
+ *
+ * 跟 `Attempt` 分开存是故意的：
+ * - `Attempt` 记的是「一次尝试的结果」，难度自适应（连续轻松 / 连续卡住）依赖它的顺序，
+ *   混进「只是打开了一下」的记录会把那个序列搞脏。
+ * - 活动流只记「来过」，时间戳精确到秒，用来画每日学习的热力图。
+ */
+export interface ActivityEntry {
+  /** 这次访问的 id：同一次访问只记一条，反复切步骤不会重复计。 */
+  visitId: string;
+  levelId: number;
+  /** 本地时间戳（epoch 毫秒）。 */
+  at: number;
+}
+
 export interface ProgressFile {
   schema: typeof PROGRESS_SCHEMA;
   level1Passed: boolean;
   passedLevels: number[];
   attempts: Attempt[];
   recipes: Recipe[];
+  /** 学习活动流，按时间顺序。 */
+  activity: ActivityEntry[];
 }
 
 export type ProgressUpdate = (current: ProgressFile) => ProgressFile;
@@ -50,6 +70,7 @@ export function emptyProgress(): ProgressFile {
     passedLevels: [],
     attempts: [],
     recipes: [],
+    activity: [],
   };
 }
 
@@ -171,7 +192,16 @@ function normalize(progress: ProgressFile): ProgressFile {
     passedLevels,
     attempts: progress.attempts.slice(-48),
     recipes: progress.recipes.slice(-24),
+    activity: progress.activity.slice(-ACTIVITY_MAX),
   };
+}
+
+function parseActivity(value: unknown): ActivityEntry | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.visitId !== "string" || value.visitId.trim() === "" || value.visitId.length > 80) return null;
+  if (!isLevel(value.levelId)) return null;
+  if (typeof value.at !== "number" || !Number.isFinite(value.at) || value.at <= 0) return null;
+  return { visitId: value.visitId, levelId: value.levelId, at: value.at };
 }
 
 function fromSchema1(record: Record<string, unknown>): ProgressFile {
@@ -197,23 +227,56 @@ function fromSchema2(record: Record<string, unknown>): ProgressFile {
         return parsed ? [parsed] : [];
       })
     : [];
+  // schema 2 没有活动流：老记录补不了时间戳，不能编，热力图从启用那天开始记。
   return normalize({
     schema: PROGRESS_SCHEMA,
     level1Passed: record.level1Passed === true || passedLevels.includes(1),
     passedLevels,
     attempts,
     recipes,
+    activity: [],
   });
 }
 
-/** 读不出、版本更高、或形状不对时返回空进度，不把异常抛到界面。schema 1 会迁进来。 */
+function fromSchema3(record: Record<string, unknown>): ProgressFile {
+  const passedLevels = Array.isArray(record.passedLevels) ? record.passedLevels.filter(isLevel) : [];
+  const attempts = Array.isArray(record.attempts)
+    ? record.attempts.flatMap((item) => {
+        const parsed = parseAttempt(item);
+        return parsed ? [parsed] : [];
+      })
+    : [];
+  const recipes = Array.isArray(record.recipes)
+    ? record.recipes.flatMap((item) => {
+        const parsed = parseRecipe(item);
+        return parsed ? [parsed] : [];
+      })
+    : [];
+  const activity = Array.isArray(record.activity)
+    ? record.activity.flatMap((item) => {
+        const parsed = parseActivity(item);
+        return parsed ? [parsed] : [];
+      })
+    : [];
+  return normalize({
+    schema: PROGRESS_SCHEMA,
+    level1Passed: record.level1Passed === true || passedLevels.includes(1),
+    passedLevels,
+    attempts,
+    recipes,
+    activity,
+  });
+}
+
+/** 读不出、版本更高、或形状不对时返回空进度，不把异常抛到界面。schema 1、2 会迁进来。 */
 export function parseProgress(raw: string | null): ProgressFile {
   if (raw === null || raw.trim() === "") return emptyProgress();
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!isRecord(parsed)) return emptyProgress();
     if (parsed.schema === 1) return fromSchema1(parsed);
-    if (parsed.schema === PROGRESS_SCHEMA) return fromSchema2(parsed);
+    if (parsed.schema === 2) return fromSchema2(parsed);
+    if (parsed.schema === PROGRESS_SCHEMA) return fromSchema3(parsed);
     return emptyProgress();
   } catch {
     return emptyProgress();
@@ -246,6 +309,25 @@ export function observeAttempt(progress: ProgressFile, attempt: Attempt): Progre
     passedLevels: [...passedLevels],
     attempts,
   });
+}
+
+/**
+ * 记一次「进入关卡」。
+ *
+ * 同一次访问只留一条（用 visitId 去重），所以在关卡里反复切步骤不会把当天的
+ * 活跃度刷高。热力图画的就是这个流。
+ */
+export function recordVisit(
+  progress: ProgressFile,
+  visit: { visitId: string; levelId: number; at?: number },
+): ProgressFile {
+  if (typeof visit.visitId !== "string" || visit.visitId.trim() === "") return progress;
+  if (!isLevel(visit.levelId)) return progress;
+  const at = typeof visit.at === "number" && Number.isFinite(visit.at) ? visit.at : Date.now();
+  if (at <= 0) return progress;
+  const activity = progress.activity.filter((item) => item.visitId !== visit.visitId);
+  activity.push({ visitId: visit.visitId, levelId: visit.levelId, at });
+  return normalize({ ...progress, activity });
 }
 
 export function saveRecipe(progress: ProgressFile, recipe: Recipe): ProgressFile {

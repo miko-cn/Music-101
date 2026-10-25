@@ -9,12 +9,13 @@ import { DiagnosticsLab } from "./ui/DiagnosticsLab.tsx";
 import { KeyboardPanel } from "./ui/KeyboardPanel.tsx";
 import { LessonFlow } from "./ui/LessonFlow.tsx";
 import { LessonOne } from "./ui/LessonOne.tsx";
+import { MemoryAnchors } from "./ui/MemoryAnchors.tsx";
 import { ProgressBoard } from "./ui/ProgressBoard.tsx";
 import { TheoryBench } from "./ui/TheoryBench.tsx";
 
 const { Header, Content } = Layout;
 
-type View = "bench" | "lesson" | "diagnostics" | "progress";
+type View = "bench" | "lesson" | "diagnostics" | "progress" | "anchors";
 
 const FLOW_LESSONS = [...STAGE_LESSONS, ...ARRANGING_LESSONS];
 
@@ -102,6 +103,9 @@ export function App() {
               <Button type={view === "diagnostics" ? "primary" : "default"} onClick={() => setView("diagnostics")}>
                 诊断
               </Button>
+              <Button type={view === "anchors" ? "primary" : "default"} onClick={() => setView("anchors")}>
+                记忆点
+              </Button>
               <Button type={view === "progress" ? "primary" : "default"} onClick={() => setView("progress")}>
                 进度
               </Button>
@@ -113,6 +117,8 @@ export function App() {
             <TheoryBench />
           ) : view === "diagnostics" ? (
             <DiagnosticsLab />
+          ) : view === "anchors" ? (
+            <MemoryAnchors onOpenLevel={openLevel} />
           ) : view === "progress" ? (
             <ProgressBoard
               progress={progress}

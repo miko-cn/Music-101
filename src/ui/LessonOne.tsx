@@ -13,7 +13,7 @@ import {
 } from "../core/lesson/level1.ts";
 import { computerKeyLabel, lessonKeyToMidi, lessonOctaveKey } from "../core/lesson/keys.ts";
 import { applyRecipeToLevel1, buildAttempt, isMastered, recipeFromLevel1 } from "../core/lesson/personalize.ts";
-import { observeAttempt, saveRecipe, type ProgressFile, type ProgressUpdate, type Recipe } from "../core/lesson/progress.ts";
+import { observeAttempt, recordVisit, saveRecipe, type ProgressFile, type ProgressUpdate, type Recipe } from "../core/lesson/progress.ts";
 import { midiToNoteName, midiToPitchClass, pitchClassToName, type PitchClass } from "../core/theory/pitch.ts";
 import { getScalePitches } from "../core/theory/scale.ts";
 import { quarterSteps, resizeSteps, type BarCount } from "../core/sequencer/grid.ts";
@@ -87,6 +87,8 @@ export function LessonOne({
   useEffect(() => {
     if (seenLesson.current !== 1) {
       seenLesson.current = 1;
+      // 进关卡就记一次活动——热力图画的是「今天来过」，不是「今天做完」。
+      onProgress((current) => recordVisit(current, { visitId: visitId.current, levelId: 1 }));
       return;
     }
     if (step < 3 && !passed) return;

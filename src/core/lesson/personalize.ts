@@ -19,7 +19,7 @@ export const ABILITIES: readonly { id: AbilityId; label: string }[] = [
   { id: "structure", label: "结构" },
 ];
 
-const LEVEL_ABILITY: Record<number, AbilityId> = {
+export const LEVEL_ABILITY: Record<number, AbilityId> = {
   1: "harmony",
   2: "harmony",
   3: "harmony",

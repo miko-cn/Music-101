@@ -1,4 +1,5 @@
-import { Alert, Button, Card, Flex } from "antd";
+import { useRef, useState } from "react";
+import { Alert, Button, Card, Flex, Popconfirm } from "antd";
 import {
   abilityScores,
   difficultyAdvice,
@@ -6,7 +7,17 @@ import {
   recommendationLists,
   MISTAKE_DRILLS,
 } from "../core/lesson/personalize.ts";
-import { MISTAKE_KINDS, deleteRecipe, type ProgressFile, type ProgressUpdate, type Recipe } from "../core/lesson/progress.ts";
+import {
+  MISTAKE_KINDS,
+  deleteRecipe,
+  emptyProgress,
+  parseProgress,
+  serializeProgress,
+  type ProgressFile,
+  type ProgressUpdate,
+  type Recipe,
+} from "../core/lesson/progress.ts";
+import { ActivityHeatmap } from "./ActivityHeatmap.tsx";
 
 export function ProgressBoard({
   progress,
@@ -21,9 +32,52 @@ export function ProgressBoard({
   const counts = mistakeCounts(progress);
   const lists = recommendationLists(progress);
   const advice = difficultyAdvice(progress.attempts);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [backupNote, setBackupNote] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+
+  /** 导出一份 JSON 快照：换浏览器、清缓存前先存一份。 */
+  const exportProgress = () => {
+    const blob = new Blob([serializeProgress(progress)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `music-101-progress-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setBackupNote({ kind: "success", text: "已导出。建议存到网盘或邮箱，换环境时导入。" });
+  };
+
+  /** 导入备份：整个覆盖当前进度。 */
+  const importProgress = async (file: File) => {
+    let text: string;
+    try {
+      text = await file.text();
+    } catch {
+      setBackupNote({ kind: "error", text: "这个文件读不出来，换一个从本页导出的 JSON 试试。" });
+      return;
+    }
+    const parsed = parseProgress(text);
+    const empty =
+      parsed.passedLevels.length === 0 &&
+      parsed.attempts.length === 0 &&
+      parsed.recipes.length === 0 &&
+      parsed.activity.length === 0;
+    if (empty) {
+      // parseProgress 对坏数据返回空进度，不抛错——这里得自己拦住，
+      // 否则导入一个 txt 会静默把已有进度清空。
+      setBackupNote({ kind: "error", text: "这个文件里没有可导入的进度，可能不是本页导出的 JSON。" });
+      return;
+    }
+    onProgress(() => parsed);
+    setBackupNote({
+      kind: "success",
+      text: `已导入：${parsed.passedLevels.length} 关已掌握，${parsed.activity.length} 条学习记录，${parsed.recipes.length} 个配方。`,
+    });
+  };
 
   return (
     <Flex vertical gap={16}>
+      <ActivityHeatmap activity={progress.activity} />
       <Card title="能力雷达">
         <RadarChart scores={scores.map((item) => ({ label: item.label, ratio: item.ratio }))} />
         <Flex gap={16} wrap>
@@ -72,6 +126,52 @@ export function ProgressBoard({
             ))}
           </Flex>
         )}
+      </Card>
+      <Card title="备份">
+        <p className="lead">
+          进度存在<strong>这台电脑的这个浏览器</strong>里（localStorage）。关掉浏览器、重启电脑都还在，
+          但<strong>换浏览器、换浏览器配置、清理浏览数据、用无痕窗口，都会丢</strong>——没有第二份。
+        </p>
+        <p className="hint">
+          换浏览器或者清缓存之前，先点「导出进度」存一份 JSON；到了新环境再「导入进度」，
+          关卡记录、配方、学习热力图会一起过去。
+        </p>
+        <Flex gap={12} wrap align="center">
+          <Button onClick={exportProgress}>导出进度</Button>
+          <Button onClick={() => fileRef.current?.click()}>导入进度</Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: "none" }}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void importProgress(file);
+            }}
+          />
+          <Popconfirm
+            title="清空全部进度？"
+            description="关卡记录、配方、学习热力图都会没。这一步不能撤销——先导出备份。"
+            okText="清空"
+            cancelText="算了"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => {
+              onProgress(() => emptyProgress());
+              setBackupNote({ kind: "success", text: "已清空。" });
+            }}
+          >
+            <Button danger>清空全部进度</Button>
+          </Popconfirm>
+        </Flex>
+        {backupNote ? (
+          <Alert
+            style={{ marginTop: 12 }}
+            type={backupNote.kind}
+            showIcon
+            title={backupNote.text}
+          />
+        ) : null}
       </Card>
     </Flex>
   );

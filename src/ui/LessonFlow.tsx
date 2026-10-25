@@ -8,7 +8,7 @@ import {
   classifyHand,
   recipeFromStage,
 } from "../core/lesson/personalize.ts";
-import { observeAttempt, saveRecipe, type ProgressFile, type ProgressUpdate, type Recipe } from "../core/lesson/progress.ts";
+import { observeAttempt, recordVisit, saveRecipe, type ProgressFile, type ProgressUpdate, type Recipe } from "../core/lesson/progress.ts";
 import {
   STAGE_FIX_HAND,
   applyStageFix,
@@ -142,6 +142,10 @@ export function LessonFlow({
   useEffect(() => {
     if (seenLesson.current !== lesson.id) {
       seenLesson.current = lesson.id;
+      // 进关卡就记一次活动——热力图画的是「今天来过」，不是「今天做完」。
+      onProgress((current) =>
+        recordVisit(current, { visitId: visitId.current, levelId: lesson.id }),
+      );
       return;
     }
     if (step < 3 && !passed) return;

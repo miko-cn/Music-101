@@ -5,6 +5,7 @@ import {
   loadProgress,
   observeAttempt,
   parseProgress,
+  recordVisit,
   saveProgress,
   saveRecipe,
   serializeProgress,
@@ -43,13 +44,23 @@ describe("进度", () => {
 
   it("schema 1 只把第 1 关迁进来", () => {
     expect(parseProgress(JSON.stringify({ schema: 1, level1Passed: true }))).toEqual({
-      schema: 2,
+      schema: 3,
       level1Passed: true,
       passedLevels: [1],
       attempts: [],
       recipes: [],
+      activity: [],
     });
     expect(parseProgress(JSON.stringify({ schema: 1, level1Passed: false })).level1Passed).toBe(false);
+  });
+
+  it("schema 2 迁到 3，活动流补空——老记录没有时间戳，不能编", () => {
+    const parsed = parseProgress(
+      JSON.stringify({ schema: 2, level1Passed: true, passedLevels: [1] }),
+    );
+    expect(parsed.schema).toBe(3);
+    expect(parsed.passedLevels).toEqual([1]);
+    expect(parsed.activity).toEqual([]);
   });
 
   it("坏掉的尝试和配方会被丢掉，其余留下", () => {
@@ -98,6 +109,59 @@ describe("进度", () => {
     expect(progress.recipes).toEqual([]);
     saveProgress(storage, progress);
     expect(loadProgress(storage)).toEqual(progress);
-    expect(serializeProgress(progress)).toContain('"schema":2');
+    expect(serializeProgress(progress)).toContain('"schema":3');
+  });
+
+  it("进关卡记一条活动，同一次进入只留一条", () => {
+    let progress = emptyProgress();
+    progress = recordVisit(progress, { visitId: "v1", levelId: 11, at: 1_700_000_000_000 });
+    expect(progress.activity).toHaveLength(1);
+    // 同一次访问再记一次，不该变成两条
+    progress = recordVisit(progress, { visitId: "v1", levelId: 11, at: 1_700_000_060_000 });
+    expect(progress.activity).toHaveLength(1);
+    // 换一次访问就是新的一条
+    progress = recordVisit(progress, { visitId: "v2", levelId: 12, at: 1_700_000_120_000 });
+    expect(progress.activity).toHaveLength(2);
+    expect(progress.activity[1]?.levelId).toBe(12);
+  });
+
+  it("活动流里的坏数据会被丢掉", () => {    const parsed = parseProgress(
+      JSON.stringify({
+        schema: 3,
+        activity: [
+          { visitId: "ok", levelId: 11, at: 1_700_000_000_000 },
+          { visitId: "no-time", levelId: 11 },
+          { visitId: "", levelId: 11, at: 1_700_000_000_000 },
+          { visitId: "bad-level", levelId: 99, at: 1_700_000_000_000 },
+        ],
+      }),
+    );
+    expect(parsed.activity).toEqual([
+      { visitId: "ok", levelId: 11, at: 1_700_000_000_000 },
+    ]);
+  });
+
+  it("导出的 JSON 能原样读回来（含学习活动）", () => {
+    let progress = emptyProgress();
+    progress = recordVisit(progress, { visitId: "v1", levelId: 11, at: 1_700_000_000_000 });
+    progress = recordVisit(progress, { visitId: "v2", levelId: 15, at: 1_700_000_060_000 });
+    progress = observeAttempt(progress, {
+      visitId: "v2",
+      levelId: 15,
+      passed: true,
+      easy: true,
+      stuck: false,
+      mistakes: [],
+    });
+    const back = parseProgress(serializeProgress(progress));
+    expect(back.passedLevels).toEqual([15]);
+    expect(back.activity).toEqual(progress.activity);
+    expect(back.attempts).toHaveLength(1);
+  });
+
+  it("导入一个空文件不会把已有进度清空（parseProgress 对坏数据返回空，得自己拦）", () => {
+    const progress = parseProgress("not json at all");
+    expect(progress.passedLevels).toEqual([]);
+    expect(progress.activity).toEqual([]);
   });
 });
