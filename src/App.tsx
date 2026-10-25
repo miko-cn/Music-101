@@ -1,11 +1,12 @@
-import { useCallback, useRef, useState } from "react";
-import { Button, ConfigProvider, Flex, Layout, Select, theme } from "antd";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Button, ConfigProvider, Flex, Layout, Select, Tooltip, theme } from "antd";
 import zhCN from "antd/locale/zh_CN";
 import { ARRANGING_LESSONS } from "./content/arranging.ts";
 import { STAGE_LESSONS } from "./content/stage1.ts";
 import { levelLocked } from "./core/lesson/personalize.ts";
 import { loadProgress, saveProgress, type ProgressUpdate, type Recipe } from "./core/lesson/progress.ts";
 import { DiagnosticsLab } from "./ui/DiagnosticsLab.tsx";
+import { KeyboardPanel } from "./ui/KeyboardPanel.tsx";
 import { LessonFlow } from "./ui/LessonFlow.tsx";
 import { LessonOne } from "./ui/LessonOne.tsx";
 import { ProgressBoard } from "./ui/ProgressBoard.tsx";
@@ -27,9 +28,24 @@ export function App() {
   const [level, setLevel] = useState(1);
   const [progress, setProgress] = useState(() => loadProgress(typeof localStorage === "undefined" ? null : localStorage));
   const [pendingRecipe, setPendingRecipe] = useState<Recipe | null>(null);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const progressRef = useRef(progress);
   progressRef.current = progress;
   const stage = FLOW_LESSONS.find((lesson) => lesson.id === level);
+
+  // 全局快捷键：K 随时呼出键盘查位置（关卡里弹琴用的是 A S D F G H J / W E T Y U，不冲突）
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "k") return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && target.closest("input, textarea, select, .ant-select") !== null) return;
+      event.preventDefault();
+      setKeyboardOpen((open) => !open);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
   const onProgress = useCallback((update: ProgressUpdate) => {
     const next = update(progressRef.current);
     progressRef.current = next;
@@ -66,6 +82,9 @@ export function App() {
               <Button type={view === "bench" ? "primary" : "default"} onClick={() => setView("bench")}>
                 乐理工作台
               </Button>
+              <Tooltip title="全局键盘 · 查位置（快捷键 K）">
+                <Button onClick={() => setKeyboardOpen(true)}>键盘</Button>
+              </Tooltip>
               <Select
                 aria-label="关卡"
                 value={view === "lesson" ? level : undefined}
@@ -122,6 +141,7 @@ export function App() {
           )}
         </Content>
       </Layout>
+      <KeyboardPanel open={keyboardOpen} onClose={() => setKeyboardOpen(false)} />
     </ConfigProvider>
   );
 }

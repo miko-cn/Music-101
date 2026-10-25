@@ -260,6 +260,133 @@ body {
   gap: 0.45rem;
 }
 
+/* 全局参考键盘：多八度、带音名、带 2-3 黑键分组标记 */
+.keyboard-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.keyboard-groups,
+.keyboard-anchors {
+  position: relative;
+  height: 1.35rem;
+  padding: 0 2px;
+}
+
+.keyboard-group {
+  position: absolute;
+  top: 0;
+  text-align: center;
+  font-size: 0.72rem;
+  color: rgba(255, 229, 143, 0.85);
+  border-bottom: 2px solid rgba(255, 229, 143, 0.45);
+  padding-bottom: 1px;
+  white-space: nowrap;
+}
+
+.keyboard-anchor {
+  position: absolute;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255, 229, 143, 0.92);
+}
+
+.keyboard {
+  position: relative;
+  display: flex;
+  height: 190px;
+  padding: 2px 2px 0;
+}
+
+.keyboard-key {
+  appearance: none;
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1px;
+  padding: 0 0 6px;
+}
+
+.keyboard-white {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  border-radius: 0 0 8px 8px;
+  background: #f7f7f9;
+  color: #1c1c22;
+  border-right-width: 2px;
+}
+
+.keyboard-black {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  height: 62%;
+  border-radius: 0 0 5px 5px;
+  background: #1c1c22;
+  color: #f5f5f7;
+}
+
+.keyboard-key.is-highlight {
+  box-shadow: inset 0 0 0 3px #ffd666;
+}
+
+.keyboard-white.is-highlight {
+  background: #fff3c4;
+}
+
+.keyboard-black.is-highlight {
+  background: #6b5a20;
+  color: #fff;
+}
+
+/* 精确高亮：测验作答后标出「刚才那一个键」，比音类高亮更强一层 */
+.keyboard-key.is-highlight-exact {
+  box-shadow: inset 0 0 0 3px #ff7875;
+  z-index: 3;
+}
+
+.keyboard-white.is-highlight-exact {
+  background: #ffccc7;
+  color: #4a0303;
+}
+
+.keyboard-black.is-highlight-exact {
+  background: #a8071a;
+  color: #fff;
+}
+
+.keyboard-key.is-pressed {
+  background: #91caff;
+  color: #10233f;
+}
+
+.keyboard-key:focus-visible {
+  outline: 2px solid #ffe58f;
+  outline-offset: 2px;
+  z-index: 3;
+}
+
+.keyboard-key-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.keyboard-black .keyboard-key-name {
+  font-size: 0.66rem;
+}
+
+.keyboard-key-midi {
+  font-size: 0.6rem;
+  opacity: 0.6;
+}
+
 .swatch {
   width: 1rem;
   height: 1rem;
