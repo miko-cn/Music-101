@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "make:midi": "node scripts/make-test-midi.ts"
+    "make:midi": "node scripts/make-test-midi.ts",
+    "make:tone": "node --experimental-strip-types scripts/make-tone-preview.ts"
   },
   "dependencies": {
     "antd": "^6.6.6",

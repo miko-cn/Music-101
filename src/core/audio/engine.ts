@@ -9,15 +9,27 @@ import {
   supersawVoice,
   type GainPoint,
 } from "./params.ts";
+import {
+  PLAIN_TONE,
+  PIANO_HOLD_SECONDS,
+  RHODES,
+  partialDecays,
+  partialFrequencies,
+} from "./piano.ts";
+import { EAR_MELODIC_SPACING_SECONDS, earChoiceHoldSeconds, earChoiceSchedule } from "./ear.ts";
 import { stepSeconds } from "./schedule.ts";
 import { midiToFrequency } from "../theory/pitch.ts";
 
-export type VoiceId = "kick" | "sub" | "bass" | "supersaw" | "pluck" | "chop" | "fx";
+export type VoiceId = "kick" | "sub" | "bass" | "supersaw" | "pluck" | "chop" | "fx" | "piano" | "pure";
 
 export interface MusicEngine {
   resume(): Promise<void>;
+  /** 点琴键 / 试听用的参考音：电钢。 */
   playPitch(midi: number, when?: number, duration?: number): void;
+  /** 依次播放若干个音（听辨题的「播放」按钮：把几个备选一个一个弹出来对比）。 */
   playSequence(midis: readonly number[]): void;
+  /** 播放听辨题的一个选项：和弦同时响，旋律依次响。用纯音。 */
+  playEarOption(midis: readonly number[]): void;
   playVoice(voice: VoiceId, when: number, duration: number, midi?: number): void;
   playSteps(steps: readonly boolean[], midi: number, bpm: number): void;
   /** 两小节：kick 在每拍上，808 经过侧链被抽下去。 */
@@ -144,6 +156,66 @@ export function createEngine(): MusicEngine | null {
       track(source, when, duration || 0.8);
       return;
     }
+    if (voice === "piano") {
+      // 电钢：加法合成。每个泛音一条正弦，起音后各自指数衰减，高次泛音先死。
+      const profile = RHODES;
+      const frequencies = partialFrequencies(midi, profile);
+      const decays = partialDecays(midi, profile);
+      const longestAttack = Math.max(...profile.partials.map((partial) => partial.attack));
+      // 按住的时间不能比起音还短，否则包络事件会乱序。
+      const hold = Math.max(duration, longestAttack + 0.01);
+      profile.partials.forEach((partial, index) => {
+        const osc = context.createOscillator();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(frequencies[index] ?? frequency, when);
+        const gain = context.createGain();
+        const peak = profile.peak * partial.gain;
+        const attack = partial.attack;
+        gain.gain.setValueAtTime(0, when);
+        gain.gain.linearRampToValueAtTime(peak, when + attack);
+        gain.gain.setTargetAtTime(0, when + attack, decays[index] ?? profile.baseDecaySeconds);
+        // 松键：制音器落下，剩下的余音被快速掐掉，不跟下一个音叠在一起。
+        gain.gain.setTargetAtTime(0, when + hold, profile.releaseSeconds);
+        osc.connect(gain).connect(master);
+        track(osc, when, hold + profile.releaseSeconds * 5);
+      });
+      // 槌击 / 音叉的瞬态噪声。
+      const click = context.createBufferSource();
+      click.buffer = noise;
+      const band = context.createBiquadFilter();
+      band.type = "bandpass";
+      band.frequency.value = profile.clickHz;
+      band.Q.value = 0.8;
+      const clickGain = context.createGain();
+      clickGain.gain.setValueAtTime(profile.clickGain, when);
+      clickGain.gain.setTargetAtTime(0, when + 0.002, profile.clickSeconds / 3);
+      click.connect(band).connect(clickGain).connect(master);
+      track(click, when, profile.clickSeconds);
+      return;
+    }
+    if (voice === "pure") {
+      // 纯音：听辨用。剥掉音色，只留音高。
+      const spec = PLAIN_TONE;
+      const hold = Math.max(duration, spec.attackSeconds + 0.01);
+      const voices: { frequency: number; gain: number }[] = [
+        { frequency, gain: spec.peak },
+        // 八度泛音不改变音高感知，只是让音不那么刺耳。
+        { frequency: frequency * 2, gain: spec.peak * spec.octaveGain },
+      ];
+      voices.forEach((voice) => {
+        const osc = context.createOscillator();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(voice.frequency, when);
+        const gain = context.createGain();
+        gain.gain.setValueAtTime(0, when);
+        gain.gain.linearRampToValueAtTime(voice.gain, when + spec.attackSeconds);
+        gain.gain.setValueAtTime(voice.gain, when + hold);
+        gain.gain.setTargetAtTime(0, when + hold, spec.releaseSeconds);
+        osc.connect(gain).connect(master);
+        track(osc, when, hold + spec.releaseSeconds * 5);
+      });
+      return;
+    }
     const spec = pluckVoice();
     const osc = context.createOscillator();
     osc.type = "sawtooth";
@@ -158,14 +230,26 @@ export function createEngine(): MusicEngine | null {
     async resume() {
       if (context.state === "suspended") await context.resume();
     },
-    playPitch(midi, when = context.currentTime + 0.02, duration = pluckVoice().duration) {
-      playVoice("pluck", when, duration, midi);
+    playPitch(midi, when = context.currentTime + 0.02, duration = PIANO_HOLD_SECONDS) {
+      playVoice("piano", when, duration, midi);
     },
     playSequence(midis) {
       const start = context.currentTime + 0.05;
       midis.forEach((midi, index) => {
-        playVoice("pluck", start + index * 0.42, 0.32, midi);
+        playVoice(
+          "pure",
+          start + index * EAR_MELODIC_SPACING_SECONDS,
+          EAR_MELODIC_SPACING_SECONDS - 0.12,
+          midi,
+        );
       });
+    },
+    playEarOption(midis) {
+      const start = context.currentTime + 0.05;
+      const hold = earChoiceHoldSeconds(midis);
+      for (const note of earChoiceSchedule(midis)) {
+        playVoice("pure", start + note.offset, hold, note.midi);
+      }
     },
     playVoice,
     playSteps(steps, midi, bpm) {
@@ -173,7 +257,7 @@ export function createEngine(): MusicEngine | null {
       const origin = context.currentTime + 0.05;
       steps.forEach((on, index) => {
         if (!on) return;
-        playVoice("pluck", origin + index * seconds, Math.min(seconds * 0.9, 0.2), midi);
+        playVoice("piano", origin + index * seconds, Math.min(seconds * 0.9, 0.2), midi);
       });
     },
     playPump(bpm = 120) {

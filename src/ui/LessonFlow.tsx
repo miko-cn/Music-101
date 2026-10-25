@@ -240,7 +240,7 @@ export function LessonFlow({
               <Button
                 onClick={() => {
                   const chosen = question.choices[state.earAnswers[index] ?? question.correct];
-                  void engine().then((active) => active?.playSequence(chosen?.midis ?? []));
+                  void engine().then((active) => active?.playEarOption(chosen?.midis ?? []));
                 }}
               >
                 播放当前选项
