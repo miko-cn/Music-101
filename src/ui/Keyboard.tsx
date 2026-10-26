@@ -172,6 +172,8 @@ function KeyButton({
     pointerAt.current = Date.now();
     // 抓住指针：手指滑出琴键也不会漏掉「松开」，延音才跟得住。
     event.currentTarget.setPointerCapture?.(event.pointerId);
+    // 鼠标点过的键不留聚焦框——黄框是给键盘 Tab 用的，不是给鼠标用的。
+    event.currentTarget.blur();
     onPress?.(midi);
   };
 

@@ -235,9 +235,13 @@ export function LessonOne({
             inScale={(pitch) => scalePitches.has(pitch)}
             inChord={(pitch) => selectedClass === pitch}
             onPick={(pitch) => {
-              const midi = (octave + 1) * 12 + pitch;
-              choosePitch(midi);
-              void engine().then((active) => active?.playPitch(midi));
+              choosePitch((octave + 1) * 12 + pitch);
+            }}
+            onPress={(pitch) => {
+              computerKeyboard.pressNote((octave + 1) * 12 + pitch);
+            }}
+            onRelease={(pitch) => {
+              computerKeyboard.releaseNote((octave + 1) * 12 + pitch);
             }}
           />
           <div className="stepper-block">

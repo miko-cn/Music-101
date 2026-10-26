@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Drawer, Flex, Select, Space, Switch, Tag } from "antd";
 import { sharedEngine } from "../core/audio/engine.ts";
 import { computerKeyboard } from "../core/lesson/computer-keyboard.ts";
@@ -53,12 +53,11 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
   const [showGroups, setShowGroups] = useState(true);
   const [target, setTarget] = useState<number | null>(null);
   const [quiz, setQuiz] = useState<{ midi: number; answered: boolean; correct: boolean } | null>(null);
-  const [pressed, setPressed] = useState<ReadonlySet<number>>(new Set());
+  const [held, setHeld] = useState<ReadonlySet<number>>(new Set());
+  const [flashed, setFlashed] = useState<ReadonlySet<number>>(new Set());
   const [octave, setOctave] = useState(() => computerKeyboard.getOctave());
   /** 最近按下的那个键：既是给学习者的反馈，也说明刚才那一下到底是什么音。 */
   const [lastMidi, setLastMidi] = useState<number | null>(null);
-  /** 正在响的音：MIDI 音高 → 引擎里的句柄。 */
-  const voicesRef = useRef(new Map<number, number>());
 
   const getEngine = () => sharedEngine();
 
@@ -91,18 +90,10 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
     return range.filter((midi) => midi % 12 === target);
   }, [range, target]);
 
-  // 面板关掉时把还在响的音制住，别让余音留在后台。
-  useEffect(() => {
-    return () => {
-      for (const id of voicesRef.current.values()) sharedEngine()?.releasePitch(id);
-      voicesRef.current.clear();
-    };
-  }, []);
-
   /**
    * 电脑键也走这个面板：按下哪个键，这里就亮哪个键。
    *
-   * 声音由全站唯一的电脑键服务负责，这里只负责亮。
+   * 声音由全站唯一的键盘服务负责，这里只负责亮。
    * 面板关着的时候不订阅——没人在看键盘时，按 A 不该到处乱响。
    */
   useEffect(() => {
@@ -110,11 +101,11 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
     setOctave(computerKeyboard.getOctave());
     return computerKeyboard.subscribe({
       onPress: (_pitch, midi) => {
-        setPressed((current) => new Set(current).add(midi));
+        setHeld((current) => new Set(current).add(midi));
         setLastMidi(midi);
       },
       onRelease: (_pitch, midi) => {
-        setPressed((current) => {
+        setHeld((current) => {
           if (!current.has(midi)) return current;
           const next = new Set(current);
           next.delete(midi);
@@ -125,22 +116,17 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
     });
   }, [open]);
 
+  /** 按住的键 + 刚响过一下的键 = 要显示成蓝色的键。 */
+  const pressed = useMemo(() => new Set([...held, ...flashed]), [held, flashed]);
+
   const flash = (midi: number) => {
-    setPressed(new Set([midi]));
-    window.setTimeout(() => setPressed(new Set()), 320);
+    setFlashed(new Set([midi]));
+    window.setTimeout(() => setFlashed(new Set()), 320);
   };
 
   /** 按下：起音。必须同步完成，否则「快速点一下」会在松手之后才起音。 */
   const press = (midi: number) => {
-    setPressed((current) => new Set(current).add(midi));
-    setLastMidi(midi);
-    const active = getEngine();
-    if (active) {
-      void active.resume();
-      const previous = voicesRef.current.get(midi);
-      if (previous !== undefined) active.releasePitch(previous);
-      voicesRef.current.set(midi, active.pressPitch(midi));
-    }
+    computerKeyboard.pressNote(midi);
     // 测验进行中，按下哪个键就是作答。
     if (quiz && !quiz.answered) {
       setQuiz({ ...quiz, answered: true, correct: midi === quiz.midi });
@@ -149,16 +135,7 @@ export function KeyboardPanel({ open, onClose }: { open: boolean; onClose: () =>
 
   /** 松开：制音器落下，尾音立刻收掉。 */
   const release = (midi: number) => {
-    setPressed((current) => {
-      if (!current.has(midi)) return current;
-      const next = new Set(current);
-      next.delete(midi);
-      return next;
-    });
-    const id = voicesRef.current.get(midi);
-    if (id === undefined) return;
-    voicesRef.current.delete(midi);
-    sharedEngine()?.releasePitch(id);
+    computerKeyboard.releaseNote(midi);
   };
 
   /** 一次性的试听音（找这个音、听音测验）。 */

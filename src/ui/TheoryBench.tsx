@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, Col, Flex, Row, Select, Tag } from "antd";
 import {
   CHORD_LABELS,
@@ -14,6 +14,7 @@ import {
   type PitchClass,
   type ScaleId,
 } from "../core/index.ts";
+import { computerKeyboard } from "../core/lesson/computer-keyboard.ts";
 import { toNotationName } from "../core/theory/notation.ts";
 import { Piano } from "./Piano.tsx";
 import { NoteName } from "./NoteName.tsx";
@@ -27,6 +28,30 @@ export function TheoryBench() {
   const [scale, setScale] = useState<ScaleId>("naturalMinor");
   const [quality, setQuality] = useState<ChordQuality>("min");
   const [preferFlat, setPreferFlat] = useState(false);
+  const [held, setHeld] = useState<ReadonlySet<PitchClass>>(() => new Set());
+
+  /**
+   * 点琴键既换调，也响一声——按住的键会亮，松手就收。
+   *
+   * 走全站唯一的键盘服务，所以这里点琴键，
+   * 全局键盘面板里对应的键也会一起亮。
+   */
+  useEffect(() => {
+    return computerKeyboard.subscribe({
+      onPress: (pitch) => {
+        setHeld((current) => (current.has(pitch) ? current : new Set(current).add(pitch)));
+      },
+      onRelease: (pitch) => {
+        setHeld((current) => {
+          if (!current.has(pitch)) return current;
+          const next = new Set(current);
+          next.delete(pitch);
+          return next;
+        });
+      },
+      onOctave: () => undefined,
+    });
+  }, []);
 
   const scalePitches = getScalePitches(root, scale);
   const chord = { root, quality };
@@ -159,9 +184,16 @@ export function TheoryBench() {
         <Piano
           spell={spell}
           isRoot={(pitch) => pitch === root}
+          isHeld={(pitch) => held.has(pitch)}
           inScale={(pitch) => scaleSet.has(pitch)}
           inChord={(pitch) => chordSet.has(pitch)}
           onPick={setRoot}
+          onPress={(pitch) => {
+            computerKeyboard.pressNote((computerKeyboard.getOctave() + 1) * 12 + pitch);
+          }}
+          onRelease={(pitch) => {
+            computerKeyboard.releaseNote((computerKeyboard.getOctave() + 1) * 12 + pitch);
+          }}
           label="一个八度的键盘，点击换调"
         />
         <ul className="piano-legend">

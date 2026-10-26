@@ -192,8 +192,11 @@ export function LessonFlow({
             isRoot={() => false}
             inScale={(pitch) => scalePitches.has(pitch)}
             inChord={() => false}
-            onPick={(pitch) => {
-              void engine().then((active) => active?.playPitch((octave + 1) * 12 + pitch));
+            onPress={(pitch) => {
+              computerKeyboard.pressNote((octave + 1) * 12 + pitch);
+            }}
+            onRelease={(pitch) => {
+              computerKeyboard.releaseNote((octave + 1) * 12 + pitch);
             }}
           />
           <MemoryAnchorCard anchor={lesson.anchor} />

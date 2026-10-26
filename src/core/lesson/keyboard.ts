@@ -2,7 +2,7 @@ import { midiToPitchClass, type PitchClass } from "../theory/pitch.ts";
 import { computerKeyAction } from "./keys.ts";
 
 /**
- * 电脑键 → 声音的接线。
+ * 电脑键与琴键 → 声音的接线。
  *
  * 「按住多久响多久」这条规则必须只有一处实现：
  * 按下用 pressPitch 起音，松手用 releasePitch 制音，
@@ -29,16 +29,14 @@ export interface KeyboardEventLike {
   preventDefault?: () => void;
 }
 
-/** 关卡界面要提供的东西。 */
+/** 接线要用的宿主。 */
 export interface ComputerKeyboardHost {
   /** 当前八度。 */
   getOctave(): number;
-  /** 拿引擎。返回 null 表示这个浏览器里没有声音，界面照样能用。 */
-  getEngine(): KeyboardEngine | null;
-  /** 按下：点亮琴键、选中这个音高。 */
-  onPress(pitch: PitchClass, midi: number): void;
-  /** 松开：熄灭琴键。 */
-  onRelease(pitch: PitchClass, midi: number): void;
+  /** 起音（按下）。 */
+  pressNote(midi: number): void;
+  /** 制音（松开）。 */
+  releaseNote(midi: number): void;
   /** 换八度。 */
   onOctave(octave: number): void;
 }
@@ -60,13 +58,11 @@ export interface KeyboardController {
  *
  * 用「键帽字符」做键而不是音高：按着音的时候换八度（Z / X），
  * 松手那一刻算出来的音高已经变了，按音高找会找不到当初按下的那个音。
- * pitch 和 midi 一起存着，松手时亮灭的也是当初那把琴键。
+ * midi 一起存着，松手时收掉的也是当初那个音。
  */
 interface ActiveKey {
   pitch: PitchClass;
   midi: number;
-  /** 引擎里的句柄。没有引擎时是 null（界面照样能亮灭）。 */
-  voiceId: number | null;
 }
 
 /** 焦点在输入框里时不抢键盘。 */
@@ -84,17 +80,13 @@ export function isTypingTarget(target: unknown): boolean {
  * 而这里要在事件发生的那一刻拿到「当前」的界面状态（比如当前八度）。
  */
 export function createKeyboardController(host: () => ComputerKeyboardHost): KeyboardController {
-  /** 按着的键 → 当初那把琴键。亮灯跟声音分开记，没有引擎时琴键也照样能熄。 */
+  /** 按着的键 → 当初那个音。 */
   const active = new Map<string, ActiveKey>();
 
-  /** 把所有还响着的音收掉。notify 为 false 时只收声音，不动界面（卸载时用）。 */
-  const releaseAll = (notify: boolean) => {
+  /** 把所有还响着的音收掉。 */
+  const releaseAll = () => {
     if (active.size === 0) return;
-    const engine = host().getEngine();
-    for (const entry of active.values()) {
-      if (entry.voiceId !== null) engine?.releasePitch(entry.voiceId);
-      if (notify) host().onRelease(entry.pitch, entry.midi);
-    }
+    for (const entry of active.values()) host().releaseNote(entry.midi);
     active.clear();
   };
 
@@ -114,20 +106,8 @@ export function createKeyboardController(host: () => ComputerKeyboardHost): Keyb
         return;
       }
       if (action.kind !== "press") return;
-
-      const pitch = midiToPitchClass(action.midi);
-      host().onPress(pitch, action.midi);
-
-      const engine = host().getEngine();
-      let voiceId: number | null = null;
-      if (engine) {
-        void engine.resume();
-        // 同一个键重复按下（keyup 漏了）：先把上一个音收掉，别叠成两个。
-        const previous = active.get(action.key);
-        if (previous && previous.voiceId !== null) engine.releasePitch(previous.voiceId);
-        voiceId = engine.pressPitch(action.midi);
-      }
-      active.set(action.key, { pitch, midi: action.midi, voiceId });
+      active.set(action.key, { pitch: midiToPitchClass(action.midi), midi: action.midi });
+      host().pressNote(action.midi);
     },
 
     keyUp(event) {
@@ -136,16 +116,15 @@ export function createKeyboardController(host: () => ComputerKeyboardHost): Keyb
       const entry = active.get(action.key);
       if (!entry) return;
       active.delete(action.key);
-      if (entry.voiceId !== null) host().getEngine()?.releasePitch(entry.voiceId);
-      host().onRelease(entry.pitch, entry.midi);
+      host().releaseNote(entry.midi);
     },
 
     blur() {
-      releaseAll(true);
+      releaseAll();
     },
 
     dispose() {
-      releaseAll(false);
+      releaseAll();
     },
 
     soundingCount() {
@@ -186,7 +165,7 @@ export function attachComputerKeyboard(
 }
 
 /**
- * 订阅电脑键的人（关卡页、全局键盘面板）。
+ * 订阅音符事件的人（关卡页、全局键盘面板、乐理工作台）。
  *
  * 界面只靠这三件事更新自己：按下了哪个音、松开了哪个音、八度变了。
  */
@@ -196,12 +175,12 @@ export interface ComputerKeyboardListener {
   onOctave(octave: number): void;
 }
 
-/** 全站唯一的电脑键盘。 */
+/** 全站唯一的键盘服务。 */
 export interface ComputerKeyboardService {
   /**
-   * 订阅电脑键事件。
+   * 订阅音符事件。
    *
-   * 第一个订阅者进来时才把键盘接上浏览器，最后一个走的时候摘掉——
+   * 第一个订阅者进来时才把电脑键接上浏览器，最后一个走的时候摘掉——
    * 没有人在用键盘时，按 A 不该到处乱响。
    */
   subscribe(listener: ComputerKeyboardListener): () => void;
@@ -211,13 +190,22 @@ export interface ComputerKeyboardService {
   setOctave(octave: number): void;
   /** 拿引擎。 */
   getEngine(): KeyboardEngine | null;
+  /**
+   * 起音。任何界面按下琴键都走这里。
+   *
+   * 电脑键、鼠标点琴键、触屏——全都汇到这一处，
+   * 这样同一个音只响一次，所有键盘也一起亮。
+   */
+  pressNote(midi: number): void;
+  /** 制音。任何界面松开琴键都走这里。 */
+  releaseNote(midi: number): void;
 }
 
 /**
- * 造一个电脑键盘服务。
+ * 造一个键盘服务。
  *
- * 发声只有这一处：界面订阅它，而不是各自去接键盘。
- * 否则同一个键会被接好几次——声音叠两遍，还亮两遍。
+ * 发声只有这一处：界面订阅它，而不是各自去接键盘或各自开引擎。
+ * 否则同一个键会被触发两次——声音叠两遍，还亮两遍。
  */
 export function createComputerKeyboardService(options: {
   /** 把控制器接到浏览器上。 */
@@ -226,23 +214,52 @@ export function createComputerKeyboardService(options: {
   getEngine: () => KeyboardEngine | null;
 }): ComputerKeyboardService {
   const listeners = new Set<ComputerKeyboardListener>();
+  /** 正在响的音：MIDI → 引擎里的句柄。 */
+  const notes = new Map<number, number>();
   let detach: (() => void) | null = null;
   let octave = 4;
 
+  const pressNote = (midi: number) => {
+    const engine = options.getEngine();
+    if (engine) {
+      void engine.resume();
+      // 同一个音重复按下：先把上一个收掉，别叠成两个。
+      const previous = notes.get(midi);
+      if (previous !== undefined) engine.releasePitch(previous);
+      notes.set(midi, engine.pressPitch(midi));
+    }
+    const pitch = midiToPitchClass(midi);
+    for (const listener of listeners) listener.onPress(pitch, midi);
+  };
+
+  const releaseNote = (midi: number) => {
+    const engine = options.getEngine();
+    const voiceId = notes.get(midi);
+    if (voiceId !== undefined) {
+      engine?.releasePitch(voiceId);
+      notes.delete(midi);
+    }
+    const pitch = midiToPitchClass(midi);
+    for (const listener of listeners) listener.onRelease(pitch, midi);
+  };
+
   const host = (): ComputerKeyboardHost => ({
     getOctave: () => octave,
-    getEngine: options.getEngine,
-    onPress: (pitch, midi) => {
-      for (const listener of listeners) listener.onPress(pitch, midi);
-    },
-    onRelease: (pitch, midi) => {
-      for (const listener of listeners) listener.onRelease(pitch, midi);
-    },
+    pressNote,
+    releaseNote,
     onOctave: (next) => {
       octave = next;
       for (const listener of listeners) listener.onOctave(next);
     },
   });
+
+  /** 没人再听的时候，把还响着的音全收掉。 */
+  const releaseAllNotes = () => {
+    if (notes.size === 0) return;
+    const engine = options.getEngine();
+    for (const voiceId of notes.values()) engine?.releasePitch(voiceId);
+    notes.clear();
+  };
 
   return {
     subscribe(listener) {
@@ -253,6 +270,7 @@ export function createComputerKeyboardService(options: {
         if (listeners.size === 0 && detach) {
           detach();
           detach = null;
+          releaseAllNotes();
         }
       };
     },
@@ -261,5 +279,7 @@ export function createComputerKeyboardService(options: {
       host().onOctave(next);
     },
     getEngine: options.getEngine,
+    pressNote,
+    releaseNote,
   };
 }
