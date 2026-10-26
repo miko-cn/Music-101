@@ -175,4 +175,17 @@ export const lesson: StageLessonEntry = defineLesson({
   totalBars: 4,
   marker: "Level7",
   prereq: [5, 6],
+  progression: [
+    { roman: "I", symbol: "C", quality: "大三", midis: [60, 64, 67] },
+    { roman: "V", symbol: "G", quality: "大三", midis: [67, 71, 74] },
+    { roman: "vi", symbol: "Am", quality: "小三", midis: [69, 72, 76] },
+    { roman: "IV", symbol: "F", quality: "大三", midis: [65, 69, 72] },
+  ],
+  diagrams: [
+    {
+      kind: "chord-progression",
+      caption:
+        "数字是级数，字母是性质：vi 是小写，因为它落在第 6 级上、性质是小三和弦。四个和弦连起来是一个四小节循环，绕回去继续。点一个和弦能听出来。",
+    },
+  ],
 });

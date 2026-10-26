@@ -51,4 +51,11 @@ export const lesson: StageLessonEntry = defineLesson({
     lane("CLAP", "拍手 clap", [4, 12]),
     lane("HAT", "踩镲 hat", hats),
   ],
+  diagrams: [
+    {
+      kind: "drum-grid",
+      caption:
+        "踢在强拍（第 1、9 格），军鼓和拍手在反拍（第 5、13 格），踩镲把八分音符铺满。拍手叠在军鼓同一个位置，是让反拍变厚，不是多一个节奏点。",
+    },
+  ],
 });

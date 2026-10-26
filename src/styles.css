@@ -774,3 +774,386 @@ body:focus-visible,
     font-size: 0.55rem;
   }
 }
+
+/*
+ * 教学示意图
+ * ----------
+ *
+ * 关卡的文案有一半在描述形状：踢在第 1 和第 9 格、kick 只管 60Hz 以下、
+ * kick 一响把别的轨压下去。这些画出来一眼就懂，用文字读三遍还是抽象。
+ *
+ * 配色跟着暗色主题走（站点本来就是暗色），所以图用 CSS 变量而不是写死颜色。
+ * 图一律是 SVG：音名、格数、频率刻度必须是准的，位图生不出来。
+ */
+.diagram {
+  margin: 16px 0;
+  padding: 14px 16px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.diagram-canvas {
+  overflow-x: auto;
+}
+
+/*
+ * 窄屏上不缩图，改成横向滚动：
+ * 缩到 6px 的字等于没有字，图比文字还不清楚就白画了。
+ */
+.diagram-canvas svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-width: 460px;
+}
+
+.diagram-caption {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.diagram-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.diagram-action {
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+}
+
+.diagram-action:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.diagram-action:focus-visible {
+  outline: 2px solid #ffe58f;
+  outline-offset: 2px;
+}
+
+.diagram-action-note {
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* —— 图里的通用元素 —— */
+
+.diagram text {
+  fill: rgba(255, 255, 255, 0.82);
+  font-family: inherit;
+}
+
+.diagram .dg-small {
+  font-size: 12px;
+}
+
+.diagram .dg-tiny {
+  font-size: 10.5px;
+}
+
+.diagram .dg-label {
+  font-size: 12.5px;
+  fill: rgba(255, 255, 255, 0.9);
+}
+
+.diagram .dg-muted {
+  fill: rgba(255, 255, 255, 0.5);
+}
+
+.diagram .dg-strong {
+  fill: #ffd666;
+}
+
+.diagram .dg-gold {
+  fill: #ffd666;
+}
+
+.diagram .dg-danger {
+  fill: #ff9c6e;
+}
+
+.diagram .dg-gold-stroke {
+  stroke: #ffd666;
+}
+
+.diagram .dg-strong-stroke {
+  stroke: #ffd666;
+}
+
+.diagram .dg-leader {
+  stroke: rgba(255, 255, 255, 0.32);
+  stroke-width: 1;
+}
+
+.diagram .dg-dashed {
+  stroke-dasharray: 3 3;
+}
+
+.diagram .dg-axis {
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 1;
+}
+
+.diagram .dg-ref-line {
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.diagram .dg-arrow {
+  stroke: rgba(255, 255, 255, 0.5);
+  stroke-width: 2;
+  fill: none;
+}
+
+.diagram .dg-loop {
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 1.5;
+  fill: none;
+  stroke-dasharray: 4 3;
+}
+
+.diagram .dg-marker {
+  fill: none;
+  stroke-width: 2;
+}
+
+.diagram .dg-group-bar {
+  fill: #ffd666;
+  opacity: 0.85;
+}
+
+.diagram .dg-hit {
+  cursor: pointer;
+}
+
+.diagram .dg-hit:hover .dg-key {
+  filter: brightness(1.16);
+}
+
+.diagram .dg-hit:focus-visible {
+  outline: none;
+}
+
+.diagram .dg-hit:focus-visible .dg-key {
+  stroke: #ffe58f;
+  stroke-width: 2;
+}
+
+/* —— 键盘图 —— */
+
+.diagram .dg-key-white {
+  fill: #f4f1ea;
+  stroke: rgba(0, 0, 0, 0.45);
+}
+
+.diagram .dg-key-black {
+  fill: #2b2b36;
+  stroke: rgba(255, 255, 255, 0.18);
+}
+
+/* 音名用衬线体：跟正文分开，扫一眼就知道这是音名不是句子。 */
+.diagram .dg-key-name {
+  font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif", serif;
+  font-size: 11px;
+  fill: #1c1c22;
+}
+
+.diagram .dg-callout {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.diagram .dg-chip {
+  fill: rgba(255, 255, 255, 0.07);
+  stroke: rgba(255, 255, 255, 0.16);
+}
+
+.diagram .dg-chip-gold {
+  fill: rgba(255, 214, 102, 0.16);
+  stroke: rgba(255, 214, 102, 0.5);
+}
+
+.diagram .dg-chip-text {
+  font-size: 12px;
+}
+
+.diagram .dg-half-mark {
+  fill: #ffd666;
+}
+
+/* 尺子：量键距用，两端带竖线。 */
+.dg-ruler line {
+  stroke: rgba(255, 214, 102, 0.7);
+  stroke-width: 1.5;
+}
+
+/* —— 和弦进行 —— */
+
+.diagram .dg-block {
+  fill: rgba(64, 150, 255, 0.14);
+  stroke: rgba(64, 150, 255, 0.5);
+}
+
+.diagram .dg-block-minor {
+  fill: rgba(255, 214, 102, 0.14);
+  stroke: rgba(255, 214, 102, 0.5);
+}
+
+.diagram .dg-roman {
+  font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif", serif;
+  font-size: 30px;
+  font-weight: 600;
+}
+
+.diagram .dg-chord {
+  font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif", serif;
+  font-size: 19px;
+}
+
+/* —— 鼓型网格 —— */
+
+.diagram .dg-beat {
+  fill: rgba(255, 255, 255, 0.05);
+}
+
+.diagram .dg-step-no {
+  font-size: 11px;
+}
+
+.diagram .dg-cell {
+  fill: rgba(255, 255, 255, 0.05);
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.diagram .dg-role-kick {
+  fill: rgba(255, 120, 117, 0.85);
+}
+
+.diagram .dg-role-snare {
+  fill: rgba(115, 192, 222, 0.85);
+}
+
+.diagram .dg-role-clap {
+  fill: rgba(179, 127, 235, 0.85);
+}
+
+.diagram .dg-role-hat {
+  fill: rgba(149, 222, 100, 0.85);
+}
+
+.diagram .dg-kick-fill {
+  fill: #ff7875;
+}
+
+.diagram .dg-snare-fill {
+  fill: #73c0de;
+}
+
+/* —— 侧链 —— */
+
+.diagram .dg-kick-shape {
+  fill: #ff7875;
+}
+
+.diagram .dg-duck-fill {
+  fill: rgba(255, 214, 102, 0.18);
+}
+
+.diagram .dg-duck-line {
+  stroke: #ffd666;
+  stroke-width: 2;
+  fill: none;
+}
+
+/* —— 能量曲线 —— */
+
+.diagram .dg-zone {
+  fill: rgba(255, 255, 255, 0.03);
+}
+
+.diagram .dg-zone-chorus {
+  fill: rgba(64, 150, 255, 0.08);
+}
+
+.diagram .dg-energy-fill {
+  fill: rgba(64, 150, 255, 0.18);
+}
+
+.diagram .dg-energy-line {
+  stroke: #4096ff;
+  stroke-width: 2.5;
+  fill: none;
+}
+
+/* —— 分层骨架 —— */
+
+.diagram .dg-column-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.diagram .dg-layer {
+  fill: rgba(255, 255, 255, 0.06);
+  stroke: rgba(255, 255, 255, 0.14);
+}
+
+.diagram .dg-layer-added {
+  fill: rgba(255, 214, 102, 0.14);
+  stroke: rgba(255, 214, 102, 0.45);
+}
+
+/* —— 频段分工 —— */
+
+.diagram .dg-danger-zone {
+  fill: rgba(255, 120, 117, 0.07);
+  stroke: rgba(255, 120, 117, 0.25);
+  stroke-dasharray: 3 3;
+}
+
+.diagram .dg-band {
+  stroke-width: 1;
+}
+
+.diagram .dg-band-kick {
+  fill: rgba(255, 120, 117, 0.35);
+  stroke: #ff7875;
+}
+
+.diagram .dg-band-sub {
+  fill: rgba(179, 127, 235, 0.35);
+  stroke: #b37feb;
+}
+
+.diagram .dg-band-bass {
+  fill: rgba(115, 192, 222, 0.35);
+  stroke: #73c0de;
+}
+
+.diagram .dg-band-supersaw {
+  fill: rgba(149, 222, 100, 0.35);
+  stroke: #95de64;
+}
+
+.diagram .dg-band-chop {
+  fill: rgba(255, 160, 122, 0.35);
+  stroke: #ffa07a;
+}
+
+.diagram .dg-band-other {
+  fill: rgba(255, 255, 255, 0.12);
+  stroke: rgba(255, 255, 255, 0.3);
+}

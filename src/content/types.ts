@@ -78,13 +78,21 @@ export interface StageLesson {
   prereq?: number[];
   /** 有鼓组时，手做改成把每条轨打成目标格子，不再用单选题。 */
   drums?: DrumLaneSpec[];
-  sections?: { name: string; startBar: number; bars: number }[];
+  sections?: { name: string; startBar: number; bars: number; energy?: number }[];
   /** 手做步播放一段侧链泵动。 */
   audition?: "sidechain";
   /** 手做步按当前选项画能量曲线。 */
   showEnergy?: boolean;
   /** 参考曲：从候选里选 BPM、调、结构。 */
   reference?: boolean;
+  /** 这一关要配哪些教学图。图是内容的一部分，文字讲不清的形状交给它。 */
+  diagrams?: DiagramSpec[];
+  /** 和弦进行（第 7 关的 I–V–vi–IV）：图上画的每一步。 */
+  progression?: ProgressionStep[];
+  /** 频段分工（第 18 关）：每个角色占哪一段频率。 */
+  frequencyBands?: FrequencyBandsSpec;
+  /** 分层骨架（第 22 关）：主歌和副歌各有哪些层。 */
+  layerStack?: LayerStackColumn[];
 }
 
 /** 阶段：课程分几大段。 */
@@ -139,6 +147,8 @@ export interface SpecialLessonEntry {
   anchor: MemoryAnchor;
   /** 概念段落。 */
   concept: string[];
+  /** 这一关要配哪些教学图。 */
+  diagrams?: DiagramSpec[];
 }
 
 /** 全部关卡。 */
@@ -147,4 +157,97 @@ export type LessonEntry = StageLessonEntry | SpecialLessonEntry;
 /** 判断是不是走标准流程的关卡。 */
 export function isStageLesson(entry: LessonEntry): entry is StageLessonEntry {
   return "handChoices" in entry;
+}
+
+/*
+ * 教学示意图
+ * ----------
+ *
+ * 不少关卡的文案在描述**形状**：踢在第 1 和第 9 格、kick 只管 60Hz 以下、
+ * kick 一响就把音量压下去。这些用文字读三遍也读不出形状，画一张图就一眼懂了。
+ *
+ * 但内容层只说「要哪张图 + 图注」，画法全在 UI 层：
+ * 内容文件保持纯数据，不 import React，几何和配色改一处就全站生效。
+ *
+ * 图一律画成 SVG：音名、格数、频率刻度必须是准的，
+ * 位图生不出来（会拼错音名、数错格子），而且 SVG 能跟着暗色主题走。
+ */
+
+/** 教学图的种类。新增一种就在 ui/diagrams/ 里加一个组件并登记。 */
+export type DiagramKind =
+  /** 键盘布局：黑键 2-3 分组、C 和 F 的定位点。 */
+  | "keyboard-layout"
+  /** 半音与全音：C 大调音阶里哪两处是半音。 */
+  | "semitone-ruler"
+  /** 和弦进行：I–V–vi–IV 这类循环。 */
+  | "chord-progression"
+  /** 鼓型网格：四件套在 16 格里落在哪。 */
+  | "drum-grid"
+  /** 侧链泵动：kick 一响把别的轨压下去。 */
+  | "sidechain"
+  /** 能量曲线：段落和层数撑起来的台阶。 */
+  | "energy-curve"
+  /** 频段分工：每个角色占哪一段频率。 */
+  | "frequency-bands"
+  /** 分层骨架：主歌两层、副歌多哪几层。 */
+  | "layer-stack";
+
+/** 一张图 = 哪种图 + 一句图注。 */
+export interface DiagramSpec {
+  kind: DiagramKind;
+  /** 图注：一句话说清这张图在讲什么。文字承担不了形状的部分，交给图。 */
+  caption: string;
+}
+
+/** 和弦进行里的一步（第 7 关）。 */
+export interface ProgressionStep {
+  /** 罗马数字，如 "I"、"vi"。 */
+  roman: string;
+  /** 和弦符号，如 "C"、"Am"。 */
+  symbol: string;
+  /** 性质，如 "大三"、"小三"。 */
+  quality?: string;
+  /** 听感提示，如 "从家出发往上走"。 */
+  feel?: string;
+  /** 这个和弦的音（点了能听出来）。 */
+  midis?: number[];
+}
+
+/** 频段分工里的一条（第 18 关）。 */
+export interface FrequencyBand {
+  /** 角色名，如 "踢 kick"。 */
+  label: string;
+  /** 角色代号，配色用，如 "kick"、"supersaw"。 */
+  role?: string;
+  /** 下限 Hz（0 表示没有下限）。 */
+  from: number;
+  /** 上限 Hz（0 表示没有上限）。 */
+  to: number;
+  /** 这个角色负责什么。 */
+  note?: string;
+  /** 示例音：点了能听见这个频段大概在什么音高。 */
+  demoMidi?: number;
+}
+
+/** 频段分工的完整描述（第 18 关）。 */
+export interface FrequencyBandsSpec {
+  bands: FrequencyBand[];
+  /** 谁都不该挤的频段（画成底色）。 */
+  zone?: { from: number; to: number; label: string };
+  /** 频率轴的范围。 */
+  axis: { min: number; max: number };
+}
+
+/** 分层骨架的一列（第 22 关）：一列一层。 */
+export interface LayerStackColumn {
+  /** 列标题，如 "主歌"、"副歌"。 */
+  title: string;
+  layers: {
+    /** 层名，如 "supersaw 和弦"。 */
+    name: string;
+    /** 这层负责什么。 */
+    note?: string;
+    /** 是不是这一段新加的层（加进来的用金色标出来）。 */
+    added?: boolean;
+  }[];
 }

@@ -57,4 +57,11 @@ export const lesson: StageLessonEntry = defineLesson({
     ]),
   ],
   handCorrect: 0,
+  diagrams: [
+    {
+      kind: "sidechain",
+      caption:
+        "kick 每响一次，808 和贝斯就被按下去一次，kick 走了再抬回来。金色那层就是被压掉的音量。压 6–10 dB 就够，压狠了像断音。",
+    },
+  ],
 });

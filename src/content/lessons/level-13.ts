@@ -31,8 +31,8 @@ export const lesson: StageLessonEntry = defineLesson({
   showEnergy: true,
   prereq: [12],
   sections: [
-    { name: "Verse", startBar: 0, bars: 4 },
-    { name: "Chorus", startBar: 4, bars: 4 },
+    { name: "Verse", startBar: 0, bars: 4, energy: 1 },
+    { name: "Chorus", startBar: 4, bars: 4, energy: 1.5 },
   ],
   concept: [
     "主歌和副歌要标出来。能量按「层数 × 音区权重 × 平均力度」算。",
@@ -58,4 +58,11 @@ export const lesson: StageLessonEntry = defineLesson({
     choice("主歌副歌都只有贝斯", [], [], [track("BASS", 0, notesAt([0, 1, 2, 3, 4, 5, 6, 7], 48, 80))]),
   ],
   handCorrect: 0,
+  diagrams: [
+    {
+      kind: "energy-curve",
+      caption:
+        "副歌那一截要明显高过主歌：能量至少 1.5 倍，而且层数至少多 1 层——两条同时成立才算抬层。曲线是平的，说明这一段没抬起来。",
+    },
+  ],
 });

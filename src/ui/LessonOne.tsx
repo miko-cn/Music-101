@@ -25,8 +25,10 @@ import {
   LEVEL1_EAR,
   LEVEL1_EAR_PASS,
   LEVEL1_TARGET_PITCH,
+  lesson as lessonOne,
 } from "../content/lessons/level-01.ts";
 import { LessonCoach } from "./LessonCoach.tsx";
+import { LessonDiagrams } from "./diagrams/index.tsx";
 import { NoteName } from "./NoteName.tsx";
 import { MemoryAnchorCard } from "./MemoryAnchorCard.tsx";
 import { Piano } from "./Piano.tsx";
@@ -180,6 +182,7 @@ export function LessonOne({
           <p className="hint">
             白键 A S D F G H J 是 C D E F G A B，黑键 W E T Y U 是 C# D# F# G# A#。Z 低八度，X 高八度。
           </p>
+          <LessonDiagrams lesson={lessonOne} />
           <MemoryAnchorCard anchor={LEVEL1_ANCHOR} />
         </Card>
       )}

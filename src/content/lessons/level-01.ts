@@ -158,6 +158,13 @@ export const lesson: SpecialLessonEntry = {
     ],
   },
   concept: LEVEL1_CONCEPT,
+  diagrams: [
+    {
+      kind: "keyboard-layout",
+      caption:
+        "黑键永远是「二个一组、三个一组」循环排下去的。C 在二黑键组左边，F 在三黑键组左边——认全键盘只要这两个定位点。键可以点，点了会响。",
+    },
+  ],
 };
 
 /** 这一关的记忆锚（旧的导入路径从这里接过去）。 */

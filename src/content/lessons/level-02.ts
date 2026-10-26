@@ -135,4 +135,11 @@ export const lesson: StageLessonEntry = defineLesson({
   totalBars: 1,
   marker: "Level2",
   prereq: [1],
+  diagrams: [
+    {
+      kind: "semitone-ruler",
+      caption:
+        "整台钢琴只有 E–F 和 B–C 之间没有黑键，所以这两处天生是半音，其余相邻两音都是全音。不用数黑键，看空档就行。",
+    },
+  ],
 });

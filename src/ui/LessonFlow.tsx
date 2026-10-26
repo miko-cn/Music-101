@@ -28,6 +28,7 @@ import { candidatesFromPcm, demoClicks, type ReferenceCandidates } from "../core
 import { referenceToMidi } from "../core/reference/export.ts";
 import type { StageLesson } from "../content/types.ts";
 import { EnergyChart } from "./DiagnosticsLab.tsx";
+import { LessonDiagrams } from "./diagrams/index.tsx";
 import { LessonCoach } from "./LessonCoach.tsx";
 import { MemoryAnchorCard } from "./MemoryAnchorCard.tsx";
 import { Piano } from "./Piano.tsx";
@@ -184,6 +185,7 @@ export function LessonFlow({
               {paragraph}
             </p>
           ))}
+          <LessonDiagrams lesson={lesson} />
           <Piano
             label="概念键盘"
             spell={(pitch) => pitchClassToName(pitch)}

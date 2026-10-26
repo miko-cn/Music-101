@@ -32,6 +32,24 @@ export const lesson: StageLessonEntry = defineLesson({
     { name: "Verse", startBar: 0, bars: 4 },
     { name: "Chorus", startBar: 4, bars: 4 },
   ],
+  layerStack: [
+    {
+      title: "主歌",
+      layers: [
+        { name: "kick", note: "钉住拍子" },
+        { name: "贝斯", note: "接住根音" },
+      ],
+    },
+    {
+      title: "副歌",
+      layers: [
+        { name: "kick", note: "钉住拍子" },
+        { name: "贝斯", note: "接住根音" },
+        { name: "supersaw 和弦", note: "铺开，和声变厚", added: true },
+        { name: "vocal chop", note: "短，卡在反拍", added: true },
+      ],
+    },
+  ],
   concept: [
     "Future bass 的骨架是：主歌留 kick 和贝斯，副歌把 supersaw 和弦铺开，再用短的 chop 卡在反拍上。",
     "没有副歌那一层锯齿，它就还是一条空的主歌。",
@@ -65,4 +83,11 @@ export const lesson: StageLessonEntry = defineLesson({
     ]),
   ],
   handCorrect: 0,
+  diagrams: [
+    {
+      kind: "layer-stack",
+      caption:
+        "副歌多的不是低音，是和声厚度：主歌两层，副歌加上铺开的 supersaw 和弦和短 chop。把 supersaw 拿掉，副歌就还是一条空的主歌。",
+    },
+  ],
 });

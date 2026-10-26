@@ -54,4 +54,21 @@ export const lesson: StageLessonEntry = defineLesson({
     ]),
   ],
   handCorrect: 0,
+  frequencyBands: {
+    axis: { min: 20, max: 20000 },
+    zone: { from: 200, to: 2000, label: "中频 200–2000Hz：人声和主旋律的地盘" },
+    bands: [
+      { label: "踢 kick", role: "kick", from: 0, to: 60, note: "只管冲击", demoMidi: 33 },
+      { label: "808", role: "sub", from: 40, to: 60, note: "只管持续根音", demoMidi: 29 },
+      { label: "贝斯 BASS", role: "bass", from: 80, to: 200, note: "低频旋律", demoMidi: 43 },
+      { label: "SUPERSAW", role: "supersaw", from: 2000, to: 8000, note: "中频以上", demoMidi: 96 },
+    ],
+  },
+  diagrams: [
+    {
+      kind: "frequency-bands",
+      caption:
+        "每个角色占一段频率：kick 只管 60Hz 以下的冲击，808 管 40–60Hz 的持续根音，贝斯走 80–200Hz，supersaw 在中频以上。同一个频段里别放两个角色。点一条能听个大概音高（示例音只是音高参考，不等于频谱）。",
+    },
+  ],
 });
