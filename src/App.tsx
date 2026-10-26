@@ -1,21 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, ConfigProvider, Flex, Layout, Select, Tooltip, theme } from "antd";
+import { Badge, Button, ConfigProvider, Flex, Layout, Select, Tooltip, theme } from "antd";
 import zhCN from "antd/locale/zh_CN";
 import { LESSONS, lessonById } from "./content/index.ts";
 import { isStageLesson } from "./content/types.ts";
 import { levelLocked } from "./core/lesson/personalize.ts";
 import { loadProgress, saveProgress, type ProgressUpdate, type Recipe } from "./core/lesson/progress.ts";
+import { dueReviewCards } from "./core/lesson/review.ts";
 import { DiagnosticsLab } from "./ui/DiagnosticsLab.tsx";
 import { KeyboardPanel } from "./ui/KeyboardPanel.tsx";
 import { LessonFlow } from "./ui/LessonFlow.tsx";
 import { LessonOne } from "./ui/LessonOne.tsx";
 import { MemoryAnchors } from "./ui/MemoryAnchors.tsx";
 import { ProgressBoard } from "./ui/ProgressBoard.tsx";
+import { ReviewDeck } from "./ui/ReviewDeck.tsx";
 import { TheoryBench } from "./ui/TheoryBench.tsx";
 
 const { Header, Content } = Layout;
 
-type View = "bench" | "lesson" | "diagnostics" | "progress" | "anchors";
+type View = "bench" | "lesson" | "diagnostics" | "progress" | "anchors" | "review";
 
 /** 关卡下拉：全部关卡，标题都从关卡文件里来。 */
 const LESSON_OPTIONS = LESSONS.map((lesson) => ({
@@ -34,6 +36,7 @@ export function App() {
   // 第 1 关走自己的流程，不是标准关卡；这里按「是不是标准关卡」分流，不再写死关号。
   const entry = lessonById(level);
   const stage = entry && isStageLesson(entry) ? entry : null;
+  const dueCount = dueReviewCards(progress.reviews, Date.now()).length;
 
   // 全局快捷键：K 随时呼出键盘查位置（关卡里弹琴用的是 A S D F G H J / W E T Y U，不冲突）
   useEffect(() => {
@@ -107,6 +110,11 @@ export function App() {
               <Button type={view === "anchors" ? "primary" : "default"} onClick={() => setView("anchors")}>
                 记忆点
               </Button>
+              <Badge count={dueCount} size="small" offset={[-2, 2]}>
+                <Button type={view === "review" ? "primary" : "default"} onClick={() => setView("review")}>
+                  复习
+                </Button>
+              </Badge>
               <Button type={view === "progress" ? "primary" : "default"} onClick={() => setView("progress")}>
                 进度
               </Button>
@@ -120,10 +128,13 @@ export function App() {
             <DiagnosticsLab />
           ) : view === "anchors" ? (
             <MemoryAnchors onOpenLevel={openLevel} />
+          ) : view === "review" ? (
+            <ReviewDeck progress={progress} onProgress={onProgress} onOpenLevel={openLevel} />
           ) : view === "progress" ? (
             <ProgressBoard
               progress={progress}
               onProgress={onProgress}
+              onOpenReview={() => setView("review")}
               onApply={(recipe) => {
                 setPendingRecipe(recipe);
                 setLevel(recipe.levelId);

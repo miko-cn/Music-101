@@ -1,7 +1,14 @@
 import { MAX_LEVEL_ID } from "../../content/index.ts";
 import { MISTAKE_KINDS, type MistakeKind } from "./mistakes.ts";
+import {
+  REVIEW_MAX_BOX,
+  REVIEW_MAX_CARDS,
+  gradeReviewCard,
+  syncReviewCard,
+  type ReviewCard,
+} from "./review.ts";
 
-export const PROGRESS_SCHEMA = 3;
+export const PROGRESS_SCHEMA = 4;
 const STORAGE_KEY = "music-101.progress";
 const LEVEL_MIN = 1;
 /** 关卡上限跟着课程走——加了新关，这里自动放宽。 */
@@ -64,6 +71,8 @@ export interface ProgressFile {
   recipes: Recipe[];
   /** 学习活动流，按时间顺序。 */
   activity: ActivityEntry[];
+  /** 复习队列（Leitner 盒）：每关一张卡，记着这一档什么时候该再见一次。 */
+  reviews: ReviewCard[];
 }
 
 export type ProgressUpdate = (current: ProgressFile) => ProgressFile;
@@ -76,6 +85,7 @@ export function emptyProgress(): ProgressFile {
     attempts: [],
     recipes: [],
     activity: [],
+    reviews: [],
   };
 }
 
@@ -198,7 +208,42 @@ function normalize(progress: ProgressFile): ProgressFile {
     attempts: progress.attempts.slice(-48),
     recipes: progress.recipes.slice(-24),
     activity: progress.activity.slice(-ACTIVITY_MAX),
+    reviews: progress.reviews.slice(-REVIEW_MAX_CARDS),
   };
+}
+
+/** 读一张复习卡。形状不对就当这张卡不存在，不要让整份进度作废。 */
+function parseReviewCard(value: unknown): ReviewCard | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.id !== "string" || value.id.trim() === "" || value.id.length > 80) return null;
+  if (!isLevel(value.levelId)) return null;
+  if (typeof value.box !== "number" || !Number.isInteger(value.box)) return null;
+  if (value.box < 0 || value.box > REVIEW_MAX_BOX) return null;
+  if (typeof value.round !== "number" || !Number.isInteger(value.round) || value.round < 0) return null;
+  if (typeof value.lastAt !== "number" || !Number.isFinite(value.lastAt) || value.lastAt <= 0) return null;
+  if (typeof value.dueAt !== "number" || !Number.isFinite(value.dueAt) || value.dueAt <= 0) return null;
+  const lastVisit = typeof value.lastVisit === "string" ? value.lastVisit : "";
+  if (lastVisit.length > 80) return null;
+  return {
+    id: value.id,
+    levelId: value.levelId,
+    box: value.box,
+    round: value.round,
+    lastAt: value.lastAt,
+    dueAt: value.dueAt,
+    lastVisit,
+    lastPassed: value.lastPassed === true,
+  };
+}
+
+function parseReviews(value: unknown): ReviewCard[] {
+  if (!Array.isArray(value)) return [];
+  const cards: ReviewCard[] = [];
+  for (const item of value) {
+    const parsed = parseReviewCard(item);
+    if (parsed && !cards.some((card) => card.levelId === parsed.levelId)) cards.push(parsed);
+  }
+  return cards;
 }
 
 function parseActivity(value: unknown): ActivityEntry | null {
@@ -240,9 +285,11 @@ function fromSchema2(record: Record<string, unknown>): ProgressFile {
     attempts,
     recipes,
     activity: [],
+    reviews: [],
   });
 }
 
+/** schema 3：有活动流，但还没有复习队列。复习卡片从零开始建。 */
 function fromSchema3(record: Record<string, unknown>): ProgressFile {
   const passedLevels = Array.isArray(record.passedLevels) ? record.passedLevels.filter(isLevel) : [];
   const attempts = Array.isArray(record.attempts)
@@ -270,10 +317,17 @@ function fromSchema3(record: Record<string, unknown>): ProgressFile {
     attempts,
     recipes,
     activity,
+    reviews: [],
   });
 }
 
-/** 读不出、版本更高、或形状不对时返回空进度，不把异常抛到界面。schema 1、2 会迁进来。 */
+/** schema 4：多了复习队列。 */
+function fromSchema4(record: Record<string, unknown>): ProgressFile {
+  const base = fromSchema3(record);
+  return normalize({ ...base, reviews: parseReviews(record.reviews) });
+}
+
+/** 读不出、版本更高、或形状不对时返回空进度，不把异常抛到界面。schema 1、2、3 会迁进来。 */
 export function parseProgress(raw: string | null): ProgressFile {
   if (raw === null || raw.trim() === "") return emptyProgress();
   try {
@@ -281,7 +335,8 @@ export function parseProgress(raw: string | null): ProgressFile {
     if (!isRecord(parsed)) return emptyProgress();
     if (parsed.schema === 1) return fromSchema1(parsed);
     if (parsed.schema === 2) return fromSchema2(parsed);
-    if (parsed.schema === PROGRESS_SCHEMA) return fromSchema3(parsed);
+    if (parsed.schema === 3) return fromSchema3(parsed);
+    if (parsed.schema === PROGRESS_SCHEMA) return fromSchema4(parsed);
     return emptyProgress();
   } catch {
     return emptyProgress();
@@ -301,18 +356,40 @@ export function saveProgress(storage: Pick<Storage, "setItem">, progress: Progre
   storage.setItem(STORAGE_KEY, serializeProgress(progress));
 }
 
-export function observeAttempt(progress: ProgressFile, attempt: Attempt): ProgressFile {
+export function observeAttempt(progress: ProgressFile, attempt: Attempt, now?: number): ProgressFile {
   const parsed = parseAttempt(attempt);
   if (!parsed) return progress;
   const attempts = progress.attempts.filter((item) => item.visitId !== parsed.visitId);
   attempts.push(parsed);
   const passedLevels = new Set(progress.passedLevels);
   if (parsed.passed) passedLevels.add(parsed.levelId);
+  // 关卡结算顺带同步复习盒子：过关建卡，没过关降一档。
+  // 盒子自己记着 visitId，所以这一关反复结算也不会把盒子连升好几格。
+  const reviews = syncReviewCard(progress.reviews, {
+    levelId: parsed.levelId,
+    visitId: parsed.visitId,
+    passed: parsed.passed,
+    now,
+  });
   return normalize({
     ...progress,
     level1Passed: progress.level1Passed || (parsed.levelId === 1 && parsed.passed),
     passedLevels: [...passedLevels],
     attempts,
+    reviews,
+  });
+}
+
+/**
+ * 复习页答完一题：答对升一档，答错掉回最低档、今天还要再练。
+ */
+export function gradeReview(
+  progress: ProgressFile,
+  input: { levelId: number; correct: boolean; now?: number },
+): ProgressFile {
+  return normalize({
+    ...progress,
+    reviews: gradeReviewCard(progress.reviews, input),
   });
 }
 

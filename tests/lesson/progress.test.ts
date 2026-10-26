@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   deleteRecipe,
   emptyProgress,
+  gradeReview,
   loadProgress,
   observeAttempt,
   parseProgress,
@@ -44,23 +45,33 @@ describe("进度", () => {
 
   it("schema 1 只把第 1 关迁进来", () => {
     expect(parseProgress(JSON.stringify({ schema: 1, level1Passed: true }))).toEqual({
-      schema: 3,
+      schema: 4,
       level1Passed: true,
       passedLevels: [1],
       attempts: [],
       recipes: [],
       activity: [],
+      reviews: [],
     });
     expect(parseProgress(JSON.stringify({ schema: 1, level1Passed: false })).level1Passed).toBe(false);
   });
 
-  it("schema 2 迁到 3，活动流补空——老记录没有时间戳，不能编", () => {
+  it("schema 2 迁到 4，活动流补空——老记录没有时间戳，不能编", () => {
     const parsed = parseProgress(
       JSON.stringify({ schema: 2, level1Passed: true, passedLevels: [1] }),
     );
-    expect(parsed.schema).toBe(3);
+    expect(parsed.schema).toBe(4);
     expect(parsed.passedLevels).toEqual([1]);
     expect(parsed.activity).toEqual([]);
+    expect(parsed.reviews).toEqual([]);
+  });
+
+  it("schema 3 迁到 4，复习队列从零开始建", () => {
+    const parsed = parseProgress(
+      JSON.stringify({ schema: 3, level1Passed: true, passedLevels: [1] }),
+    );
+    expect(parsed.schema).toBe(4);
+    expect(parsed.reviews).toEqual([]);
   });
 
   it("坏掉的尝试和配方会被丢掉，其余留下", () => {
@@ -109,7 +120,7 @@ describe("进度", () => {
     expect(progress.recipes).toEqual([]);
     saveProgress(storage, progress);
     expect(loadProgress(storage)).toEqual(progress);
-    expect(serializeProgress(progress)).toContain('"schema":3');
+    expect(serializeProgress(progress)).toContain('"schema":4');
   });
 
   it("进关卡记一条活动，同一次进入只留一条", () => {
@@ -163,5 +174,88 @@ describe("进度", () => {
     const progress = parseProgress("not json at all");
     expect(progress.passedLevels).toEqual([]);
     expect(progress.activity).toEqual([]);
+  });
+
+  it("过关会自动建一张复习卡，同一次进关重复结算不会连升好几格", () => {
+    let progress = emptyProgress();
+    progress = observeAttempt(progress, {
+      visitId: "v1",
+      levelId: 11,
+      passed: true,
+      easy: true,
+      stuck: false,
+      mistakes: [],
+    });
+    expect(progress.reviews).toHaveLength(1);
+    expect(progress.reviews[0]).toMatchObject({ levelId: 11, box: 0, round: 0 });
+    // 同一关同一 visitId 再结算一次：盒子不动
+    progress = observeAttempt(progress, {
+      visitId: "v1",
+      levelId: 11,
+      passed: true,
+      easy: true,
+      stuck: false,
+      mistakes: [],
+    });
+    expect(progress.reviews).toHaveLength(1);
+    expect(progress.reviews[0]?.box).toBe(0);
+  });
+
+  it("没过关的关卡不进复习队列", () => {
+    let progress = emptyProgress();
+    progress = observeAttempt(progress, {
+      visitId: "v1",
+      levelId: 11,
+      passed: false,
+      easy: false,
+      stuck: true,
+      mistakes: ["low-end-clash"],
+    });
+    expect(progress.reviews).toEqual([]);
+  });
+
+  it("复习卡能原样读回来，坏卡片会被丢掉", () => {
+    let progress = emptyProgress();
+    progress = observeAttempt(progress, {
+      visitId: "v1",
+      levelId: 11,
+      passed: true,
+      easy: true,
+      stuck: false,
+      mistakes: [],
+    });
+    const back = parseProgress(serializeProgress(progress));
+    expect(back.reviews).toEqual(progress.reviews);
+
+    const broken = parseProgress(
+      JSON.stringify({
+        schema: 4,
+        reviews: [
+          progress.reviews[0],
+          { id: "level:12", levelId: 12, box: 9, round: 0, lastAt: 1, dueAt: 1, lastVisit: "", lastPassed: false },
+          { id: "level:99", levelId: 99, box: 0, round: 0, lastAt: 1, dueAt: 1, lastVisit: "", lastPassed: false },
+          { levelId: 13, box: 0, round: 0, lastAt: 1, dueAt: 1 },
+        ],
+      }),
+    );
+    expect(broken.reviews.map((card) => card.levelId)).toEqual([11]);
+  });
+
+  it("gradeReview 答对升一档、答错掉回 0", () => {
+    let progress = emptyProgress();
+    progress = observeAttempt(progress, {
+      visitId: "v1",
+      levelId: 11,
+      passed: true,
+      easy: true,
+      stuck: false,
+      mistakes: [],
+    });
+    progress = gradeReview(progress, { levelId: 11, correct: true, now: 1_700_000_000_000 });
+    expect(progress.reviews[0]?.box).toBe(1);
+    expect(progress.reviews[0]?.round).toBe(1);
+    progress = gradeReview(progress, { levelId: 11, correct: false, now: 1_700_000_000_000 });
+    expect(progress.reviews[0]?.box).toBe(0);
+    expect(progress.reviews[0]?.round).toBe(2);
   });
 });

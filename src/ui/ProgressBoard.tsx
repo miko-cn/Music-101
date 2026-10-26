@@ -17,21 +17,26 @@ import {
   type ProgressUpdate,
   type Recipe,
 } from "../core/lesson/progress.ts";
+import { dueReviewCards, nextReviewDueAt, reviewDueText } from "../core/lesson/review.ts";
 import { ActivityHeatmap } from "./ActivityHeatmap.tsx";
 
 export function ProgressBoard({
   progress,
   onProgress,
   onApply,
+  onOpenReview,
 }: {
   progress: ProgressFile;
   onProgress: (update: ProgressUpdate) => void;
   onApply: (recipe: Recipe) => void;
+  onOpenReview: () => void;
 }) {
   const scores = abilityScores(progress);
   const counts = mistakeCounts(progress);
   const lists = recommendationLists(progress);
   const advice = difficultyAdvice(progress.attempts);
+  const due = dueReviewCards(progress.reviews, Date.now());
+  const nextDue = nextReviewDueAt(progress.reviews);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [backupNote, setBackupNote] = useState<{ kind: "success" | "error"; text: string } | null>(null);
 
@@ -61,7 +66,8 @@ export function ProgressBoard({
       parsed.passedLevels.length === 0 &&
       parsed.attempts.length === 0 &&
       parsed.recipes.length === 0 &&
-      parsed.activity.length === 0;
+      parsed.activity.length === 0 &&
+      parsed.reviews.length === 0;
     if (empty) {
       // parseProgress 对坏数据返回空进度，不抛错——这里得自己拦住，
       // 否则导入一个 txt 会静默把已有进度清空。
@@ -71,7 +77,7 @@ export function ProgressBoard({
     onProgress(() => parsed);
     setBackupNote({
       kind: "success",
-      text: `已导入：${parsed.passedLevels.length} 关已掌握，${parsed.activity.length} 条学习记录，${parsed.recipes.length} 个配方。`,
+      text: `已导入：${parsed.passedLevels.length} 关已掌握，${parsed.activity.length} 条学习记录，${parsed.recipes.length} 个配方，${parsed.reviews.length} 张复习卡。`,
     });
   };
 
@@ -101,6 +107,21 @@ export function ProgressBoard({
             );
           })}
         </Flex>
+      </Card>
+      <Card title="今日复习">
+        <p className="lead">
+          {due.length === 0
+            ? "今天没有到期的复习。"
+            : `今天要复习 ${due.length} 关：抽一道听辨题，答对往后挪一档，答错留在今天。`}
+        </p>
+        <p className="hint">
+          {due.length === 0 && nextDue !== null
+            ? `下一批 ${reviewDueText(nextDue, Date.now())}到期。`
+            : "复习队列按遗忘曲线排：刚学的今天就要再看一次，记得牢的一个月才见一次。"}
+        </p>
+        <Button type="primary" disabled={due.length === 0} onClick={onOpenReview}>
+          {due.length === 0 ? "今天没有要复习的" : `开始复习 ${due.length} 关`}
+        </Button>
       </Card>
       <Card title="关卡推荐">
         <p className="lead">所有关卡都开着，没有锁。已掌握的可以跳过，没过的可以重开。</p>
@@ -138,7 +159,7 @@ export function ProgressBoard({
         </p>
         <p className="hint">
           换浏览器或者清缓存之前，先点「导出进度」存一份 JSON；到了新环境再「导入进度」，
-          关卡记录、配方、学习热力图会一起过去。
+          关卡记录、配方、复习队列、学习热力图会一起过去。
         </p>
         <Flex gap={12} wrap align="center">
           <Button onClick={exportProgress}>导出进度</Button>
