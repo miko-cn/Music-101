@@ -85,6 +85,22 @@ body {
   margin: 0;
 }
 
+/*
+ * 文档根拿到焦点时，浏览器会沿着视口边缘画一圈默认焦点环。
+ *
+ * 用键盘（快捷键 K）呼出全局键盘抽屉时，antd 会把焦点落到 body 上；
+ * Chrome 判断「上一次交互是键盘」，于是给 body 画焦点环。body 的盒子
+ * 就是整个视口，那圈环就变成贴着窗口边缘的一道白边。
+ *
+ * body 不是可操作元素，这圈环纯属噪声；真正能 Tab 到的琴键和按钮
+ * 都有各自的焦点框（琴键见 .piano-key:focus-visible）。
+ */
+html:focus-visible,
+body:focus-visible,
+.ant-drawer:focus-visible {
+  outline: none;
+}
+
 .site {
   min-height: 100vh;
 }
@@ -253,10 +269,11 @@ body {
   margin-bottom: auto;
 }
 
+/* 聚焦框只是提示，不能改变叠放顺序：
+   否则被点过的白键会盖到黑键上面去（黑键是物理上压在上层的）。 */
 .piano-key:focus-visible {
   outline: 2px solid #ffe58f;
   outline-offset: 2px;
-  z-index: 3;
 }
 
 .piano-white {
@@ -272,7 +289,8 @@ body {
 .piano-black {
   position: absolute;
   top: 0;
-  z-index: 2;
+  /* 黑键永远压在白键上面。 */
+  z-index: 4;
   height: 62%;
   border-radius: 0 0 6px 6px;
   background: #1a1a22;
@@ -541,7 +559,8 @@ body {
 .keyboard-black {
   position: absolute;
   top: 0;
-  z-index: 2;
+  /* 黑键永远压在白键上面。 */
+  z-index: 4;
   height: 62%;
   border-radius: 0 0 5px 5px;
   background: #1c1c22;
@@ -585,7 +604,6 @@ body {
 .keyboard-key:focus-visible {
   outline: 2px solid #ffe58f;
   outline-offset: 2px;
-  z-index: 3;
 }
 
 .keyboard-key-name {
