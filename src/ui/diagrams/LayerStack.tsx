@@ -35,7 +35,9 @@ export function LayerStackDiagram({
 
         {columns.map((column, columnIndex) => {
           const x = columnIndex * (COL_W + COL_GAP);
-          const added = column.layers.filter((layer) => layer.added).length;
+          // 装饰轨（FX / CHOP）不算层数——第 9 关专门讲这条。
+          const counted = column.layers.filter((layer) => !layer.decorative);
+          const added = counted.filter((layer) => layer.added).length;
           return (
             <g key={column.title}>
               <text x={x + COL_W / 2} y={24} textAnchor="middle" className="dg-column-title">
@@ -47,7 +49,7 @@ export function LayerStackDiagram({
                 textAnchor="middle"
                 className="dg-small dg-muted"
               >
-                {column.layers.length} 层
+                {counted.length} 层
               </text>
 
               {column.layers.map((layer, layerIndex) => (
@@ -58,7 +60,13 @@ export function LayerStackDiagram({
                     width={COL_W}
                     height={BAR_H}
                     rx={8}
-                    className={layer.added ? "dg-layer dg-layer-added" : "dg-layer"}
+                    className={
+                      layer.decorative
+                        ? "dg-layer dg-layer-decorative"
+                        : layer.added
+                          ? "dg-layer dg-layer-added"
+                          : "dg-layer"
+                    }
                   />
                   <text
                     x={x + 14}

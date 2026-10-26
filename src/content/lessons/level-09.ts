@@ -52,4 +52,26 @@ export const lesson: StageLessonEntry = defineLesson({
     choice("只有 FX", [], [], [track("FX", 4, notesAt([0], 60, 40, 400))]),
   ],
   handCorrect: 0,
+  layerStack: [
+    {
+      title: "主歌",
+      layers: [{ name: "贝斯", note: "一条轨 = 一层" }],
+    },
+    {
+      title: "副歌",
+      layers: [
+        { name: "贝斯", note: "沿用主歌" },
+        { name: "kick", added: true, note: "加一条真实轨道" },
+        { name: "supersaw", added: true, note: "加一条真实轨道" },
+        { name: "FX 扫频", decorative: true, note: "装饰轨，不计入层数" },
+      ],
+    },
+  ],
+  diagrams: [
+    {
+      kind: "layer-stack",
+      caption:
+        "层 = 同时在响的轨道数，同一条轨里叠三个音仍然只是一层。虚线框的 FX 是装饰轨，不计入层数——否则一段过渡音效就能把副歌的能量曲线顶上去，那是假的抬层。",
+    },
+  ],
 });

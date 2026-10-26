@@ -78,7 +78,7 @@ export interface StageLesson {
   prereq?: number[];
   /** 有鼓组时，手做改成把每条轨打成目标格子，不再用单选题。 */
   drums?: DrumLaneSpec[];
-  sections?: { name: string; startBar: number; bars: number; energy?: number }[];
+  sections?: { name: string; startBar: number; bars: number; energy?: number; velocity?: number }[];
   /** 手做步播放一段侧链泵动。 */
   audition?: "sidechain";
   /** 手做步按当前选项画能量曲线。 */
@@ -93,6 +93,14 @@ export interface StageLesson {
   frequencyBands?: FrequencyBandsSpec;
   /** 分层骨架（第 22 关）：主歌和副歌各有哪些层。 */
   layerStack?: LayerStackColumn[];
+  /** 音程对照（第 3 关）：每一对音隔多远、几度几半音、协和度如何。 */
+  intervals?: IntervalSpec[];
+  /** 和弦三度堆叠（第 4 关）：根音 / 三音 / 五音怎么叠出来的。 */
+  chordStack?: ChordStackSpec[];
+  /** 音阶级数（第 5 关）：一个调里七个音各是第几级。 */
+  scaleSteps?: ScaleStepSpec[];
+  /** 和声功能（第 15 关）：T / S / D 各是什么、怎么循环。 */
+  functions?: FunctionSpec[];
 }
 
 /** 阶段：课程分几大段。 */
@@ -190,7 +198,19 @@ export type DiagramKind =
   /** 频段分工：每个角色占哪一段频率。 */
   | "frequency-bands"
   /** 分层骨架：主歌两层、副歌多哪几层。 */
-  | "layer-stack";
+  | "layer-stack"
+  /** 音程：两个音隔多远，几度几半音，挤不挤。 */
+  | "interval-size"
+  /** 和弦三度堆叠：根音、三音、五音一层层叠上去。 */
+  | "chord-build"
+  /** 音阶级数：一个调里七个音各是第几级。 */
+  | "scale-degrees"
+  /** 和声功能：T / S / D 怎么循环。 */
+  | "harmony-function"
+  /** 力度曲线：主歌收着、副歌推上去。 */
+  | "dynamic-curve"
+  /** 段落时间轴：一首歌分成哪几段。 */
+  | "section-timeline";
 
 /** 一张图 = 哪种图 + 一句图注。 */
 export interface DiagramSpec {
@@ -249,5 +269,76 @@ export interface LayerStackColumn {
     note?: string;
     /** 是不是这一段新加的层（加进来的用金色标出来）。 */
     added?: boolean;
+    /**
+     * 是不是装饰轨（FX / CHOP）。
+     * 装饰轨不算进层数——第 9 关专门讲这条，图上要标出来。
+     */
+    decorative?: boolean;
   }[];
+}
+
+/** 音程对照里的一对音（第 3 关）。 */
+export interface IntervalSpec {
+  /** 低音的音高。 */
+  from: number;
+  /** 高音的音高。 */
+  to: number;
+  /** 度数名，如 "三度"。 */
+  size: string;
+  /** 性质，如 "大三度"。 */
+  quality: string;
+  /** 隔了几个半音。 */
+  semitones: number;
+  /** 协和度：稳 / 挤 / 紧张。 */
+  harmony?: "稳" | "挤" | "紧张";
+  /** 一句话说明。 */
+  note?: string;
+}
+
+/** 和弦三度堆叠里的一列（第 4 关）。 */
+export interface ChordStackSpec {
+  /** 和弦符号，如 "C"、"Cm"。 */
+  symbol: string;
+  /** 性质，如 "大三"、"小三"。 */
+  quality: string;
+  /** 三个音，从低到高。 */
+  midis: number[];
+  /**
+   * 每个音的显示拼写，如 ["C", "E♭", "G"]。
+   *
+   * 不写就按音高推（默认升号拼法），但同一个音高有好几种写法：
+   * MIDI 63 既可以是 D♯ 也可以是 E♭，在 C 小调里必须写 E♭——
+   * 正文说 E♭、图上写 D♯，学习者会以为这是两个不同的音。
+   */
+  names?: string[];
+  /** 每个音的角色，如 "根音"、"三音"、"五音"。 */
+  roles: string[];
+  /** 这一列要强调什么。 */
+  note?: string;
+}
+
+/** 音阶级数里的一步（第 5 关）。 */
+export interface ScaleStepSpec {
+  /** 音名，如 "C"、"E♭"。 */
+  name: string;
+  /** 音高。 */
+  midi: number;
+  /** 级数，如 "1"、"2"、"♭3"。 */
+  degree: string;
+  /** 这个音在调里干什么。 */
+  role?: string;
+}
+
+/** 和声功能里的一块（第 15 关）。 */
+export interface FunctionSpec {
+  /** 代号：T / S / D。 */
+  code: string;
+  /** 中文名，如 "主功能"。 */
+  label: string;
+  /** 作用说明。 */
+  role: string;
+  /** 代表和弦符号。 */
+  symbol?: string;
+  /** 代表和弦的音（点了能听）。 */
+  midis?: number[];
 }

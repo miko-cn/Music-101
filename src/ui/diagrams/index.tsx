@@ -7,12 +7,18 @@ import type {
   SpecialLessonEntry,
   StageLesson,
 } from "../../content/types.ts";
+import { ChordBuildDiagram } from "./ChordBuildDiagram.tsx";
 import { ChordProgressionDiagram } from "./ChordProgression.tsx";
 import { DrumGridDiagram } from "./DrumGrid.tsx";
+import { DynamicCurveDiagram } from "./DynamicCurveDiagram.tsx";
 import { EnergyCurveDiagram } from "./EnergyCurve.tsx";
 import { FrequencyBandsDiagram } from "./FrequencyBands.tsx";
+import { HarmonyFunctionDiagram } from "./HarmonyFunctionDiagram.tsx";
+import { IntervalDiagram } from "./IntervalDiagram.tsx";
 import { KeyboardLayoutDiagram } from "./KeyboardLayout.tsx";
 import { LayerStackDiagram } from "./LayerStack.tsx";
+import { ScaleDegreesDiagram } from "./ScaleDegreesDiagram.tsx";
+import { SectionTimelineDiagram } from "./SectionTimelineDiagram.tsx";
 import { SemitoneRulerDiagram } from "./SemitoneRuler.tsx";
 import { SidechainCurveDiagram } from "./SidechainCurve.tsx";
 
@@ -71,6 +77,30 @@ const RENDERERS: Record<DiagramKind, (context: DiagramContext) => ReactNode> = {
   "layer-stack": ({ spec, lesson }) => (
     <LayerStackDiagram caption={spec.caption} columns={stageOf(lesson)?.layerStack ?? []} />
   ),
+  "interval-size": ({ spec, lesson, onPlay }) => (
+    <IntervalDiagram caption={spec.caption} intervals={stageOf(lesson)?.intervals ?? []} onPlay={onPlay} />
+  ),
+  "chord-build": ({ spec, lesson, onPlay }) => (
+    <ChordBuildDiagram caption={spec.caption} stacks={stageOf(lesson)?.chordStack ?? []} onPlay={onPlay} />
+  ),
+  "scale-degrees": ({ spec, lesson, onPlay }) => (
+    <ScaleDegreesDiagram caption={spec.caption} steps={stageOf(lesson)?.scaleSteps ?? []} onPlay={onPlay} />
+  ),
+  "harmony-function": ({ spec, lesson, onPlay }) => (
+    <HarmonyFunctionDiagram
+      caption={spec.caption}
+      functions={stageOf(lesson)?.functions ?? []}
+      onPlay={onPlay}
+    />
+  ),
+  "dynamic-curve": ({ spec, lesson }) => {
+    const stage = stageOf(lesson);
+    return stage ? <DynamicCurveDiagram caption={spec.caption} lesson={stage} /> : null;
+  },
+  "section-timeline": ({ spec, lesson }) => {
+    const stage = stageOf(lesson);
+    return stage ? <SectionTimelineDiagram caption={spec.caption} lesson={stage} /> : null;
+  },
 };
 
 /** 所有登记在册的图种。测试拿它对照内容层用到的图种。 */

@@ -73,4 +73,16 @@ export const lesson: StageLessonEntry = defineLesson({
     ]),
   ],
   handCorrect: 0,
+  functions: [
+    { code: "T", label: "主功能", role: "稳定，停得住", symbol: "I · vi", midis: [60, 64, 67] },
+    { code: "S", label: "下属功能", role: "铺垫，想往上", symbol: "ii · IV", midis: [65, 69, 72] },
+    { code: "D", label: "属功能", role: "悬着，要解决", symbol: "V · vii°", midis: [67, 71, 74] },
+  ],
+  diagrams: [
+    {
+      kind: "harmony-function",
+      caption:
+        "同样的和弦，作用可能完全不同——区别不在音色，在它想往哪走。T → S → D → T 就是起承转合：稳定、铺垫、悬起、落地。两个常见错误是连着两个 S（听着没推进）和连着两个 D（一直悬着）。点一块能听它的代表和弦。",
+    },
+  ],
 });

@@ -138,4 +138,16 @@ export const lesson: StageLessonEntry = defineLesson({
   totalBars: 1,
   marker: "Level3",
   prereq: [2],
+  intervals: [
+    { from: 60, to: 67, size: "五度", quality: "纯五度", semitones: 7, harmony: "稳", note: "最稳" },
+    { from: 60, to: 64, size: "三度", quality: "大三度", semitones: 4, harmony: "稳" },
+    { from: 60, to: 61, size: "二度", quality: "小二度", semitones: 1, harmony: "挤", note: "最难听" },
+  ],
+  diagrams: [
+    {
+      kind: "interval-size",
+      caption:
+        "度数按音名数（第一个音算 1），性质看它落在哪个调里——这是两件事。所有音程共用一条音高刻度，所以纯五那一截长、小二度那两点几乎贴在一起：挤不挤不用形容。点一对能听出来。",
+    },
+  ],
 });

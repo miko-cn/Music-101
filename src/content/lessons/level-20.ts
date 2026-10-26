@@ -28,8 +28,8 @@ export const lesson: StageLessonEntry = defineLesson({
   totalBars: 8,
   prereq: [13],
   sections: [
-    { name: "Verse", startBar: 0, bars: 4 },
-    { name: "Chorus", startBar: 4, bars: 4 },
+    { name: "Verse", startBar: 0, bars: 4, velocity: 70 },
+    { name: "Chorus", startBar: 4, bars: 4, velocity: 110 },
   ],
   concept: [
     "力度让歌呼吸。主歌收着点，副歌推上去。全程同一个力度，段落会糊成一条直线。",
@@ -54,4 +54,11 @@ export const lesson: StageLessonEntry = defineLesson({
     choice("全程 90", [], [], [track("BASS", 0, notesAt([0, 1, 2, 3, 4, 5, 6, 7], 48, 90))]),
   ],
   handCorrect: 0,
+  diagrams: [
+    {
+      kind: "dynamic-curve",
+      caption:
+        "力度写在每个音符的 velocity 上。主歌放 70 留住余地，副歌推到 110——曲线要看得见台阶，不是平滑直线。全程顶满的副歌听不出副歌，因为没有对比就没有参照。",
+    },
+  ],
 });

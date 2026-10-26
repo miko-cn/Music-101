@@ -61,4 +61,28 @@ export const lesson: StageLessonEntry = defineLesson({
     ]),
   ],
   handCorrect: 0,
+  layerStack: [
+    {
+      title: "主歌",
+      layers: [
+        { name: "kick", note: "节奏底盘" },
+        { name: "贝斯", note: "接住根音" },
+      ],
+    },
+    {
+      title: "副歌",
+      layers: [
+        { name: "kick", note: "沿用主歌" },
+        { name: "贝斯", note: "沿用主歌" },
+        { name: "supersaw 和弦", added: true, note: "加一条轨 = 抬层" },
+      ],
+    },
+  ],
+  diagrams: [
+    {
+      kind: "layer-stack",
+      caption:
+        "抬层 = 多一条真实轨道，不是把音量拧大。加音量让副歌和主歌一起变响，差别被抹平；加轨让副歌多出主歌没有的东西，差别才被听见。所以主歌要主动留空。",
+    },
+  ],
 });

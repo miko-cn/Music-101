@@ -62,4 +62,11 @@ export const lesson: StageLessonEntry = defineLesson({
     ]),
   ],
   handCorrect: 0,
+  diagrams: [
+    {
+      kind: "section-timeline",
+      caption:
+        "16 小节不是 16 小节，是三段：前奏 4 + 主歌 4 + 副歌 8。段落的长短是小节数，不是感觉——副歌给 8 小节才够记住，4 小节刚起势就结束。",
+    },
+  ],
 });

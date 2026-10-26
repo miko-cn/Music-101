@@ -139,4 +139,20 @@ export const lesson: StageLessonEntry = defineLesson({
   totalBars: 1,
   marker: "Level5",
   prereq: [3, 4],
+  scaleSteps: [
+    { name: "C", midi: 60, degree: "1", role: "主音" },
+    { name: "D", midi: 62, degree: "2", role: "上主音" },
+    { name: "E", midi: 64, degree: "3", role: "中音" },
+    { name: "F", midi: 65, degree: "4", role: "下属音" },
+    { name: "G", midi: 67, degree: "5", role: "属音" },
+    { name: "A", midi: 69, degree: "6", role: "下中音" },
+    { name: "B", midi: 71, degree: "7", role: "导音" },
+  ],
+  diagrams: [
+    {
+      kind: "scale-degrees",
+      caption:
+        "一个调 = 键盘上一组固定的键。C 大调就是这七个白键，黑键全被压暗——调外音不是错，是有意的借用。级数就是位置：主音是第 1 级，听起来「回家」的那个音。点键能听出来。",
+    },
+  ],
 });

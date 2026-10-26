@@ -60,4 +60,19 @@ export const lesson: StageLessonEntry = defineLesson({
     ]),
   ],
   handCorrect: 0,
+  frequencyBands: {
+    axis: { min: 20, max: 200 },
+    zone: { from: 20, to: 45, label: "808 别待在这：低于约 43Hz" },
+    bands: [
+      { label: "kick 瞬态", role: "kick", from: 20, to: 45, note: "短，一下一下", demoMidi: 24 },
+      { label: "808 根音", role: "808", from: 45, to: 120, note: "长，跟根音走", demoMidi: 36 },
+    ],
+  },
+  diagrams: [
+    {
+      kind: "frequency-bands",
+      caption:
+        "分工是「谁待在哪」：kick 的瞬态留在最低的那段，808 的根音放在 MIDI 36 附近（约 65Hz）。808 掉进 43Hz 以下又和 kick 同小节，低频就糊成一块。点一条能听那个音高。",
+    },
+  ],
 });

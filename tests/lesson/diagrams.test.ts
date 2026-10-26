@@ -15,8 +15,8 @@ function hz(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12);
 }
 
-/** 第一批要配图的关号。 */
-const DIAGRAMMED = [1, 2, 7, 10, 12, 13, 18, 22];
+/** 要配图的关号（第一批 8 关 + 第二批 9 关）。 */
+const DIAGRAMMED = [1, 2, 3, 4, 5, 7, 9, 10, 11, 12, 13, 15, 18, 20, 22, 25, 26];
 
 describe("教学图 · 内容层", () => {
   it("第一批要配图的关卡都声明了图", () => {
@@ -163,5 +163,116 @@ describe("教学图 · 键盘几何", () => {
     expect(blackAfter.has(6)).toBe(false); // B 后面没有黑键
     expect(blackAfter.has(0)).toBe(true);
     expect(blackAfter.has(1)).toBe(true);
+  });
+});
+
+describe("教学图 · 第二批的数据要齐", () => {
+  it("第 3 关的音程：标出来的半音数就是真的半音数", () => {
+    const lesson = lessonById(3)!;
+    const intervals = isStageLesson(lesson) ? lesson.intervals ?? [] : [];
+    expect(intervals.length).toBeGreaterThanOrEqual(3);
+    for (const item of intervals) {
+      expect(item.to - item.from, `${item.quality} 的半音数对不上`).toBe(item.semitones);
+      expect(item.size.length).toBeGreaterThan(0);
+      expect(item.quality.length).toBeGreaterThan(0);
+    }
+    // 小二度必须比纯五挤：半音更少、协和度更差。
+    const tight = intervals.find((item) => item.harmony === "挤");
+    const wide = intervals.find((item) => item.harmony === "稳");
+    expect(tight, "没有标出「挤」的音程").toBeDefined();
+    expect(wide, "没有标出「稳」的音程").toBeDefined();
+    expect(tight!.semitones).toBeLessThan(wide!.semitones);
+  });
+
+  it("第 4 关的和弦堆叠：根音、五音一样，只有三音差半音", () => {
+    const lesson = lessonById(4)!;
+    const stacks = isStageLesson(lesson) ? lesson.chordStack ?? [] : [];
+    expect(stacks.length).toBe(2);
+    for (const stack of stacks) {
+      expect(stack.midis.length).toBe(3);
+      expect(stack.roles).toEqual(["根音", "三音", "五音"]);
+    }
+    const [major, minor] = stacks;
+    expect(major!.midis[0]).toBe(minor!.midis[0]); // 根音一样
+    expect(major!.midis[2]).toBe(minor!.midis[2]); // 五音一样
+    expect(major!.midis[1]! - minor!.midis[1]!).toBe(1); // 三音差半音
+    // 拼写必须跟正文一致：小三的三音在 C 小调里是 E♭，不是 D♯。
+    expect(major!.names).toEqual(["C", "E", "G"]);
+    expect(minor!.names).toEqual(["C", "E♭", "G"]);
+  });
+
+  it("第 5 关节阶级数：七级齐全，而且全是 C 大调的音", () => {
+    const lesson = lessonById(5)!;
+    const steps = isStageLesson(lesson) ? lesson.scaleSteps ?? [] : [];
+    expect(steps.map((step) => step.degree)).toEqual(["1", "2", "3", "4", "5", "6", "7"]);
+    const cMajor = [60, 62, 64, 65, 67, 69, 71];
+    expect(steps.map((step) => step.midi)).toEqual(cMajor);
+  });
+
+  it("第 9 关的层数：装饰轨不算层，副歌比主歌多一层", () => {
+    const lesson = lessonById(9)!;
+    const columns = isStageLesson(lesson) ? lesson.layerStack ?? [] : [];
+    expect(columns.length).toBe(2);
+    const count = (column: (typeof columns)[number]) =>
+      column.layers.filter((layer) => !layer.decorative).length;
+    const verse = columns[0]!;
+    const chorus = columns[1]!;
+    // 副歌比主歌多两层真实轨道（kick + supersaw）。
+    expect(count(chorus)).toBe(count(verse) + 2);
+    expect(chorus.layers.filter((layer) => layer.added)).toHaveLength(2);
+    // FX 是装饰轨：它在场，但不计入层数。
+    expect(chorus.layers.some((layer) => layer.decorative)).toBe(true);
+    expect(chorus.layers.filter((layer) => layer.decorative)).toHaveLength(1);
+    // 装饰轨不参与「+2 层」的标注。
+    expect(chorus.layers.filter((layer) => layer.added && !layer.decorative)).toHaveLength(2);
+  });
+
+  it("第 11 关的频段：kick 在最低、808 根音在它上面", () => {
+    const lesson = lessonById(11)!;
+    const bands = isStageLesson(lesson) ? lesson.frequencyBands : undefined;
+    expect(bands).toBeDefined();
+    const [kick, eightZeroEight] = bands!.bands;
+    expect(kick!.to).toBeLessThanOrEqual(eightZeroEight!.from);
+    // 示例音必须落在自己的频段里。
+    for (const band of bands!.bands) {
+      if (band.demoMidi === undefined) continue;
+      const frequency = hz(band.demoMidi);
+      expect(frequency).toBeGreaterThanOrEqual(band.from);
+      expect(frequency).toBeLessThanOrEqual(band.to);
+    }
+  });
+
+  it("第 15 关的和声功能：T → S → D，而且每块都有代表和弦", () => {
+    const lesson = lessonById(15)!;
+    const functions = isStageLesson(lesson) ? lesson.functions ?? [] : [];
+    expect(functions.map((item) => item.code)).toEqual(["T", "S", "D"]);
+    for (const item of functions) {
+      expect(item.label.length).toBeGreaterThan(0);
+      expect(item.role.length).toBeGreaterThan(0);
+      expect(item.midis?.length ?? 0, `${item.code} 没有代表和弦`).toBe(3);
+    }
+  });
+
+  it("第 20 关的力度：主歌收着，副歌推上去", () => {
+    const lesson = lessonById(20)!;
+    const sections = isStageLesson(lesson) ? lesson.sections ?? [] : [];
+    const verse = sections.find((section) => section.name === "Verse");
+    const chorus = sections.find((section) => section.name === "Chorus");
+    expect(verse?.velocity).toBe(70);
+    expect(chorus?.velocity).toBe(110);
+    expect(chorus!.velocity!).toBeGreaterThan(verse!.velocity!);
+  });
+
+  it("第 26 关的结构：段落首尾相接，正好铺满 16 小节", () => {
+    const lesson = lessonById(26)!;
+    const sections = isStageLesson(lesson) ? lesson.sections ?? [] : [];
+    expect(sections.length).toBeGreaterThanOrEqual(3);
+    let cursor = 0;
+    for (const section of sections) {
+      expect(section.startBar, `段落 ${section.name} 跟上一段接不上`).toBe(cursor);
+      expect(section.bars).toBeGreaterThan(0);
+      cursor += section.bars;
+    }
+    expect(cursor).toBe(isStageLesson(lesson) ? lesson.totalBars : -1);
   });
 });

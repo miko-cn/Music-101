@@ -138,4 +138,29 @@ export const lesson: StageLessonEntry = defineLesson({
   totalBars: 1,
   marker: "Level4",
   prereq: [3],
+  chordStack: [
+    {
+      symbol: "C",
+      quality: "大三和弦",
+      midis: [60, 64, 67],
+      names: ["C", "E", "G"],
+      roles: ["根音", "三音", "五音"],
+      note: "亮",
+    },
+    {
+      symbol: "Cm",
+      quality: "小三和弦",
+      midis: [60, 63, 67],
+      names: ["C", "E♭", "G"],
+      roles: ["根音", "三音", "五音"],
+      note: "暗",
+    },
+  ],
+  diagrams: [
+    {
+      kind: "chord-build",
+      caption:
+        "和弦 = 三度一层层叠上去：根音、三音、五音。大小只由中间那个音决定——三音降半音，整和弦就变暗，这是最快的情绪开关。点一个和弦能听出来。",
+    },
+  ],
 });

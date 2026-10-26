@@ -926,6 +926,11 @@ body:focus-visible,
   stroke-dasharray: 4 3;
 }
 
+/* 循环箭头（回到 T）：金色，跟「解决」那一步对上。 */
+.diagram .dg-loop-gold {
+  stroke: rgba(255, 214, 102, 0.85);
+}
+
 .diagram .dg-marker {
   fill: none;
   stroke-width: 2;
@@ -970,6 +975,16 @@ body:focus-visible,
   font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif", serif;
   font-size: 11px;
   fill: #1c1c22;
+}
+
+/*
+ * 同样是音名，但不在白键上（画在暗底上）——所以字反过来用浅色。
+ * 踩过的坑：直接复用 dg-key-name，字是深色，落在暗底上等于没有。
+ */
+.diagram .dg-note {
+  font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif", serif;
+  font-size: 13px;
+  fill: rgba(255, 255, 255, 0.92);
 }
 
 .diagram .dg-callout {
@@ -1156,4 +1171,102 @@ body:focus-visible,
 .diagram .dg-band-other {
   fill: rgba(255, 255, 255, 0.12);
   stroke: rgba(255, 255, 255, 0.3);
+}
+
+/* —— 第二批教学图 —— */
+
+/* 音程：两个音之间那一截。 */
+.dg-interval {
+  stroke: #4096ff;
+  stroke-linecap: round;
+}
+
+.dg-interval-tight {
+  stroke: #ff9c6e;
+}
+
+/* 和弦三度堆叠：中间那层是情绪开关。 */
+.diagram .dg-block-third {
+  fill: rgba(255, 214, 102, 0.16);
+  stroke: rgba(255, 214, 102, 0.6);
+}
+
+.dg-chord-strong {
+  font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif", serif;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* 实心箭头（比线条更醒目）。 */
+.dg-arrow-fill {
+  fill: rgba(255, 255, 255, 0.45);
+}
+
+.dg-loop-fill {
+  fill: rgba(255, 214, 102, 0.55);
+}
+
+/* 音阶级数。 */
+.diagram .dg-degree {
+  font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif", serif;
+  font-size: 17px;
+  fill: #ffd666;
+}
+
+.diagram .dg-degree-inline {
+  font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif", serif;
+  font-size: 14px;
+  fill: #ffd666;
+}
+
+/* 调内的键高亮，调外的压暗。 */
+.diagram .dg-key-on {
+  fill: #ffe9ad;
+}
+
+.diagram .dg-key-off {
+  fill: rgba(244, 241, 234, 0.32);
+}
+
+.diagram .dg-key-black-on {
+  fill: #8a6d1f;
+}
+
+.diagram .dg-key-black-off {
+  fill: rgba(24, 24, 30, 0.78);
+}
+
+/* 和声功能代号。 */
+.diagram .dg-function-code {
+  font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif", serif;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+/* 结构时间轴的段落配色（交替）。 */
+.diagram .dg-slot-a {
+  fill: rgba(64, 150, 255, 0.18);
+  stroke: rgba(64, 150, 255, 0.45);
+}
+
+.diagram .dg-slot-b {
+  fill: rgba(255, 214, 102, 0.16);
+  stroke: rgba(255, 214, 102, 0.45);
+}
+
+.diagram .dg-slot-c {
+  fill: rgba(115, 192, 222, 0.16);
+  stroke: rgba(115, 192, 222, 0.45);
+}
+
+.diagram .dg-slot-d {
+  fill: rgba(179, 127, 235, 0.16);
+  stroke: rgba(179, 127, 235, 0.45);
+}
+
+/* 装饰轨（FX / CHOP）：不算层数，用虚线框标出来。 */
+.diagram .dg-layer-decorative {
+  fill: rgba(255, 255, 255, 0.03);
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-dasharray: 5 4;
 }
