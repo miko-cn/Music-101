@@ -63,7 +63,12 @@ describe("设计 token", () => {
 
   it("View Transition 的伪元素也有 reduced-motion 降级", () => {
     const css = readFileSync(join(ROOT, "src", "ui", "motion.css"), "utf8");
-    expect(css).toMatch(/::view-transition-group\(\*\)/);
+    // media 块的收尾大括号顶格，块内规则都缩进：截到第一个顶格的 } 就是整个块。
+    const start = css.indexOf("@media (prefers-reduced-motion: reduce)");
+    expect(start).toBeGreaterThanOrEqual(0);
+    const end = css.indexOf("\n}", start);
+    const reduced = css.slice(start, end === -1 ? undefined : end);
+    expect(reduced).toMatch(/::view-transition-group\(\*\)/);
   });
 
   it("CSS 里引用的每个 token 都定义过", () => {

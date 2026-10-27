@@ -131,4 +131,16 @@ describe("select 与 milestone", () => {
       expect(steps.map((step) => step.midi - root)).toEqual([0, SCALE_INTERVALS[keyScale][2], SCALE_INTERVALS[keyScale][4]]);
     }
   });
+
+  it("milestone 的根音在连对第 5 题最后一个音上方一两个半音：往上解决到主音", () => {
+    for (const options of [
+      { keyRoot: 0, keyScale: "major" },
+      { keyRoot: 9, keyScale: "naturalMinor" },
+    ] as const) {
+      const root = sfxSteps("milestone", options)[0].midi;
+      const lastCorrect = sfxSteps("correct", { ...options, streak: 5 }).at(-1)!.midi;
+      expect(root).toBeGreaterThan(lastCorrect);
+      expect([1, 2]).toContain(root - lastCorrect);
+    }
+  });
 });

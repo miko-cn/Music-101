@@ -18,7 +18,7 @@ export interface SoundPrefs {
 export const DEFAULT_SOUND_PREFS: SoundPrefs = { sfxVolume: 0.8, sfxMuted: false };
 
 function clamp01(value: number): number {
-  return Math.min(1, Math.max(0, value));
+  return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

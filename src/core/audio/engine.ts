@@ -280,7 +280,7 @@ export function createEngine(): MusicEngine | null {
    * 渲染一个反馈音。
    *
    * 走的是独立的一条总线（bus），不是 master——反馈音要能单独压低，
-   * 不能跟着音乐一起推。音色沿用引擎里已有的两种：pluck（拨弦）和 bass（低通闷响）。
+   * 不能跟着音乐一起推。音色有三种：pluck（拨弦）、bass（低通闷响）和 pure（正弦，跟听辨题同一个音色）。
    */
   const renderSfxStep = (
     voice: SfxVoice,

@@ -32,6 +32,16 @@ describe("声音偏好", () => {
     });
   });
 
+  it("溢出成 Infinity 的音量回退默认值", () => {
+    expect(parseSoundPrefs('{"sound":{"sfxVolume":1e999,"sfxMuted":false}}').sfxVolume).toBe(
+      DEFAULT_SOUND_PREFS.sfxVolume,
+    );
+  });
+
+  it("NaN 音量的有效音量是 0", () => {
+    expect(effectiveSfxVolume({ sfxVolume: NaN, sfxMuted: false })).toBe(0);
+  });
+
   it("静音时有效音量是 0", () => {
     expect(effectiveSfxVolume({ sfxVolume: 0.6, sfxMuted: true })).toBe(0);
     expect(effectiveSfxVolume({ sfxVolume: 0.6, sfxMuted: false })).toBe(0.6);

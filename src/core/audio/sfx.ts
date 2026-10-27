@@ -70,8 +70,9 @@ function pitchAt(octave: number, root: PitchClass): number {
 /**
  * 排出一条反馈音效。
  *
- * 三条音效的形状都跟语义同构，这是刻意的：
- * 上行 = 对了，下行 = 不对，琶音展开 = 过关。
+ * 每条音效的形状都跟语义同构，这是刻意的：
+ * 上行 = 对了，下行 = 不对，琶音展开 = 过关，
+ * 一个轻音 = 点到了，和弦同时落定 = 里程碑。
  */
 export function sfxSteps(cue: SfxCue, options: SfxOptions = {}): SfxStep[] {
   const root = options.keyRoot ?? DEFAULT_ROOT;
@@ -107,11 +108,13 @@ export function sfxSteps(cue: SfxCue, options: SfxOptions = {}): SfxStep[] {
 
   if (cue === "milestone") {
     // 连对里程碑：主三和弦同时响，像一声和弦落定。
+    // 放在高八度：连对第 5 题的答对音停在第 7 级（大调是导音），
+    // 根音在上方才是往上解决到主音；放在 base 就成了往下跳七度，落不住。
     const third = intervals[2] ?? 4;
     const fifth = intervals[4] ?? 7;
     return [0, third, fifth].map((interval) => ({
       voice: "pluck" as const,
-      midi: base + interval,
+      midi: base + 12 + interval,
       offset: MILESTONE_DELAY,
       duration: 0.5,
     }));
