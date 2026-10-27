@@ -14,6 +14,7 @@ import { MemoryAnchors } from "./ui/MemoryAnchors.tsx";
 import { PathMap } from "./ui/PathMap.tsx";
 import { ProgressBoard } from "./ui/ProgressBoard.tsx";
 import { ReviewDeck } from "./ui/ReviewDeck.tsx";
+import { SoundToggle } from "./ui/SoundToggle.tsx";
 import { TheoryBench } from "./ui/TheoryBench.tsx";
 import { palette, radii } from "./ui/theme.ts";
 import "./ui/path.css";
@@ -192,6 +193,7 @@ export function App() {
                   </Button>
                 </>
               )}
+              <SoundToggle />
               <Tooltip title="全局键盘 · 查位置（快捷键 K）">
                 <Button onClick={() => setKeyboardOpen(true)}>键盘</Button>
               </Tooltip>

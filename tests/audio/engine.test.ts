@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { EAR_MELODIC_SPACING_SECONDS } from "../../src/core/audio/ear.ts";
+import type { MusicEngine } from "../../src/core/audio/engine.ts";
 
 /**
  * 引擎在浏览器里跑，测试里用一个假的 AudioContext 顶替，
@@ -67,6 +68,8 @@ class FakeAudioContext {
   stopped: { when: number }[] = [];
   /** 所有创建过的增益节点。 */
   gains: FakeParam[] = [];
+  /** createConvolver 被调用的次数：混响只该建一次。 */
+  convolvers = 0;
 
   constructor() {
     FakeAudioContext.instances.push(this);
@@ -121,6 +124,11 @@ class FakeAudioContext {
 
   createBuffer(_channels: number, length: number) {
     return { getChannelData: () => new Float32Array(length) };
+  }
+
+  createConvolver() {
+    this.convolvers += 1;
+    return { buffer: null as unknown, connect: (node: unknown) => node };
   }
 
   async resume() {
@@ -286,5 +294,59 @@ describe("延音跟住按住时长", () => {
     engine.releasePitch(id);
     engine.releasePitch(id);
     expect(context.stopped).toHaveLength(4);
+  });
+});
+
+describe("反馈音总线", () => {
+  /**
+   * 假节点不记录连线，只能按创建顺序找总线：
+   * 它是第一次 playSfx 时创建的第一个增益节点。
+   */
+  function firstSfx(engine: MusicEngine, context: FakeAudioContext): FakeParam {
+    const before = context.gains.length;
+    engine.playSfx("correct");
+    const bus = context.gains[before];
+    if (!bus) throw new Error("playSfx 应该建出总线");
+    return bus;
+  }
+
+  it("总线懒创建：构造时不建，之后只建一次，混响也只建一次", async () => {
+    const { engine, context } = await makeEngine();
+    expect(context.convolvers).toBe(0);
+    const base = context.gains.length;
+    engine.playSfx("correct");
+    const first = context.gains.length - base;
+    engine.playSfx("correct");
+    const second = context.gains.length - base - first;
+    expect(context.convolvers).toBe(1);
+    // 第一次比第二次多出的正好是总线和湿声两个节点；之后只建各音自己的包络。
+    expect(first - second).toBe(2);
+  });
+
+  it("setSfxVolume(0) 之后总线增益为 0；总线还没建时先记住音量", async () => {
+    const { engine, context } = await makeEngine();
+    engine.setSfxVolume(0);
+    const bus = firstSfx(engine, context);
+    expect(bus.value).toBe(0);
+    engine.setSfxVolume(1);
+    expect(bus.value).toBeCloseTo(0.7);
+  });
+
+  it("音量变化作用在已有总线上，并且是平滑过渡而不是跳值", async () => {
+    const { engine, context } = await makeEngine();
+    const bus = firstSfx(engine, context);
+    expect(bus.value).toBeCloseTo(0.7);
+    engine.setSfxVolume(0.5);
+    expect(bus.value).toBeCloseTo(0.35);
+    expect(bus.calls.at(-1)?.type).toBe("setTargetAtTime");
+  });
+
+  it("越界和非有限的音量被夹住", async () => {
+    const { engine, context } = await makeEngine();
+    const bus = firstSfx(engine, context);
+    engine.setSfxVolume(2);
+    expect(bus.value).toBeCloseTo(0.7);
+    engine.setSfxVolume(Number.NaN);
+    expect(bus.value).toBe(0);
   });
 });
