@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { sfxSteps } from "../../src/core/audio/sfx.ts";
-import { SCALE_INTERVALS } from "../../src/core/theory/scale.ts";
+import { SCALE_INTERVALS, getScalePitches } from "../../src/core/theory/scale.ts";
+
+const SCALES = ["major", "naturalMinor", "harmonicMinor", "melodicMinor"] as const;
 
 /**
  * 反馈音效的音高关系。
@@ -76,5 +78,57 @@ describe("音效跟着关卡的调走", () => {
     const c = sfxSteps("correct", { keyRoot: 0 });
     const f = sfxSteps("correct", { keyRoot: 5 });
     expect(f[0]!.midi).toBe(c[0]!.midi + 5);
+  });
+});
+
+describe("连对爬音阶", () => {
+  it("streak 缺省、streak 1、streak 0 都等于原来的答对音", () => {
+    const plain = sfxSteps("correct");
+    expect(sfxSteps("correct", { streak: 1 })).toEqual(plain);
+    expect(sfxSteps("correct", { streak: 0 })).toEqual(plain);
+  });
+
+  it("1–5 档：第一个音严格上行，两个音都在调内，间隔是调内三度", () => {
+    for (const keyScale of SCALES) {
+      for (let keyRoot = 0; keyRoot < 12; keyRoot += 1) {
+        const inKey = new Set<number>(getScalePitches(keyRoot as never, keyScale));
+        let previous = -Infinity;
+        for (let streak = 1; streak <= 5; streak += 1) {
+          const [first, second] = sfxSteps("correct", { keyRoot: keyRoot as never, keyScale, streak });
+          expect(first.midi).toBeGreaterThan(previous);
+          previous = first.midi;
+          expect(inKey.has(first.midi % 12)).toBe(true);
+          expect(inKey.has(second.midi % 12)).toBe(true);
+          expect([3, 4]).toContain(second.midi - first.midi);
+        }
+      }
+    }
+  });
+
+  it("超过 5 档封顶，不再往上爬", () => {
+    expect(sfxSteps("correct", { streak: 9 })).toEqual(sfxSteps("correct", { streak: 5 }));
+  });
+});
+
+describe("select 与 milestone", () => {
+  it("select：一个很轻的短音，落在调内第 5 级", () => {
+    const steps = sfxSteps("select", { keyRoot: 2, keyScale: "major" });
+    expect(steps).toHaveLength(1);
+    expect(steps[0].duration).toBeLessThanOrEqual(0.08);
+    expect(steps[0].gain).toBeLessThan(1);
+    expect((steps[0].midi - 2) % 12).toBe(7);
+  });
+
+  it("milestone：主三和弦同时响，整体排在答对音之后", () => {
+    for (const keyScale of SCALES) {
+      const steps = sfxSteps("milestone", { keyRoot: 0, keyScale });
+      expect(steps).toHaveLength(3);
+      const offsets = new Set(steps.map((step) => step.offset));
+      expect(offsets.size).toBe(1);
+      const correctEnd = Math.max(...sfxSteps("correct").map((step) => step.offset));
+      expect(steps[0].offset).toBeGreaterThan(correctEnd);
+      const root = steps[0].midi;
+      expect(steps.map((step) => step.midi - root)).toEqual([0, SCALE_INTERVALS[keyScale][2], SCALE_INTERVALS[keyScale][4]]);
+    }
   });
 });

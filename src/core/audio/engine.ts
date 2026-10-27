@@ -288,6 +288,8 @@ export function createEngine(): MusicEngine | null {
     duration: number,
     midi: number,
     bus: GainNode,
+    // 不叫 gain：下面每条支路都有个局部 gain 节点，同名会把参数遮住。
+    level = 1,
   ) => {
     const frequency = midiToFrequency(midi);
     if (voice === "bass") {
@@ -298,7 +300,7 @@ export function createEngine(): MusicEngine | null {
       osc.frequency.setValueAtTime(frequency, when);
       const filter = lowpass(context, spec.lowpassHz);
       const shape = waveshaper(context, spec.drive);
-      const gain = envelope(context, when, duration, 0.28);
+      const gain = envelope(context, when, duration, 0.28 * level);
       osc.connect(filter).connect(shape).connect(gain).connect(bus);
       track(osc, when, duration);
       return;
@@ -307,8 +309,8 @@ export function createEngine(): MusicEngine | null {
       const spec = PLAIN_TONE;
       const hold = Math.max(duration, spec.attackSeconds + 0.01);
       const voices = [
-        { frequency, gain: spec.peak },
-        { frequency: frequency * 2, gain: spec.peak * spec.octaveGain },
+        { frequency, gain: spec.peak * level },
+        { frequency: frequency * 2, gain: spec.peak * spec.octaveGain * level },
       ];
       for (const item of voices) {
         const osc = context.createOscillator();
@@ -331,7 +333,7 @@ export function createEngine(): MusicEngine | null {
     osc.frequency.setValueAtTime(frequency, when);
     const filter = lowpass(context, spec.lowpassHz);
     const shape = waveshaper(context, spec.drive);
-    const gain = envelope(context, when, duration, 0.3);
+    const gain = envelope(context, when, duration, 0.3 * level);
     osc.connect(filter).connect(shape).connect(gain).connect(bus);
     track(osc, when, duration);
   };
@@ -380,7 +382,7 @@ export function createEngine(): MusicEngine | null {
       bus.connect(master);
       const origin = context.currentTime + 0.02;
       for (const step of sfxSteps(cue, options)) {
-        renderSfxStep(step.voice, origin + step.offset, step.duration, step.midi, bus);
+        renderSfxStep(step.voice, origin + step.offset, step.duration, step.midi, bus, step.gain ?? 1);
       }
     },
     playSteps(steps, midi, bpm) {
