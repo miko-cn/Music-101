@@ -80,24 +80,31 @@ export function createEngine(): MusicEngine | null {
   const REVERB_WET = 0.18;
   let sfxVolume = 1;
   let sfxBus: GainNode | null = null;
+  let sfxOut: GainNode | null = null;
 
   /*
-   * 反馈音总线懒创建：第一次播反馈音时才建。
+   * 反馈音总线懒创建：第一次播反馈音时才建（或者空闲时预热，见 createEngine 末尾）。
    * 一是它用不上就不该占节点；二是测试的假 AudioContext 只在需要时才要求有 createConvolver。
-   * 湿声回到 master，不回到总线——接回总线会回授。
+   *
+   * 音量放在干湿相加之后的 sfxOut 上，不放在入口：放在混响上游的话，
+   * 静音只切断新输入，已经进了混响的尾巴还会响完。
+   * 湿声回到下游的 sfxOut，不回入口——接回入口会回授。
    */
   const ensureSfxBus = (): GainNode => {
     if (sfxBus) return sfxBus;
     const bus = context.createGain();
-    bus.gain.value = SFX_LEVEL * sfxVolume;
-    bus.connect(master);
+    const out = context.createGain();
+    out.gain.value = SFX_LEVEL * sfxVolume;
+    out.connect(master);
+    bus.connect(out);
     const reverb = createRoomReverb(context);
     const wet = context.createGain();
     wet.gain.value = REVERB_WET;
     bus.connect(reverb);
     reverb.connect(wet);
-    wet.connect(master);
+    wet.connect(out);
     sfxBus = bus;
+    sfxOut = out;
     return bus;
   };
 
@@ -367,6 +374,9 @@ export function createEngine(): MusicEngine | null {
     track(osc, when, duration);
   };
 
+  // 冲激响应两声道要填十几万个采样，放到空闲时预先算好，第一次播反馈音时不卡这一下。
+  if (typeof requestIdleCallback === "function") requestIdleCallback(() => ensureSfxBus());
+
   return {
     async resume() {
       if (context.state === "suspended") await context.resume();
@@ -415,7 +425,7 @@ export function createEngine(): MusicEngine | null {
       // NaN 传进 setTargetAtTime 会直接抛 TypeError，所以非有限数按静音处理。
       sfxVolume = Number.isFinite(volume) ? Math.min(1, Math.max(0, volume)) : 0;
       // 用 setTargetAtTime 而不是直接赋值：拖音量条时直接跳值会有咔哒声。
-      sfxBus?.gain.setTargetAtTime(SFX_LEVEL * sfxVolume, context.currentTime, 0.015);
+      sfxOut?.gain.setTargetAtTime(SFX_LEVEL * sfxVolume, context.currentTime, 0.015);
     },
     playSteps(steps, midi, bpm) {
       const seconds = stepSeconds(bpm);
@@ -497,16 +507,20 @@ function createNoise(context: AudioContext, seconds: number): AudioBuffer {
 }
 
 /**
- * 程序生成的房间混响：白噪声乘一条指数衰减当冲激响应。
+ * 程序生成的房间混响：白噪声乘一条衰减曲线当冲激响应。
  * 不用录好的冲激响应文件——全站零音频资产。
+ *
+ * 衰减写死成三次方、用连乘：每个采样都要算一次，`**` 走的是通用幂运算，比连乘慢，
+ * 而全站只有这一种房间，不需要可调的衰减指数。
  */
-function createRoomReverb(context: AudioContext, seconds = 1.4, decay = 3): ConvolverNode {
+function createRoomReverb(context: AudioContext, seconds = 1.4): ConvolverNode {
   const length = Math.floor(context.sampleRate * seconds);
   const impulse = context.createBuffer(2, length, context.sampleRate);
   for (let channel = 0; channel < 2; channel += 1) {
     const data = impulse.getChannelData(channel);
     for (let index = 0; index < length; index += 1) {
-      data[index] = (Math.random() * 2 - 1) * (1 - index / length) ** decay;
+      const fade = 1 - index / length;
+      data[index] = (Math.random() * 2 - 1) * fade * fade * fade;
     }
   }
   const convolver = context.createConvolver();

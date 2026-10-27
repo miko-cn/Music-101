@@ -25,9 +25,14 @@ export function getSoundPrefs(): SoundPrefs {
 
 export function setSoundPrefs(next: SoundPrefs): void {
   prefs = next;
-  storage?.setItem(SETTINGS_KEY, serializeSoundPrefs(next));
   sharedEngine()?.setSfxVolume(effectiveSfxVolume(next));
   for (const listener of listeners) listener();
+  // 最后才写存储：隐私模式、配额满时 setItem 会抛，不能让它拦住界面和引擎。
+  try {
+    storage?.setItem(SETTINGS_KEY, serializeSoundPrefs(next));
+  } catch {
+    // 存不下就只在本次会话生效。
+  }
 }
 
 export function applySfxVolume(engine: MusicEngine): void {

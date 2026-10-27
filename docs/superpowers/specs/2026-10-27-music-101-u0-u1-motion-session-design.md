@@ -128,12 +128,15 @@ const navigate = (update: () => void, type: "forward" | "back" | "swap" = "swap"
 改成**懒创建的常驻总线**（第一次 `playSfx` 时建，不在 `createEngine()` 里建——`tests/audio/engine.test.ts` 的 `FakeAudioContext` 没有 `createConvolver`，构造期创建会让 12 个引擎测试全挂）：
 
 ```
-sfxBus (gain = 0.7 × 用户音量，静音时 0)
-  ├─→ master            干声
-  └─→ reverb → wet(0.18) → master   湿声
+sfxBus（入口，增益 1）
+  ├─→ sfxOut                         干声
+  └─→ reverb → wet(0.18) → sfxOut    湿声
+sfxOut (gain = 0.7 × 用户音量，静音时 0) → master
 ```
 
-- 湿声回到 **master**，不回到 `sfxBus`（会回授）
+- 音量放在干湿相加之后：放在混响上游的话，静音只切断新输入，已经在混响里的尾巴还会响完 1 秒多
+- 湿声回到下游的 `sfxOut`，不回到入口 `sfxBus`（会回授）
+- 冲激响应在 AudioContext 建好后的空闲时间预先生成（`requestIdleCallback`），不挤在第一次点击的同步链路里
 - master 的 0.8 不动：那是钢琴、听辨、侧链共用的电平
 - `playPump` 自己的总线不挂混响
 
@@ -183,7 +186,7 @@ export function effectiveSfxVolume(prefs: SoundPrefs): number; // 静音 → 0
 
 **开关放在顶栏「键盘」按钮旁边**：那是 learn / tools 两种模式共有的位置。放进 learn 分支的话，复习页和工具页里反馈音照响，开关却不见了。
 
-`src/ui/SoundToggle.tsx`：一个按钮（`aria-pressed` 表示静音），点开 antd `Popover`，里面一条 `Slider` + 一个「静音」`Switch`。拖动音量时实时调用 `setSfxVolume`，并播一声 `correct` 让人听见音量。
+`src/ui/SoundToggle.tsx`：一个按钮（`aria-haspopup="dialog"` + `aria-expanded`；它打开弹层，不切换静音，所以不用 `aria-pressed`；静音状态写在 `aria-label` 里），点开 antd `Popover`，里面一条 `Slider` + 一个「静音」`Switch`。拖动音量时实时调用 `setSfxVolume`，并播一声 `correct` 让人听见音量。
 
 ### 4.6 新增音效
 
