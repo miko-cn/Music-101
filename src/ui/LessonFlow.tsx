@@ -70,6 +70,16 @@ export function LessonFlow({
   const [earSession, setEarSession] = useState(() => createSession(lesson.ear, Date.now()));
   const [candidates, setCandidates] = useState<ReferenceCandidates | null>(null);
   const [visitTick, setVisitTick] = useState(0);
+  // 关号变了就在这次渲染里清空。放进 effect 的话，新关的题目会配着上一关的会话先画一帧。
+  const [seenId, setSeenId] = useState(lesson.id);
+  if (seenId !== lesson.id) {
+    setSeenId(lesson.id);
+    setStep(0);
+    setState(emptyStageState(lesson));
+    setEarSession(createSession(lesson.ear, Date.now()));
+    setHeld(new Set());
+    setCandidates(null);
+  }
   const seenLesson = useRef<number | null>(null);
   const visitId = useRef(`${lesson.id}:${Date.now()}`);
   const usedFix = useRef(false);
@@ -86,14 +96,6 @@ export function LessonFlow({
     }
   }
   const scalePitches = new Set(getScalePitches(lesson.keyRoot, lesson.keyScale));
-
-  useEffect(() => {
-    setStep(0);
-    setState(emptyStageState(lesson));
-    setEarSession(createSession(lesson.ear, Date.now()));
-    setHeld(new Set());
-    setCandidates(null);
-  }, [lesson.id]);
 
   useEffect(() => {
     if (!pendingRecipe || pendingRecipe.levelId !== lesson.id) return;

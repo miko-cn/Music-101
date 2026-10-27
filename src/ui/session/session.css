@@ -421,11 +421,12 @@
   color: var(--m101-bg);
 }
 
-.is-correct > .check-sheet-icon {
+/* 圆标在 .check-sheet-live 里面，子选择器穿不过那一层。 */
+.check-sheet-verdict.is-correct .check-sheet-icon {
   background: var(--m101-success);
 }
 
-.is-wrong > .check-sheet-icon {
+.check-sheet-verdict.is-wrong .check-sheet-icon {
   background: var(--m101-danger);
 }
 
