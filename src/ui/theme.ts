@@ -200,6 +200,11 @@ export const extras: Record<string, string> = {
   "paper-2": "#f5f5f7",
   // 投影。
   "shadow-ink": "rgba(0, 0, 0, 0.45)",
+  /** 可按压按钮的底边阴影：比各自底色深一档。 */
+  "press-neutral": "#0b0b10",
+  "press-brand": "#b8902a",
+  "press-success": "#4f8a32",
+  "press-danger": "#b0484b",
 };
 
 /** 圆角。 */

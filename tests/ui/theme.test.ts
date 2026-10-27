@@ -79,6 +79,8 @@ describe("设计 token", () => {
     const files = [
       join(ROOT, "src", "styles.css"),
       join(ROOT, "src", "ui", "motion.css"),
+      join(ROOT, "src", "ui", "path.css"),
+      join(ROOT, "src", "ui", "session", "session.css"),
     ];
     for (const file of files) {
       const css = readFileSync(file, "utf8");

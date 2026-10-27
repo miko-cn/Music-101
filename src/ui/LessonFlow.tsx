@@ -11,6 +11,7 @@ import {
   recipeFromStage,
 } from "../core/lesson/personalize.ts";
 import { observeAttempt, recordVisit, saveRecipe, type ProgressFile, type ProgressUpdate, type Recipe } from "../core/lesson/progress.ts";
+import { LESSON_POLICY, createSession, sessionSummary } from "../core/lesson/session.ts";
 import {
   STAGE_FIX_HAND,
   applyStageFix,
@@ -32,8 +33,8 @@ import { EnergyChart } from "./DiagnosticsLab.tsx";
 import { LessonDiagrams } from "./diagrams/index.tsx";
 import { LessonCoach } from "./LessonCoach.tsx";
 import { MemoryAnchorCard } from "./MemoryAnchorCard.tsx";
-import { EarQuiz } from "./EarQuiz.tsx";
 import { QuizGroup } from "./QuizOption.tsx";
+import { QuizSession } from "./session/QuizSession.tsx";
 import { useFeedbackSfx, useVerdictSfx } from "./useFeedbackSfx.ts";
 import { Piano } from "./Piano.tsx";
 import { Stepper } from "./Stepper.tsx";
@@ -66,6 +67,7 @@ export function LessonFlow({
   const [octave, setOctave] = useState(() => computerKeyboard.getOctave());
   const [held, setHeld] = useState<ReadonlySet<PitchClass>>(() => new Set());
   const [state, setState] = useState<StageState>(() => emptyStageState(lesson));
+  const [earSession, setEarSession] = useState(() => createSession(lesson.ear, Date.now()));
   const [candidates, setCandidates] = useState<ReferenceCandidates | null>(null);
   const [visitTick, setVisitTick] = useState(0);
   const seenLesson = useRef<number | null>(null);
@@ -88,6 +90,7 @@ export function LessonFlow({
   useEffect(() => {
     setStep(0);
     setState(emptyStageState(lesson));
+    setEarSession(createSession(lesson.ear, Date.now()));
     setHeld(new Set());
     setCandidates(null);
   }, [lesson.id]);
@@ -160,6 +163,8 @@ export function LessonFlow({
     }
     if (step < 3 && !passed) return;
     const ear = stageEarScore(lesson, state.earAnswers);
+    // 两级提示允许改对，但把选项挨个试一遍刷出来的全对不该算「轻松」。
+    const earCorrect = Math.min(ear.correct, sessionSummary(earSession, lesson.ear).firstTryCorrect);
     onProgress((current) =>
       observeAttempt(
         current,
@@ -167,14 +172,14 @@ export function LessonFlow({
           visitId: visitId.current,
           levelId: lesson.id,
           passed,
-          earCorrect: ear.correct,
+          earCorrect,
           earTotal: ear.total,
           usedFix: usedFix.current,
           mistakes: seenMistakes.current,
         }),
       ),
     );
-  }, [lesson, step, passed, state.earAnswers, state.hand, visitTick, onProgress]);
+  }, [lesson, step, passed, state.earAnswers, earSession, state.hand, visitTick, onProgress]);
 
   const engine = async () => {
     const active = sharedEngine();
@@ -236,21 +241,23 @@ export function LessonFlow({
       {step === 1 && (
         <Card title="听辨">
           <p className="hint">
-            选完立刻知道对错。答错了先给你方向（这一关的记忆锚），实在想不出来再看答案。
+            一题一题来：选好了点检查（或按 Enter）。数字键 1、2、3 选选项，空格重播。
           </p>
-          <EarQuiz
-            items={lesson.ear}
-            answers={state.earAnswers}
-            onAnswer={(index, choice) =>
-              setState((current) => {
-                const earAnswers = current.earAnswers.slice();
-                earAnswers[index] = choice;
-                return { ...current, earAnswers };
-              })
-            }
-            hint={anchorHint(lesson.anchor.name, lesson.anchor.hook)}
+          <QuizSession
+            questions={lesson.ear}
+            state={earSession}
+            onState={(next) => {
+              setEarSession(next);
+              // 只同步定稿的答案：没检查完的题保持 null，评分和结算一行不改。
+              setState((current) => ({ ...current, earAnswers: next.committed }));
+            }}
+            policy={LESSON_POLICY}
+            seed={visitId.current}
+            fallbackHint={anchorHint(lesson.anchor.name, lesson.anchor.hook)}
             keyRoot={lesson.keyRoot}
             keyScale={lesson.keyScale}
+            passMark={lesson.earPass}
+            onFinish={() => setStep(2)}
           />
         </Card>
       )}
@@ -382,7 +389,12 @@ export function LessonFlow({
         <Button disabled={step === 0} onClick={() => setStep((current) => current - 1)}>
           上一步
         </Button>
-        <Button type="primary" disabled={step === STEPS.length - 1} onClick={() => setStep((current) => current + 1)}>
+        {/* 听辨没做完时让出主色：会话里的「检查 / 继续」才是这一屏的主行动。仍然可以跳步。 */}
+        <Button
+          type={step === 1 && earSession.finishedAt === null ? "default" : "primary"}
+          disabled={step === STEPS.length - 1}
+          onClick={() => setStep((current) => current + 1)}
+        >
           下一步
         </Button>
       </Flex>

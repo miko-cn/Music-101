@@ -263,6 +263,23 @@
   animation: m101-stamp var(--m101-dur-slow) var(--m101-ease-spring);
 }
 
+/*
+ * 可按压按钮：底边一条阴影，按下去整个按钮下沉、阴影收掉。
+ * box-shadow 只触发重绘、不触发布局，不违反「只动 transform / opacity」的本意
+ * （那条规矩防的是布局重排）。
+ */
+.m101-press {
+  box-shadow: 0 4px 0 var(--m101-press-neutral);
+  transition:
+    transform var(--m101-dur-fast) var(--m101-ease-out),
+    box-shadow var(--m101-dur-fast) var(--m101-ease-out);
+}
+
+.m101-press:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 var(--m101-press-neutral);
+}
+
 /* 只给屏幕阅读器读的文字。 */
 .sr-only {
   position: absolute;
