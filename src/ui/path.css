@@ -1,0 +1,214 @@
+/*
+ * 路径图。
+ *
+ * 路径图要解决的核心问题是「一眼看出该去哪」，
+ * 所以节点的状态区分必须比装饰更醒目：
+ * - 当前关：金色描边 + 呼吸（唯一会动的节点）
+ * - 卡住：红色描边 + 「上次没过」
+ * - 已掌握：安静地亮着，可以跳过
+ * - 没做过：中性描边
+ *
+ * 节点用圆角方块而不是纯圆点：方块能装下标题和口诀，
+ * 圆点装不下。学习者认的是名字，不是编号。
+ */
+
+/* 呼吸：路径上唯一会动的元素。 */
+@keyframes m101-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.path-map {
+  padding: 1rem 0 1.5rem;
+}
+
+.path-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--m101-line);
+}
+
+.path-title {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+/* 轨道：节点绝对定位，连线是一层 SVG。 */
+.path-track {
+  position: relative;
+  margin: 0 auto;
+}
+
+.path-track-line {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.path-track-line path {
+  fill: none;
+  stroke: var(--m101-line-strong);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.path-stage-title {
+  margin: 0 0 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--m101-text-dim);
+  text-align: center;
+}
+
+/* 阶段之间要断开——「地基 → 编曲 → 风格」是三次跳跃，看得见才对。 */
+.path-stage + .path-stage {
+  padding-top: 1.5rem;
+  margin-top: 0.5rem;
+  border-top: 1px dashed var(--m101-line);
+}
+
+/* 节点。
+   宽高由 core/lesson/path-layout.ts 的常量通过内联样式注入，
+   这里不要再写死一份——两份尺寸漂移了，节点就会盖住连线。 */
+.path-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--m101-line-strong);
+  border-radius: var(--m101-radius-lg);
+  background: var(--m101-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    border-color var(--m101-dur-fast) var(--m101-ease-out),
+    background-color var(--m101-dur-fast) var(--m101-ease-out),
+    transform var(--m101-dur-fast) var(--m101-ease-out),
+    box-shadow var(--m101-dur-fast) var(--m101-ease-out);
+}
+
+.path-node:hover {
+  border-color: var(--m101-brand-soft);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.path-node:focus-visible {
+  outline: 2px solid var(--m101-brand-soft);
+  outline-offset: 3px;
+}
+
+.path-node-number {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  color: var(--m101-text-faint);
+}
+
+/* 主标签是关卡标题——学习者真正认得的东西。 */
+.path-node-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* 记忆锚口诀：这关最该被记住的那句。 */
+.path-node-hook {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--m101-text-faint);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* 状态徽标。 */
+.path-node-badge {
+  align-self: flex-start;
+  margin-top: auto;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--m101-bg);
+  background: var(--m101-text-faint);
+}
+
+.path-node-badge.is-current {
+  background: var(--m101-brand);
+}
+
+.path-node-badge.is-mastered {
+  background: var(--m101-success);
+}
+
+.path-node-badge.is-retry {
+  background: var(--m101-danger);
+}
+
+/* —— 四种状态 —— */
+
+/* 当前关：金色描边。唯一会呼吸的节点。 */
+.path-node.is-current {
+  border-color: var(--m101-brand);
+  background: var(--m101-brand-soft-bg);
+  box-shadow: 0 0 0 1px var(--m101-brand), 0 8px 26px rgba(0, 0, 0, 0.4);
+}
+
+.path-node.is-current .path-node-name {
+  color: var(--m101-brand-soft);
+}
+
+.path-node.is-current .path-node-badge {
+  animation: m101-breathe 2.4s var(--m101-ease-out) infinite;
+}
+
+/* 卡住：红色描边，这关需要回来补。 */
+.path-node.is-retry {
+  border-color: var(--m101-danger);
+  background: var(--m101-danger-soft);
+}
+
+.path-node.is-retry .path-node-name {
+  color: var(--m101-danger);
+}
+
+/* 已掌握：安静地亮着，不抢注意力。 */
+.path-node.is-mastered {
+  border-color: var(--m101-line);
+}
+
+.path-node.is-mastered .path-node-name {
+  color: var(--m101-text-dim);
+}
+
+.path-node.is-mastered .path-node-hook {
+  opacity: 0.55;
+}
+
+/* 没做过：中性。 */
+.path-node.is-new {
+  border-color: var(--m101-line-strong);
+}
+
+/* 窄屏上路径太宽，让它能横向滚动而不是挤成一团。 */
+@media (max-width: 640px) {
+  .path-map {
+    overflow-x: auto;
+  }
+}

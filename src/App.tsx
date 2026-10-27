@@ -11,14 +11,37 @@ import { KeyboardPanel } from "./ui/KeyboardPanel.tsx";
 import { LessonFlow } from "./ui/LessonFlow.tsx";
 import { LessonOne } from "./ui/LessonOne.tsx";
 import { MemoryAnchors } from "./ui/MemoryAnchors.tsx";
+import { PathMap } from "./ui/PathMap.tsx";
 import { ProgressBoard } from "./ui/ProgressBoard.tsx";
 import { ReviewDeck } from "./ui/ReviewDeck.tsx";
 import { TheoryBench } from "./ui/TheoryBench.tsx";
 import { palette, radii } from "./ui/theme.ts";
+import "./ui/path.css";
 
 const { Header, Content } = Layout;
 
-type View = "bench" | "lesson" | "diagnostics" | "progress" | "anchors" | "review";
+/**
+ * 两种模式。
+ *
+ * 以前是七个平级按钮并排——那不是导航，是功能清单。
+ * 它同时回答了七个问题，于是一个问题也没回答。
+ *
+ * 现在分成两种心智：
+ * - 闯关模式：路径图回答「接下来做什么」，是主线
+ * - 工具模式：随时可以进去查东西，是沙盒
+ */
+type Mode = "learn" | "tools";
+
+/**
+ * 闯关模式下的两个画面：路径图和关卡。
+ *
+ * 单独一个状态而不是靠关号推断——第 1 关也是关卡，
+ * 但默认要落在路径图上，不能靠「关号是不是 1」来区分。
+ */
+type LearnView = "path" | "lesson";
+
+/** 工具模式下的各个页面。 */
+type ToolView = "bench" | "diagnostics" | "progress" | "anchors" | "review";
 
 /** 关卡下拉：全部关卡，标题都从关卡文件里来。 */
 const LESSON_OPTIONS = LESSONS.map((lesson) => ({
@@ -27,7 +50,10 @@ const LESSON_OPTIONS = LESSONS.map((lesson) => ({
 }));
 
 export function App() {
-  const [view, setView] = useState<View>("lesson");
+  // 默认落在路径图：打开就该知道接下来做什么。
+  const [mode, setMode] = useState<Mode>("learn");
+  const [learnView, setLearnView] = useState<LearnView>("path");
+  const [toolView, setToolView] = useState<ToolView>("bench");
   const [level, setLevel] = useState(1);
   const [progress, setProgress] = useState(() => loadProgress(typeof localStorage === "undefined" ? null : localStorage));
   const [pendingRecipe, setPendingRecipe] = useState<Recipe | null>(null);
@@ -59,10 +85,19 @@ export function App() {
     if (typeof localStorage !== "undefined") saveProgress(localStorage, next);
   }, []);
   const onConsumeRecipe = useCallback(() => setPendingRecipe(null), []);
+
+  /** 进某一关。 */
   const openLevel = (nextLevel: number) => {
     setPendingRecipe(null);
     setLevel(nextLevel);
-    setView("lesson");
+    setMode("learn");
+    setLearnView("lesson");
+  };
+
+  /** 返回路径图。 */
+  const backToPath = () => {
+    setMode("learn");
+    setLearnView("path");
   };
 
   return (
@@ -89,81 +124,124 @@ export function App() {
               <h1 className="site-title">Music-101</h1>
               <p className="site-subtitle">kawaii bass / future bass 编曲速成</p>
             </div>
-            <Flex gap={8} wrap>
-              <Button type={view === "bench" ? "primary" : "default"} onClick={() => setView("bench")}>
-                乐理工作台
-              </Button>
+            <Flex gap={8} wrap align="center">
+              {mode === "learn" ? (
+                <>
+                  <Button type="primary" onClick={backToPath}>
+                    {learnView === "lesson" ? "返回路径" : "学习路径"}
+                  </Button>
+                  <Select
+                    aria-label="关卡"
+                    value={level}
+                    placeholder="关卡"
+                    style={{ minWidth: 200 }}
+                    showSearch
+                    optionFilterProp="label"
+                    options={LESSON_OPTIONS.map((option) => ({ ...option, disabled: levelLocked(progress, option.value) }))}
+                    onChange={(value) => {
+                      setPendingRecipe(null);
+                      setLevel(value);
+                      setLearnView("lesson");
+                    }}
+                  />
+                  <Badge count={dueCount} size="small" offset={[-2, 2]}>
+                    <Button onClick={() => {
+                      setMode("tools");
+                      setToolView("review");
+                    }}>
+                      复习
+                    </Button>
+                  </Badge>
+                  {/* 工具入口：随时能进沙盒，但不能挤在主线按钮里。 */}
+                  <Button onClick={() => setMode("tools")}>工具</Button>
+                </>
+              ) : (
+                <>
+                  <Button onClick={() => setMode("learn")}>学习路径</Button>
+                  <Button
+                    type={toolView === "bench" ? "primary" : "default"}
+                    onClick={() => setToolView("bench")}
+                  >
+                    乐理工作台
+                  </Button>
+                  <Button
+                    type={toolView === "diagnostics" ? "primary" : "default"}
+                    onClick={() => setToolView("diagnostics")}
+                  >
+                    诊断
+                  </Button>
+                  <Button
+                    type={toolView === "anchors" ? "primary" : "default"}
+                    onClick={() => setToolView("anchors")}
+                  >
+                    记忆点
+                  </Button>
+                  <Badge count={dueCount} size="small" offset={[-2, 2]}>
+                    <Button
+                      type={toolView === "review" ? "primary" : "default"}
+                      onClick={() => setToolView("review")}
+                    >
+                      复习
+                    </Button>
+                  </Badge>
+                  <Button
+                    type={toolView === "progress" ? "primary" : "default"}
+                    onClick={() => setToolView("progress")}
+                  >
+                    进度
+                  </Button>
+                </>
+              )}
               <Tooltip title="全局键盘 · 查位置（快捷键 K）">
                 <Button onClick={() => setKeyboardOpen(true)}>键盘</Button>
               </Tooltip>
-              <Select
-                aria-label="关卡"
-                value={view === "lesson" ? level : undefined}
-                placeholder="关卡"
-                style={{ minWidth: 220 }}
-                showSearch
-                optionFilterProp="label"
-                options={LESSON_OPTIONS.map((option) => ({ ...option, disabled: levelLocked(progress, option.value) }))}
-                onChange={(value) => {
-                  setPendingRecipe(null);
-                  setLevel(value);
-                  setView("lesson");
-                }}
-              />
-              <Button type={view === "diagnostics" ? "primary" : "default"} onClick={() => setView("diagnostics")}>
-                诊断
-              </Button>
-              <Button type={view === "anchors" ? "primary" : "default"} onClick={() => setView("anchors")}>
-                记忆点
-              </Button>
-              <Badge count={dueCount} size="small" offset={[-2, 2]}>
-                <Button type={view === "review" ? "primary" : "default"} onClick={() => setView("review")}>
-                  复习
-                </Button>
-              </Badge>
-              <Button type={view === "progress" ? "primary" : "default"} onClick={() => setView("progress")}>
-                进度
-              </Button>
             </Flex>
           </Flex>
         </Header>
         <Content className="bench">
-          {view === "bench" ? (
-            <TheoryBench />
-          ) : view === "diagnostics" ? (
-            <DiagnosticsLab />
-          ) : view === "anchors" ? (
-            <MemoryAnchors onOpenLevel={openLevel} />
-          ) : view === "review" ? (
-            <ReviewDeck progress={progress} onProgress={onProgress} onOpenLevel={openLevel} />
-          ) : view === "progress" ? (
-            <ProgressBoard
-              progress={progress}
-              onProgress={onProgress}
-              onOpenReview={() => setView("review")}
-              onApply={(recipe) => {
-                setPendingRecipe(recipe);
-                setLevel(recipe.levelId);
-                setView("lesson");
-              }}
-            />
-          ) : stage ? (
-            <LessonFlow
-              lesson={stage}
-              progress={progress}
-              onProgress={onProgress}
-              pendingRecipe={pendingRecipe}
-              onConsumeRecipe={onConsumeRecipe}
-              onOpenLevel={openLevel}
-            />
+          {mode === "tools" ? (
+            toolView === "bench" ? (
+              <TheoryBench />
+            ) : toolView === "diagnostics" ? (
+              <DiagnosticsLab />
+            ) : toolView === "anchors" ? (
+              <MemoryAnchors onOpenLevel={openLevel} />
+            ) : toolView === "review" ? (
+              <ReviewDeck progress={progress} onProgress={onProgress} onOpenLevel={openLevel} />
+            ) : (
+              <ProgressBoard
+                progress={progress}
+                onProgress={onProgress}
+                onOpenReview={() => setToolView("review")}
+                onApply={(recipe) => {
+                  setPendingRecipe(recipe);
+                  setLevel(recipe.levelId);
+                  setMode("learn");
+                  setLearnView("lesson");
+                }}
+              />
+            )
+          ) : learnView === "lesson" ? (
+            stage ? (
+              <LessonFlow
+                lesson={stage}
+                progress={progress}
+                onProgress={onProgress}
+                pendingRecipe={pendingRecipe}
+                onConsumeRecipe={onConsumeRecipe}
+                onOpenLevel={openLevel}
+              />
+            ) : (
+              <LessonOne
+                progress={progress}
+                onProgress={onProgress}
+                pendingRecipe={pendingRecipe}
+                onConsumeRecipe={onConsumeRecipe}
+                onOpenLevel={openLevel}
+              />
+            )
           ) : (
-            <LessonOne
-              progress={progress}
-              onProgress={onProgress}
-              pendingRecipe={pendingRecipe}
-              onConsumeRecipe={onConsumeRecipe}
-              onOpenLevel={openLevel}
-            />
+            <PathMap progress={progress} onOpenLevel={openLevel} />
           )}
         </Content>
       </Layout>
