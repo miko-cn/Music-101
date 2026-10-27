@@ -21,6 +21,7 @@ export function QuizFeedback({
   correct,
   seed,
   hint,
+  encourage,
   reveal,
   explanation,
   attempts,
@@ -33,6 +34,8 @@ export function QuizFeedback({
   seed: number;
   /** 第一次答错时给的引导方向。 */
   hint: string;
+  /** 答对时的反应。没写就用通用轮换。 */
+  encourage?: string;
   /** 亮出答案时显示的正确答案文字。 */
   reveal: string;
   /** 解析文本。 */
@@ -46,7 +49,7 @@ export function QuizFeedback({
   if (correct) {
     return (
       <div className="quiz-feedback is-correct" role="status">
-        <p className="quiz-feedback-title">{praiseLine(seed)}</p>
+        <p className="quiz-feedback-title">{encourage ?? praiseLine(seed)}</p>
         <p className="quiz-feedback-body">{explanation}</p>
       </div>
     );

@@ -49,6 +49,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "小调的主和弦是小三和弦，所以是 A C E，记成 i（小写）。",
+      wrongHint: "小调的主和弦是什么性质？先定性质再叠音。",
+      encourage: "对，小调的主和弦是小三和弦。",
     },
     {
       id: "natural-minor",
@@ -60,6 +62,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "自然小调 = 同名大调的第 3、6、7 级降半音，所以是 A B C D E F G。",
+      wrongHint: "自然小调 = 同名大调的第 3、6、7 级降半音。先写大调音阶。",
+      encourage: "对，A B C D E F G。",
     },
     {
       id: "minor-i",
@@ -71,6 +75,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "i 是小写，代表小三和弦。",
+      wrongHint: "罗马数字的大小写说明和弦性质。",
+      encourage: "对，小写 i 就是小三和弦。",
     },
     {
       id: "flat-six",
@@ -82,6 +88,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "以 A 大调为尺子，F 比第 6 级低半音，记成 ♭VI。它不在 A 小调里，属于借用。",
+      wrongHint: "以 A 大调为尺子，F 在第几级？比它高还是低半音。",
+      encourage: "对，比第 6 级低半音，所以记 ♭VI。",
     },
     {
       id: "flat-seven",
@@ -93,6 +101,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "A 小调里的 G 大三和弦是 ♭VII。F♯ 是大调的导音，G B♭ 是 G 小和弦，都不是。",
+      wrongHint: "A 小调里的第 7 级是哪个音？在它上面叠大三和弦。",
+      encourage: "对，G 上的大三和弦是 ♭VII。",
     },
     {
       id: "borrowed-second",
@@ -104,6 +114,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "第二个是 ♭VI，也就是 F 大三。",
+      wrongHint: "i–♭VI–♭III–♭VII，顺序数第二个。",
+      encourage: "对，第二个是 F 大三。",
     },
     {
       id: "harmonic-minor",
@@ -115,6 +127,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "自然小调第 7 级是 G，和声小调升成 G♯，这样才能做出属和弦 E，导向 Am。",
+      wrongHint: "和声小调只动一个级——哪一个？想想属和弦要往上解决，需要什么。",
+      encourage: "对，第 7 级升半音，属和弦才立得住。",
     },
     {
       id: "which-iv",
@@ -126,6 +140,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "第 4 级是 D，三和弦是小三，记成 iv。它不在自然小调里，但非常常用。",
+      wrongHint: "A 小调的第 4 级是哪个音？它上面叠三和弦是什么性质。",
+      encourage: "对，D 上的小三和弦，记 iv。",
     },
   ],
   handPrompt: "选出 A 小调里这条借用进行。",

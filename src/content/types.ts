@@ -12,12 +12,31 @@ import type { MistakeKind } from "../core/lesson/mistakes.ts";
 /** 关卡文件要用到的核心类型，从这里统一转出去，import 就不用写三条路径。 */
 export type { PitchClass, ScaleId, SkeletonChord, SkeletonNote, TrackRole };
 
+/**
+ * 一道听辨题。
+ *
+ * 三个文案字段各管一件事，缺一不可：
+ *
+ * - `explain` —— **解析**。为什么是这个答案。
+ * - `wrongHint` —— **答错时的引导方向**。指出该用什么方法判断，但不给答案。
+ * - `encourage` —— **答对时的反应**。把刚做对的事再说一遍，强化记忆。
+ *
+ * 为什么 `explain` 不能兼任错误提示：解析里通常直接写着答案
+ * （「C 到 C♯ 只隔一个键」），学习者答错后看到它，等于被告知选哪个。
+ * 错误提示必须给**方法**而不是**结论**——
+ * 记住「那一题选了 B」没用，记住「怎么判断出是 B」才有用。
+ */
 export interface StageEar {
   id: string;
   prompt: string;
   choices: { label: string; midis: number[] }[];
   correct: number;
+  /** 解析：为什么是这个答案。 */
   explain: string;
+  /** 答错时的引导方向：指向判定方法，不给答案。 */
+  wrongHint?: string;
+  /** 答对时的反应：把刚做对的事再说一遍。 */
+  encourage?: string;
 }
 
 export interface StageChoice {

@@ -81,6 +81,19 @@ export const hats = [0, 2, 4, 6, 8, 10, 12, 14];
  */
 let earSlot = 0;
 
+/**
+ * 答对 / 答错的文案。
+ *
+ * 收成对象而不是再加两个位置参数：ear() 已经有 8 个位置参数了，
+ * 再加两个会到 10 个——那已经没法读了。
+ */
+export interface EarFeedback {
+  /** 答错时的引导方向：指向判定方法，不给答案。 */
+  wrongHint: string;
+  /** 答对时的反应：把刚做对的事再说一遍。 */
+  encourage: string;
+}
+
 export function ear(
   id: string,
   prompt: string,
@@ -90,6 +103,7 @@ export function ear(
   correctMidis: number[] = [60],
   wrongMidis: number[] = [61],
   extra?: { label: string; midis: number[] },
+  feedback?: EarFeedback,
 ): StageEar {
   const items = [
     { label: correctLabel, midis: correctMidis },
@@ -101,7 +115,15 @@ export function ear(
   const correctIndex = earSlot++ % 3;
   const choices = [...rest];
   choices.splice(correctIndex, 0, correct);
-  return { id, prompt, choices, correct: correctIndex, explain };
+  return {
+    id,
+    prompt,
+    choices,
+    correct: correctIndex,
+    explain,
+    wrongHint: feedback?.wrongHint,
+    encourage: feedback?.encourage,
+  };
 }
 
 /**

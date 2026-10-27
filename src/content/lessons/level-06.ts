@@ -46,6 +46,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "七音是 B 而不是 B♭，且三音是大三度 E，所以是 Cmaj7。",
+      wrongHint: "大七和弦 = 大三和弦 + 大七度。先看三音，再看七音。",
+      encourage: "对，C E G B 是 Cmaj7。",
     },
     {
       id: "which-dom7",
@@ -57,6 +59,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "属七 = 大三和弦 + 小七。七音是降七度 B♭。",
+      wrongHint: "属七 = 大三和弦 + 小七度。找那个降了半音的七音。",
+      encourage: "对，C E G B♭ 是 C7。",
     },
     {
       id: "maj7-seventh",
@@ -68,6 +72,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "maj7 的七音是导音 B，离八度只差半音，所以亮。",
+      wrongHint: "Cmaj7 就是 C 大三和弦加上七度音。",
+      encourage: "对，七音是 B。",
     },
     {
       id: "dom7-seventh",
@@ -79,6 +85,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "C7 的七音是降七度 B♭，它想要往下解决到 C。",
+      wrongHint: "C7 的三音还是 E（大三），那七音是谁？",
+      encourage: "对，七音是降七度 B♭。",
     },
     {
       id: "cm7",
@@ -90,6 +98,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "m7 = 小三和弦 + 小七。所以三音要降半音，七音也是降的。",
+      wrongHint: "小七和弦 = 小三和弦 + 小七度。三音和七音都要降半音。",
+      encourage: "对，C E♭ G B♭ 是 Cm7。",
     },
     {
       id: "resolve",
@@ -101,6 +111,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "属七的降七度更紧，大七更亮、更松。",
+      wrongHint: "哪个和弦里有那个「想往下走」的降七度？",
+      encourage: "对，属七的降七度最紧。",
     },
     {
       id: "add9",
@@ -112,6 +124,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "多出来的 D 是根音上面的九度，而且三音 E 没动，所以是 add9 不是 maj7。",
+      wrongHint: "看哪个多出来的音是根音上面的九度，而且三音没动。",
+      encourage: "对，C E G D 是 add9。",
     },
     {
       id: "minor-maj7",
@@ -123,6 +137,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "小七和弦 + 大七度 = Cm(maj7)：三音降半音，七音是 B。这个组合又暗又亮，很 kawaii。",
+      wrongHint: "小七 + 大七度：三音降半音，七音是 B。",
+      encourage: "对，C E♭ G B 是 Cm(maj7)。",
     },
   ],
   handPrompt: "选出 C 大七和弦。",

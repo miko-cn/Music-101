@@ -45,6 +45,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "C=1、D=2、E=3，所以是三度。",
+      wrongHint: "度数是数音名的：C 算第 1 个。数到终点是第几个。",
+      encourage: "对，C→D→E，三度。",
     },
     {
       id: "size-m2-trap",
@@ -56,6 +58,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "度数按音名数：C♯ 是第二个音名，所以是二度。只隔一个半音不代表是「一度」。",
+      wrongHint: "先别看隔几个半音。看音名：C 的下一个音名是第几个。",
+      encourage: "对，C♯ 是第二个音名，所以是二度。",
     },
     {
       id: "size-p5",
@@ -67,6 +71,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "C D E F G，五步到 G，是五度。",
+      wrongHint: "数音名：C 算 1，D 算 2……数到 G 是第几个。",
+      encourage: "对，C 数到 G 是五步，所以是五度。",
     },
     {
       id: "size-p4",
@@ -78,6 +84,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "C D E F，四步到 F，是四度。F 比 G 近一截。",
+      wrongHint: "数音名：C 算 1，D 算 2，数到 F 是第几个。",
+      encourage: "对，C 数到 F 是四步，所以是四度。",
     },
     {
       id: "size-m3-e",
@@ -89,6 +97,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "E=1、F=2、G=3，是三度。",
+      wrongHint: "重新从 E 开始数：E 算第 1 个。",
+      encourage: "对，E→F→G，三度。",
     },
     {
       id: "size-octave",
@@ -100,6 +110,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "音名又绕回来一遍，C 到下一个 C 是八度。",
+      wrongHint: "音名绕一圈回来一次是八度。想想 C 到下一个 C 是几度。",
+      encourage: "对，C 到下一个 C 是八度。",
     },
     {
       id: "p5-vs-m2",
@@ -111,6 +123,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "C4 和 G4 离得开又合得上。C4 和 C♯4 只差一个键，听着挤。",
+      wrongHint: "协和度看的是音程大小：越接近纯四、纯五越协和。",
+      encourage: "对，五度协和，二度挤。",
     },
     {
       id: "tighter",
@@ -122,6 +136,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "C4 到 C♯4 是相邻的两个键，最挤。C4 到 C5 是同一个音名高了八度，听起来开阔。",
+      wrongHint: "哪个选项的两个音在键盘上挨得最近？",
+      encourage: "对，相邻两个键最挤。",
     },
   ],
   handPrompt: "选出听起来最稳、最不挤的一对。",

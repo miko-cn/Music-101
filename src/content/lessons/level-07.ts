@@ -46,6 +46,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "C 大调的第 5 级是 G，所以 V 是 G 大三和弦。",
+      wrongHint: "C 大调的第 5 级是哪个音？它在第几级。",
+      encourage: "对，第 5 级是 G。",
     },
     {
       id: "which-vi",
@@ -57,6 +59,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "第 6 级是 A。大调里第 6 级天然是小三和弦，记成小写 vi。",
+      wrongHint: "C 大调的第 6 级是哪个音？",
+      encourage: "对，第 6 级是 A。",
     },
     {
       id: "which-iv",
@@ -68,6 +72,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "第 4 级是 F，IV 是 F 大三和弦。",
+      wrongHint: "C 大调的第 4 级是哪个音？",
+      encourage: "对，第 4 级是 F。",
     },
     {
       id: "lowercase-means",
@@ -79,6 +85,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "小写字母代表小三和弦。Am 是小写，G 和 F 是大写大三和弦。",
+      wrongHint: "罗马数字的大小写说明和弦的性质。",
+      encourage: "对，小写代表小三和弦。",
     },
     {
       id: "second-chord",
@@ -90,6 +98,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "顺序就是 I、V、vi、IV，第二个是 V = G。",
+      wrongHint: "I–V–vi–IV 就是按顺序来的第二个。",
+      encourage: "对，第二个是 V。",
     },
     {
       id: "which-ii",
@@ -101,6 +111,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "第 2 级是 D，三和弦天然是小三，记成 ii（小写）。",
+      wrongHint: "C 大调的第 2 级是哪个音？它上面叠三和弦是什么性质。",
+      encourage: "对，D 上的三和弦是小三和弦。",
     },
     {
       id: "in-key-prog",
@@ -112,6 +124,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "B♭ 和 G♭ 都不在 C 大调里。C、G、A、F 都在。",
+      wrongHint: "把 C 大调的七个音列出来，再看每条进行里有没有调外的音。",
+      encourage: "对，C G A F 都在调里。",
     },
     {
       id: "which-vii",
@@ -123,6 +137,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "第 7 级 B 上叠三音是减和弦，记成 vii°。它最想往下解决到 I。",
+      wrongHint: "C 大调的第 7 级是哪个音？在它上面叠三度三和弦是什么。",
+      encourage: "对，第 7 级 B 上是减和弦。",
     },
   ],
   handPrompt: "选出 I–V–vi–IV。",

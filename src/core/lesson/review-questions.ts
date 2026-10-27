@@ -24,6 +24,10 @@ export interface ReviewQuestion {
   /** 正确项在 choices 里的下标。 */
   correct: number;
   explain: string;
+  /** 答错时的引导方向。 */
+  wrongHint?: string;
+  /** 答对时的反应。 */
+  encourage?: string;
   /** 这一关的记忆锚名——答错时给学习者补一句。 */
   anchorName: string;
   anchorHook: string;
@@ -35,6 +39,8 @@ interface FlatQuestion {
   choices: ReviewChoice[];
   correct: number;
   explain: string;
+  wrongHint?: string;
+  encourage?: string;
 }
 
 /** 第 1 关的选项是单个音，统一成数组——后面播放和出题都用同一种形状。 */
@@ -45,16 +51,20 @@ function fromLevel1(): FlatQuestion[] {
     choices: question.choices.map((choice) => ({ label: choice.label, midis: [choice.midi] })),
     correct: question.correct,
     explain: question.explain,
+    wrongHint: question.wrongHint,
+    encourage: question.encourage,
   }));
 }
 
-function fromStage(ear: readonly { id: string; prompt: string; choices: { label: string; midis: number[] }[]; correct: number; explain: string }[]): FlatQuestion[] {
+function fromStage(ear: readonly { id: string; prompt: string; choices: { label: string; midis: number[] }[]; correct: number; explain: string; wrongHint?: string; encourage?: string }[]): FlatQuestion[] {
   return ear.map((question) => ({
     id: question.id,
     prompt: question.prompt,
     choices: question.choices.map((choice) => ({ label: choice.label, midis: [...choice.midis] })),
     correct: question.correct,
     explain: question.explain,
+    wrongHint: question.wrongHint,
+    encourage: question.encourage,
   }));
 }
 
@@ -86,6 +96,8 @@ export function reviewQuestionFor(levelId: number, round: number): ReviewQuestio
     choices: order.map((position) => question.choices[position]),
     correct: order.indexOf(question.correct),
     explain: question.explain,
+    wrongHint: question.wrongHint,
+    encourage: question.encourage,
     anchorName: lesson.anchor.name,
     anchorHook: lesson.anchor.hook,
   };

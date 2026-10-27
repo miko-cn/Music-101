@@ -42,6 +42,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "C 到 C♯ 只隔一个键。C 到 D 隔了一个黑键，是全音。",
+      wrongHint: "别看音名，看两个音之间隔了几个键。挨着就是半音。",
+      encourage: "对，挨着的两个键就是半音。",
     },
     {
       id: "whole-ef",
@@ -53,6 +55,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "E 到 F 是半音。再高一个半音到 F♯，才是全音。B 到 C 同样是半音。",
+      wrongHint: "从 E 往上找，找到第一个没有黑键隔开的位置。",
+      encourage: "对，E 到 F 是半音，F♯ 才是全音。",
     },
     {
       id: "semi-bc",
@@ -64,6 +68,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "B 和 C 之间没有黑键，是半音。A 到 B、F 到 G 都隔着黑键，是全音。",
+      wrongHint: "在键盘上找到 B 和 C，看它们中间有没有黑键。",
+      encourage: "对，B 和 C 之间没有黑键。",
     },
     {
       id: "whole-fg",
@@ -75,6 +81,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "F 到 G 跨过 F♯，是全音。F 到 F♯ 只是半音；E 到 F 也是半音。",
+      wrongHint: "数一数 F 到 G 之间跨了几个键。",
+      encourage: "对，F 到 G 跨过了 F♯，是一个全音。",
     },
     {
       id: "narrower",
@@ -86,6 +94,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "半音比全音窄。更窄的是 C 到 C♯。",
+      wrongHint: "半音和全音里，哪一个占的键更少？",
+      encourage: "对，半音更窄——全音是它的两倍。",
     },
     {
       id: "ef-count",
@@ -97,6 +107,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "E 到 F 挨着，是 1 个半音。它们中间没有黑键。",
+      wrongHint: "在键盘上找 E 和 F，看它们挨不挨着。",
+      encourage: "对，挨着就是 1 个半音。",
     },
     {
       id: "cd-count",
@@ -108,6 +120,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 1,
       explain: "C 到 C♯ 一步，C♯ 到 D 再一步，一共 2 个半音。",
+      wrongHint: "从 C 往上一个键一个键数，数到 D 要走几步。",
+      encourage: "对，走两步，两个半音。",
     },
     {
       id: "up-whole",
@@ -119,6 +133,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "一个全音 = 两个半音。C 往上两步：C♯ 是 1 步，D 是 2 步。",
+      wrongHint: "一个全音等于两个半音。先走半音，再走半音。",
+      encourage: "对，走两步到 D。",
     },
   ],
   handPrompt: "下面哪一对是全音？",

@@ -46,6 +46,8 @@ export function ReviewDeck({
   const [cursor, setCursor] = useState(0);
   const [current, setCurrent] = useState<{ levelId: number; question: ReviewQuestion } | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
+  /** 答错后点了「看答案」。换题时重置。 */
+  const [showAnswer, setShowAnswer] = useState(false);
   const [results, setResults] = useState<GradedItem[]>([]);
   const timers = useRef<number[]>([]);
 
@@ -94,6 +96,7 @@ export function ReviewDeck({
     const question = reviewQuestionFor(levelId, card?.round ?? 0);
     setCurrent(question ? { levelId, question } : null);
     setPicked(null);
+    setShowAnswer(false);
   };
 
   const start = () => {
@@ -107,6 +110,7 @@ export function ReviewDeck({
   const pick = (optionIndex: number) => {
     if (!current || picked !== null) return;
     setPicked(optionIndex);
+    setShowAnswer(false);
     const correct = optionIndex === current.question.correct;
     // 音效在点击的同步链路里发出去，浏览器才认这是用户手势。
     playCue(correct ? "correct" : "wrong");
@@ -234,16 +238,38 @@ export function ReviewDeck({
 
         {answered && (
           <Flex vertical gap={8} style={{ marginTop: 12 }}>
-            <Alert
-              type={correct ? "success" : "error"}
-              showIcon
-              title={correct ? "对了。" : `不对，正确答案是「${question.choices[question.correct]?.label}」。`}
-              description={question.explain}
-            />
-            {!correct && (
-              <p className="hint">
-                这一关的记忆锚是「{question.anchorName}」：{question.anchorHook}
-              </p>
+            {correct ? (
+              <>
+                <Alert
+                  type="success"
+                  showIcon
+                  title={question.encourage ?? "对了。"}
+                  description={question.explain}
+                />
+              </>
+            ) : (
+              <>
+                {/* 答错先给方向，不直接报答案——跟关卡里同一套两级提示。 */}
+                <Alert
+                  type="error"
+                  showIcon
+                  title="不对。"
+                  description={
+                    question.wrongHint ??
+                    `这一关的记忆锚是「${question.anchorName}」：${question.anchorHook}`
+                  }
+                />
+                <Button size="small" onClick={() => setShowAnswer(true)}>
+                  还是不对，看答案
+                </Button>
+                {showAnswer && (
+                  <p className="hint">
+                    正确答案：{question.choices[question.correct]?.label}
+                    <br />
+                    {question.explain}
+                  </p>
+                )}
+              </>
             )}
             <Button type="primary" onClick={next}>
               {cursor + 1 >= queue.length ? "看今天的结果" : "下一题"}

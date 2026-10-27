@@ -45,6 +45,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "C 到 E 是大三度，所以是大三和弦。C 到 E♭ 是小三度，C 到 F 是纯四度，都不是。",
+      wrongHint: "先定根音，再看根音到三音是大三度还是小三度。",
+      encourage: "对，C 到 E 是大三度。",
     },
     {
       id: "which-minor",
@@ -56,6 +58,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "F 到 A♭ 是小三度，所以是小三和弦。",
+      wrongHint: "找到那个根音，往上数第三个音——它比根音低半音还是高半音。",
+      encourage: "对，F 到 A♭ 是小三度。",
     },
     {
       id: "major-third",
@@ -67,6 +71,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "三音是夹在根音和五音中间那个：C → E → G，E 是三音。",
+      wrongHint: "三和弦是根音、三音、五音。中间那个就是三音。",
+      encourage: "对，C→E→G，中间那个是 E。",
     },
     {
       id: "minor-third",
@@ -78,6 +84,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 1,
       explain: "Cm 是 C E♭ G。根音 C，五音 G，三音就是 E♭。",
+      wrongHint: "先把 Cm 的三个音写出来：根音 C，五音 G。那三音是哪个？",
+      encourage: "对，Cm 是 C E♭ G，三音是 E♭。",
     },
     {
       id: "a-minor",
@@ -89,6 +97,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "A 到 C 是小三度，所以是 A 小三和弦。A C♯ E 是大三和弦。",
+      wrongHint: "先定根音是 A，再看 A 到第三个音 C 是大还是小。",
+      encourage: "对，A 到 C 是小三度。",
     },
     {
       id: "which-note-differs",
@@ -100,6 +110,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "根音和五音一样，只有中间那个三音差半音。",
+      wrongHint: "把大三和小三的两个和弦并排写出来，比一比哪几个音一样。",
+      encourage: "对，只有三音差了半音。",
     },
     {
       id: "brighter",
@@ -111,6 +123,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "大三和弦比小三和弦亮。C E♭ G 把三音降了半音，所以暗；C E G♯ 是增和弦，拧巴、有张力，不是亮。",
+      wrongHint: "亮不亮看三音。大三的三音高半音，小三的低半音。",
+      encourage: "对，根音和五音一样，三音定明暗。",
     },
     {
       id: "eb-major",
@@ -122,6 +136,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "E♭ 到 G 是大三度，到 B♭ 是纯五度。",
+      wrongHint: "定住根音 E♭，往上叠三度叠五度，看得到哪三个音。",
+      encourage: "对，E♭ 到 G 是大三度，到 B♭ 是纯五度。",
     },
   ],
   handPrompt: "选出 C 小三和弦。",

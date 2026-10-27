@@ -16,6 +16,10 @@ export interface EarQuestion {
   choices: readonly EarChoice[];
   correct: number;
   explain: string;
+  /** 答错时的引导方向：指向判定方法，不给答案。 */
+  wrongHint?: string;
+  /** 答对时的反应：把刚做对的事再说一遍。 */
+  encourage?: string;
 }
 
 export const LEVEL1_BPM = 120;
@@ -43,6 +47,8 @@ export const LEVEL1_EAR: readonly EarQuestion[] = [
     ],
     correct: 1,
     explain: "G4 在 C4 右边，音高更高。",
+    wrongHint: "在键盘上找一下这三个键，谁在谁的右边——越往右越高。",
+    encourage: "对，键盘上越往右，音就越高。",
   },
   {
     id: "higher-octave",
@@ -54,6 +60,8 @@ export const LEVEL1_EAR: readonly EarQuestion[] = [
     ],
     correct: 0,
     explain: "C5 比 C4 高一个八度，MIDI 是 72 而不是 60。",
+    wrongHint: "同一个字母代表同一个音，区别在后面的数字。数字每加 1 就高一个八度。",
+    encourage: "对，同一个音名，数字大的那个高。",
   },
   {
     id: "higher-e-d",
@@ -65,6 +73,8 @@ export const LEVEL1_EAR: readonly EarQuestion[] = [
     ],
     correct: 1,
     explain: "E 在 D 的右边，所以 E4 更高。",
+    wrongHint: "在键盘上按字母顺序找：C D E 是从左到右排开的。",
+    encourage: "对，E 在 D 的右边，所以更高。",
   },
   {
     id: "which-c4",
@@ -76,6 +86,8 @@ export const LEVEL1_EAR: readonly EarQuestion[] = [
     ],
     correct: 0,
     explain: "中央 C 记成 C4，MIDI 音高是 60。",
+    wrongHint: "中央 C 是所有编号的起点——数数白键，从最下面的 C 开始往上。",
+    encourage: "对，C4 就是中央 C，MIDI 编号 60。",
   },
   {
     id: "lower-a",
@@ -87,6 +99,8 @@ export const LEVEL1_EAR: readonly EarQuestion[] = [
     ],
     correct: 1,
     explain: "A3 比 A4 低一个八度。",
+    wrongHint: "同一个音名，数字小的在下面、低八度。",
+    encourage: "对，A3 比 A4 低一个八度。",
   },
   {
     id: "black-key-group",
@@ -98,6 +112,8 @@ export const LEVEL1_EAR: readonly EarQuestion[] = [
     ],
     correct: 0,
     explain: "黑键永远是「二、二、三」循环：两组两个黑键，一组三个黑键。",
+    wrongHint: "数一数黑键是怎么成堆的：有一堆是 3 个，有一堆是 2 个，然后重复。",
+    encourage: "对，二、二、三循环——这是键盘给你的骨架。",
   },
   {
     id: "which-is-f",
@@ -109,6 +125,8 @@ export const LEVEL1_EAR: readonly EarQuestion[] = [
     ],
     correct: 0,
     explain: "三黑键组左边是 F，两黑键组左边是 C。这是键盘上两个最好记的定位点。",
+    wrongHint: "找出有三个黑键的那一堆，看它左边紧挨着的那个白键。",
+    encourage: "对，三黑键组左边是 F，两黑键组左边是 C。",
   },
   {
     id: "note-names-cycle",
@@ -120,6 +138,8 @@ export const LEVEL1_EAR: readonly EarQuestion[] = [
     ],
     correct: 0,
     explain: "C D E F G A B 念完一遍又回到 C，所以第 8 个是 C，高了一个八度。",
+    wrongHint: "把七个音名按顺序念一遍，看念到第几个会绕回去。",
+    encourage: "对，第七个是 B，第八个又回到 C。",
   },
 ];
 

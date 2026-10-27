@@ -46,6 +46,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "全是白键的那条是 C 大调。带 E♭、A♭、B♭ 的是 C 小调；最后 B♭ 那条是 C 和弦七声。",
+      wrongHint: "C 大调音阶是哪些音？从 C 开始往上，记住每一步。",
+      encourage: "对，全是白键的那条。",
     },
     {
       id: "outside",
@@ -57,6 +59,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "C 大调有 F，没有 F♯。",
+      wrongHint: "把 C 大调的七个音列出来，再看哪个选项不在里面。",
+      encourage: "对，C 大调有 F，没有 F♯。",
     },
     {
       id: "inside",
@@ -68,6 +72,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "B 是 C 大调的第 7 级。B♭ 不是。",
+      wrongHint: "同样是列七个音，这次找在里面的那个。",
+      encourage: "对，B 是第 7 级，在调里。",
     },
     {
       id: "degree-5",
@@ -79,6 +85,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "C D E F G，数到第 5 个是 G。",
+      wrongHint: "从主音开始数：C 是第 1 级。",
+      encourage: "对，C D E F G，第五级是 G。",
     },
     {
       id: "degree-3",
@@ -90,6 +98,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "C D E，第三级是 E。大三度，所以 C 大调的主和弦才是大三和弦。",
+      wrongHint: "还是从 C 数第 3 个。",
+      encourage: "对，第三级是 E。",
     },
     {
       id: "tonic",
@@ -101,6 +111,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "调名里的那个音就是主音。C 大调的主音是 C。",
+      wrongHint: "调名里的那个音就是主音。",
+      encourage: "对，C 大调的主音是 C。",
     },
     {
       id: "third-fourth-gap",
@@ -112,6 +124,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "E 到 F 是半音。这是 W‑W‑H‑W‑W‑W‑H 里的第一个 H。",
+      wrongHint: "把 C 大调的音阶一级级排出来，看 E 到 F 之间。",
+      encourage: "对，E 到 F 是半音。",
     },
     {
       id: "five-sharps",
@@ -123,6 +137,8 @@ export const lesson: StageLessonEntry = defineLesson({
       ],
       correct: 0,
       explain: "五度圈从 C 顺时针：C(0) → G(1) → D(2) → A(3) → E(4) → B(5)。五个升号是 B 大调。",
+      wrongHint: "五度圈从 C 开始，顺时针每走一步多一个升号。数五步。",
+      encourage: "对，五个升号是 B 大调。",
     },
   ],
   handPrompt: "C 大调里没有哪个音？",

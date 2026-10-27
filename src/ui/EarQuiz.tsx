@@ -28,6 +28,10 @@ export interface EarQuizItem {
   choices: { label: string; midis: number[] }[];
   correct: number;
   explain: string;
+  /** 答错时的引导方向。 */
+  wrongHint?: string;
+  /** 答对时的反应。 */
+  encourage?: string;
 }
 
 export function EarQuiz({
@@ -96,7 +100,9 @@ export function EarQuiz({
               <QuizFeedback
                 correct={verdict === "correct"}
                 seed={index}
-                hint={hint}
+                // 优先用这道题自己的引导方向；没写才回退到整关的记忆锚。
+                hint={question.wrongHint ?? hint}
+                encourage={question.encourage}
                 reveal={question.choices[question.correct]?.label ?? ""}
                 explanation={question.explain}
                 attempts={attempts[index] ?? 0}
