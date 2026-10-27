@@ -1,0 +1,294 @@
+/*
+ * 动效基线。
+ *
+ * 全站动效的规矩只有三条：
+ * 1. 只动 transform 和 opacity——动 width/height/top 会触发布局重排，
+ *    一屏几十个元素一起动就掉帧；
+ * 2. 时长和缓动只从 token 里取，不在组件里现编；
+ * 3. 每个动效都要有 prefers-reduced-motion 降级。
+ *
+ * 第 3 条不是可选项。有些人对动效敏感（前庭功能障碍、注意力障碍），
+ * 页面动得太厉害会直接让人难受。浏览器会把这个偏好告诉站点，
+ * 我们得接住。
+ *
+ * 动效只服务于两件事：
+ * - 因果：告诉学习者「你刚才那一下发生了什么」（反馈、状态变化）
+ * - 引导：把注意力带到该去的地方（进场、庆祝）
+ *
+ * 纯装饰的动效不做——它会稀释真正有意义的那几个。
+ */
+
+/* —— 反馈动效 —— */
+
+/* 答对了：轻轻弹一下，像被弹了一下肩膀。 */
+@keyframes m101-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 答错了：左右晃两下，幅度很小——是「否定」，不是「爆炸」。 */
+@keyframes m101-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  45% {
+    transform: translateX(4px);
+  }
+  70% {
+    transform: translateX(-2px);
+  }
+}
+
+/* 答对了：正确项上扫过一道光。 */
+@keyframes m101-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* 反馈面板进场：从下往上浮一点。 */
+@keyframes m101-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 过关：盖章。先放大再落定，最后微微一歪——像真的按了个章。 */
+@keyframes m101-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.35) rotate(-8deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.96) rotate(-8deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+}
+
+/* —— 应用 —— */
+
+.quiz-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.quiz-option {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--m101-line-strong);
+  border-radius: var(--m101-radius-md);
+  background: var(--m101-veil-soft);
+  transition:
+    border-color var(--m101-dur-fast) var(--m101-ease-out),
+    background-color var(--m101-dur-fast) var(--m101-ease-out);
+}
+
+.quiz-option-main {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  appearance: none;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--m101-radius-sm);
+}
+
+.quiz-option-main:disabled {
+  cursor: default;
+}
+
+.quiz-option-main:focus-visible {
+  outline: 2px solid var(--m101-brand-soft);
+  outline-offset: 3px;
+}
+
+.quiz-option-mark {
+  flex: 0 0 auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--m101-bg);
+  background: transparent;
+}
+
+.quiz-option-label {
+  flex: 1 1 auto;
+}
+
+.quiz-option-play {
+  flex: 0 0 auto;
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  border-radius: var(--m101-radius-sm);
+  border: 1px solid var(--m101-line-strong);
+  background: var(--m101-veil);
+  color: var(--m101-text-dim);
+}
+
+.quiz-option-play:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--m101-text);
+}
+
+/* 答对了。 */
+.quiz-option.is-correct {
+  border-color: var(--m101-success);
+  background: var(--m101-success-soft);
+  animation: m101-pop var(--m101-dur-base) var(--m101-ease-spring);
+}
+
+.quiz-option.is-correct .quiz-option-mark {
+  background: var(--m101-success);
+  animation: m101-pop var(--m101-dur-base) var(--m101-ease-spring);
+}
+
+/* 答错了。 */
+.quiz-option.is-wrong {
+  border-color: var(--m101-danger);
+  background: var(--m101-danger-soft);
+  animation: m101-shake var(--m101-dur-base) var(--m101-ease-out);
+}
+
+.quiz-option.is-wrong .quiz-option-mark {
+  background: var(--m101-danger);
+}
+
+/* 扫光：只在答对的那一项上跑一遍。 */
+.quiz-option.is-correct::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--m101-radius-md);
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(149, 222, 100, 0.28) 50%,
+    transparent 100%
+  );
+  animation: m101-sweep var(--m101-dur-slow) var(--m101-ease-out);
+}
+
+/* 反馈面板。 */
+.quiz-feedback {
+  margin: 10px 0;
+  padding: 12px 14px;
+  border-radius: var(--m101-radius-md);
+  border-left: 3px solid var(--m101-line-strong);
+  background: var(--m101-veil-soft);
+  animation: m101-rise var(--m101-dur-base) var(--m101-ease-out);
+}
+
+.quiz-feedback.is-correct {
+  border-left-color: var(--m101-success);
+  background: var(--m101-success-soft);
+}
+
+.quiz-feedback.is-wrong {
+  border-left-color: var(--m101-danger);
+  background: var(--m101-danger-soft);
+}
+
+.quiz-feedback-title {
+  margin: 0 0 0.4rem;
+  font-weight: 700;
+}
+
+.quiz-feedback-hint,
+.quiz-feedback-reveal,
+.quiz-feedback-body {
+  margin: 0.3rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--m101-text-dim);
+}
+
+.quiz-feedback-reveal {
+  color: var(--m101-text);
+}
+
+/* 过关盖章。 */
+.pass-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 2px solid var(--m101-success);
+  border-radius: var(--m101-radius-lg);
+  color: var(--m101-success);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  animation: m101-stamp var(--m101-dur-slow) var(--m101-ease-spring);
+}
+
+/* 只给屏幕阅读器读的文字。 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
+ * 降级：用户要求减少动效时，全部关掉。
+ *
+ * 不是简单地「把时长设成 0」——那样动画还是会在同一帧里跳到终态，
+ * 看起来像闪烁。这里直接把动画和过渡整个去掉，元素停在初始状态。
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

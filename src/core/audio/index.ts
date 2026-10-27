@@ -11,6 +11,8 @@ export {
 export { stepSeconds, takeDue } from "./schedule.ts";
 export { createEngine } from "./engine.ts";
 export type { MusicEngine, VoiceId } from "./engine.ts";
+export { sfxSteps } from "./sfx.ts";
+export type { SfxCue, SfxOptions, SfxStep, SfxVoice } from "./sfx.ts";
 export type { GainPoint } from "./params.ts";
 export {
   PLAIN_TONE,

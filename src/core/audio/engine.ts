@@ -18,6 +18,7 @@ import {
   partialFrequencies,
 } from "./piano.ts";
 import { EAR_MELODIC_SPACING_SECONDS, earChoiceHoldSeconds, earChoiceSchedule } from "./ear.ts";
+import { sfxSteps, type SfxCue, type SfxOptions, type SfxVoice } from "./sfx.ts";
 import { stepSeconds } from "./schedule.ts";
 import { midiToFrequency } from "../theory/pitch.ts";
 
@@ -36,6 +37,8 @@ export interface MusicEngine {
   /** 播放听辨题的一个选项：和弦同时响，旋律依次响。用纯音。 */
   playEarOption(midis: readonly number[]): void;
   playVoice(voice: VoiceId, when: number, duration: number, midi?: number): void;
+  /** 反馈音效：对了 / 不对 / 过关。用音乐语汇，不用通用提示音。 */
+  playSfx(cue: SfxCue, options?: SfxOptions): void;
   playSteps(steps: readonly boolean[], midi: number, bpm: number): void;
   /** 两小节：kick 在每拍上，808 经过侧链被抽下去。 */
   playPump(bpm?: number): void;
@@ -273,6 +276,66 @@ export function createEngine(): MusicEngine | null {
     track(osc, when, duration || spec.duration);
   };
 
+  /**
+   * 渲染一个反馈音。
+   *
+   * 走的是独立的一条总线（bus），不是 master——反馈音要能单独压低，
+   * 不能跟着音乐一起推。音色沿用引擎里已有的两种：pluck（拨弦）和 bass（低通闷响）。
+   */
+  const renderSfxStep = (
+    voice: SfxVoice,
+    when: number,
+    duration: number,
+    midi: number,
+    bus: GainNode,
+  ) => {
+    const frequency = midiToFrequency(midi);
+    if (voice === "bass") {
+      // 低八度、往下走二度。低通截止压得低，声音就是闷的。
+      const spec = bassVoice();
+      const osc = context.createOscillator();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(frequency, when);
+      const filter = lowpass(context, spec.lowpassHz);
+      const shape = waveshaper(context, spec.drive);
+      const gain = envelope(context, when, duration, 0.28);
+      osc.connect(filter).connect(shape).connect(gain).connect(bus);
+      track(osc, when, duration);
+      return;
+    }
+    if (voice === "pure") {
+      const spec = PLAIN_TONE;
+      const hold = Math.max(duration, spec.attackSeconds + 0.01);
+      const voices = [
+        { frequency, gain: spec.peak },
+        { frequency: frequency * 2, gain: spec.peak * spec.octaveGain },
+      ];
+      for (const item of voices) {
+        const osc = context.createOscillator();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(item.frequency, when);
+        const gain = context.createGain();
+        gain.gain.setValueAtTime(0, when);
+        gain.gain.linearRampToValueAtTime(item.gain, when + spec.attackSeconds);
+        gain.gain.setValueAtTime(item.gain, when + hold);
+        gain.gain.setTargetAtTime(0, when + hold, spec.releaseSeconds);
+        osc.connect(gain).connect(bus);
+        track(osc, when, hold + spec.releaseSeconds * 5);
+      }
+      return;
+    }
+    // pluck：拨弦音色，明亮短促，用来表示「对了」。
+    const spec = pluckVoice();
+    const osc = context.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(frequency, when);
+    const filter = lowpass(context, spec.lowpassHz);
+    const shape = waveshaper(context, spec.drive);
+    const gain = envelope(context, when, duration, 0.3);
+    osc.connect(filter).connect(shape).connect(gain).connect(bus);
+    track(osc, when, duration);
+  };
+
   return {
     async resume() {
       if (context.state === "suspended") await context.resume();
@@ -310,6 +373,16 @@ export function createEngine(): MusicEngine | null {
       }
     },
     playVoice,
+    playSfx(cue, options = {}) {
+      // 反馈音比音乐轻一点：它是提示，不是内容，抢了注意力就本末倒置。
+      const bus = context.createGain();
+      bus.gain.value = 0.7;
+      bus.connect(master);
+      const origin = context.currentTime + 0.02;
+      for (const step of sfxSteps(cue, options)) {
+        renderSfxStep(step.voice, origin + step.offset, step.duration, step.midi, bus);
+      }
+    },
     playSteps(steps, midi, bpm) {
       const seconds = stepSeconds(bpm);
       const origin = context.currentTime + 0.05;

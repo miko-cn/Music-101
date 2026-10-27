@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Button, Card, Flex, Radio, Steps } from "antd";
+import { Alert, Button, Card, Flex, Steps } from "antd";
 import { sharedEngine } from "../core/audio/engine.ts";
 import {
   LEVEL1_FIX_PITCH,
@@ -29,6 +29,9 @@ import {
 } from "../content/lessons/level-01.ts";
 import { LessonCoach } from "./LessonCoach.tsx";
 import { LessonDiagrams } from "./diagrams/index.tsx";
+import { EarQuiz } from "./EarQuiz.tsx";
+import { anchorHint } from "../core/lesson/verdict.ts";
+import { useFeedbackSfx } from "./useFeedbackSfx.ts";
 import { NoteName } from "./NoteName.tsx";
 import { MemoryAnchorCard } from "./MemoryAnchorCard.tsx";
 import { Piano } from "./Piano.tsx";
@@ -79,6 +82,21 @@ export function LessonOne({
   const passed = level1Passed(state);
   const selectedClass = state.pitch === null ? null : midiToPitchClass(state.pitch);
   const selectedOctave = state.pitch === null ? null : Math.floor(state.pitch / 12) - 1;
+
+  /** 第 1 关是 C 大调，过关音就用 C 大调的和弦琶音。 */
+  const playPass = useFeedbackSfx(0, "major");
+
+  /** 过关的那一瞬间响一次。ref 记住响过没有，否则每次重渲染都会响。 */
+  const passedAnnounced = useRef(false);
+  useEffect(() => {
+    if (!passed) {
+      passedAnnounced.current = false;
+      return;
+    }
+    if (passedAnnounced.current) return;
+    passedAnnounced.current = true;
+    playPass("pass");
+  }, [passed, playPass]);
 
   useEffect(() => {
     if (!pendingRecipe || pendingRecipe.levelId !== 1) return;
@@ -146,10 +164,6 @@ export function LessonOne({
     return active;
   };
 
-  const playQuestion = (midis: readonly number[]) => {
-    void engine().then((active) => active?.playSequence(midis));
-  };
-
   const applyFix = (actionId: string) => {
     usedFix.current = true;
     setVisitTick((value) => value + 1);
@@ -188,37 +202,29 @@ export function LessonOne({
       )}
       {step === 1 && (
         <Card title="听辨">
-          <p className="hint">选项上写着音名，这是听辨的视觉等价物。想听的话再点播放；不听也能做完。</p>
-          {LEVEL1_EAR.map((question, index) => (
-            <section key={question.id} className="ear-question">
-              <h2 className="result-heading">{question.prompt}</h2>
-              <Flex gap={8} wrap align="center">
-                <Radio.Group
-                  value={state.earAnswers[index] ?? undefined}
-                  onChange={(event) => {
-                    const value = Number(event.target.value);
-                    setState((current) => {
-                      const earAnswers = current.earAnswers.slice();
-                      earAnswers[index] = value;
-                      return { ...current, earAnswers };
-                    });
-                  }}
-                >
-                  {question.choices.map((choice, choiceIndex) => (
-                    <Radio key={choice.label} value={choiceIndex}>
-                      {choice.label}
-                    </Radio>
-                  ))}
-                </Radio.Group>
-                <Button onClick={() => playQuestion(question.choices.map((choice) => choice.midi))}>
-                  播放
-                </Button>
-              </Flex>
-              {state.earAnswers[index] !== null && state.earAnswers[index] !== undefined && (
-                <p className="hint">{question.explain}</p>
-              )}
-            </section>
-          ))}
+          <p className="hint">
+            选项上写着音名，这是听辨的视觉等价物。想听的话点每个选项后面的「▶ 听」；不听也能做完。
+          </p>
+          <EarQuiz
+            items={LEVEL1_EAR.map((question) => ({
+              id: question.id,
+              prompt: question.prompt,
+              choices: question.choices.map((choice) => ({ label: choice.label, midis: [choice.midi] })),
+              correct: question.correct,
+              explain: question.explain,
+            }))}
+            answers={state.earAnswers}
+            onAnswer={(index, choice) =>
+              setState((current) => {
+                const earAnswers = current.earAnswers.slice();
+                earAnswers[index] = choice;
+                return { ...current, earAnswers };
+              })
+            }
+            hint={anchorHint(LEVEL1_ANCHOR.name, LEVEL1_ANCHOR.hook)}
+            keyRoot={0}
+            keyScale="major"
+          />
         </Card>
       )}
       {step === 2 && (
@@ -269,6 +275,12 @@ export function LessonOne({
       {step === 3 && (
         <Card title="诊断">
           <Flex vertical gap={12}>
+            {passed && (
+              <div className="pass-stamp">
+                <span aria-hidden="true">★</span>
+                <span>第 1 关通过</span>
+              </div>
+            )}
             {diagnostics.map((item) => (
               <Alert
                 key={item.id}

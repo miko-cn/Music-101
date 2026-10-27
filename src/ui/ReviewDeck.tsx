@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Button, Card, Flex, Radio, Space, Tag } from "antd";
+import { Alert, Button, Card, Flex, Space, Tag } from "antd";
 import { sharedEngine } from "../core/audio/engine.ts";
 import { lessonById } from "../content/index.ts";
+import { isStageLesson } from "../content/types.ts";
+import { QuizGroup } from "./QuizOption.tsx";
+import { useFeedbackSfx } from "./useFeedbackSfx.ts";
 import {
   dueReviewCards,
   findReviewCard,
@@ -59,6 +62,16 @@ export function ReviewDeck({
     return active;
   };
 
+  /**
+   * 复习题的反馈音用当前关卡的调。
+   *
+   * 复习抽的是各关的题，每关的调不一样；用题目所属关卡的调，
+   * 「对了」那一声就在学习者正在练的那个调里。
+   */
+  const reviewLesson = current ? lessonById(current.levelId) : null;
+  const reviewKey = reviewLesson && isStageLesson(reviewLesson) ? reviewLesson : null;
+  const playCue = useFeedbackSfx(reviewKey?.keyRoot ?? 0, reviewKey?.keyScale ?? "major");
+
   /** 把这道题的每一个选项依次弹一遍——先听清，再选。 */
   const playAll = async (question: ReviewQuestion) => {
     const active = await engine();
@@ -95,6 +108,8 @@ export function ReviewDeck({
     if (!current || picked !== null) return;
     setPicked(optionIndex);
     const correct = optionIndex === current.question.correct;
+    // 音效在点击的同步链路里发出去，浏览器才认这是用户手势。
+    playCue(correct ? "correct" : "wrong");
     setResults((items) => [...items, { levelId: current.levelId, correct }]);
     onProgress((value) =>
       gradeReview(value, { levelId: current.levelId, correct, now: Date.now() }),
@@ -199,28 +214,23 @@ export function ReviewDeck({
         }
       >
         <h2 className="result-heading">{question.prompt}</h2>
-        <Radio.Group value={picked ?? undefined}>
-          <Flex vertical gap={8} style={{ marginTop: 12 }}>
-            {question.choices.map((choice, index) => (
-              <Flex key={choice.label + index} gap={8} align="center">
-                <Radio
-                  value={index}
-                  disabled={answered}
-                  onChange={() => pick(index)}
-                  style={{ flex: "0 0 auto" }}
-                >
-                  {choice.label}
-                </Radio>
-                <Button
-                  size="small"
-                  onClick={() => void engine().then((active) => active?.playEarOption(choice.midis))}
-                >
-                  ▶ 听
-                </Button>
-              </Flex>
-            ))}
-          </Flex>
-        </Radio.Group>
+        <QuizGroup
+          choices={question.choices.map((choice) => ({
+            label: choice.label,
+            onPlay: () => {
+              const active = sharedEngine();
+              if (!active) return;
+              void active.resume();
+              active.playEarOption(choice.midis);
+            },
+          }))}
+          value={picked}
+          onChange={pick}
+          correct={question.correct}
+          revealed={answered}
+          disabled={answered}
+          label={question.prompt}
+        />
 
         {answered && (
           <Flex vertical gap={8} style={{ marginTop: 12 }}>

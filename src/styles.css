@@ -19,8 +19,8 @@
 :root {
   color-scheme: dark;
   font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-  background: #12121a;
-  color: #ececf3;
+  background: var(--m101-bg);
+  color: var(--m101-text);
 }
 
 /*
@@ -122,7 +122,7 @@ body:focus-visible,
 
 .site-subtitle {
   margin: 2px 0 0;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--m101-w65);
   font-size: 0.875rem;
 }
 
@@ -144,7 +144,7 @@ body:focus-visible,
 
 .lead,
 .hint {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--m101-w65);
   line-height: 1.6;
 }
 
@@ -157,7 +157,7 @@ body:focus-visible,
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--m101-w88);
 }
 
 .result-card {
@@ -174,12 +174,12 @@ body:focus-visible,
 }
 
 .chord-symbol {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--m101-w65);
 }
 
 .numeral-label {
   margin: 0;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--m101-w45);
   font-size: 0.75rem;
   letter-spacing: 0.08em;
 }
@@ -212,9 +212,9 @@ body:focus-visible,
   gap: 0.45rem;
   min-width: 4.5rem;
   padding: 0.35rem 0.55rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--m101-w12);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--m101-w04);
 }
 
 .degree-index {
@@ -223,8 +223,8 @@ body:focus-visible,
   width: 1.4rem;
   height: 1.4rem;
   border-radius: 999px;
-  background: #1677ff;
-  color: #fff;
+  background: var(--m101-blue);
+  color: var(--m101-white);
   font-size: 0.75rem;
   font-weight: 700;
 }
@@ -242,7 +242,7 @@ body:focus-visible,
 
 .piano-key {
   appearance: none;
-  border: 1px solid rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--m101-shadow-ink);
   cursor: pointer;
   font: inherit;
   padding: 6px 0 8px;
@@ -272,7 +272,7 @@ body:focus-visible,
 /* 聚焦框只是提示，不能改变叠放顺序：
    否则被点过的白键会盖到黑键上面去（黑键是物理上压在上层的）。 */
 .piano-key:focus-visible {
-  outline: 2px solid #ffe58f;
+  outline: 2px solid var(--m101-gold-soft);
   outline-offset: 2px;
 }
 
@@ -281,8 +281,8 @@ body:focus-visible,
   min-width: 0;
   height: 100%;
   border-radius: 0 0 8px 8px;
-  background: #f4f1ea;
-  color: #1c1c22;
+  background: var(--m101-ivory);
+  color: var(--m101-surface);
   border-right-width: 2px;
 }
 
@@ -293,48 +293,48 @@ body:focus-visible,
   z-index: 4;
   height: 62%;
   border-radius: 0 0 6px 6px;
-  background: #1a1a22;
-  color: #f5f5f7;
+  background: var(--m101-key-black);
+  color: var(--m101-paper-2);
   font-size: 0.72rem;
 }
 
 .piano-key.is-scale:not(.is-chord) {
-  box-shadow: inset 0 -10px 0 #69b1ff;
+  box-shadow: inset 0 -10px 0 var(--m101-blue-mid);
 }
 
 .piano-white.is-chord {
-  background: #1677ff;
-  color: #fff;
-  border-color: #0958d9;
+  background: var(--m101-blue);
+  color: var(--m101-white);
+  border-color: var(--m101-blue-deep);
 }
 
 .piano-black.is-chord {
-  background: #4096ff;
-  color: #fff;
+  background: var(--m101-blue-bright);
+  color: var(--m101-white);
 }
 
 .piano-key.is-root {
-  box-shadow: inset 0 0 0 3px #ffd666;
+  box-shadow: inset 0 0 0 3px var(--m101-gold);
 }
 
 .piano-key.is-held {
-  box-shadow: inset 0 0 0 3px #91caff;
+  box-shadow: inset 0 0 0 3px var(--m101-blue-soft);
 }
 
 .piano-white.is-held:not(.is-chord) {
-  background: #d6e8ff;
+  background: var(--m101-blue-pale);
 }
 
 .piano-black.is-held:not(.is-chord) {
-  background: #243044;
+  background: var(--m101-key-black-3);
 }
 
 .piano-key.is-root.is-held {
-  box-shadow: inset 0 0 0 3px #ffd666, inset 0 0 0 6px #91caff;
+  box-shadow: inset 0 0 0 3px var(--m101-gold), inset 0 0 0 6px var(--m101-blue-soft);
 }
 
 .piano-key.is-scale.is-root:not(.is-chord) {
-  box-shadow: inset 0 -10px 0 #69b1ff, inset 0 0 0 3px #ffd666;
+  box-shadow: inset 0 -10px 0 var(--m101-blue-mid), inset 0 0 0 3px var(--m101-gold);
 }
 
 /* 每日学习热力图：一列一周，7 行（周一到周日） */
@@ -349,7 +349,7 @@ body:focus-visible,
   height: 16px;
   margin-left: 22px;
   font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--m101-w50);
 }
 
 .heatmap-months span {
@@ -367,7 +367,7 @@ body:focus-visible,
   width: 16px;
   height: calc(var(--step) * 7 - var(--gap));
   font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--m101-w50);
 }
 
 .heatmap-weekdays span {
@@ -390,38 +390,38 @@ body:focus-visible,
   width: var(--cell);
   height: var(--cell);
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--m101-w06);
+  border: 1px solid var(--m101-w04);
 }
 
 .heatmap-cell.level-1 {
-  background: #0e4429;
-  border-color: #0e4429;
+  background: var(--m101-heat-1);
+  border-color: var(--m101-heat-1);
 }
 
 .heatmap-cell.level-2 {
-  background: #006d32;
-  border-color: #006d32;
+  background: var(--m101-heat-2);
+  border-color: var(--m101-heat-2);
 }
 
 .heatmap-cell.level-3 {
-  background: #26a641;
-  border-color: #26a641;
+  background: var(--m101-heat-3);
+  border-color: var(--m101-heat-3);
 }
 
 .heatmap-cell.level-4 {
-  background: #39d353;
-  border-color: #39d353;
+  background: var(--m101-heat-4);
+  border-color: var(--m101-heat-4);
 }
 
 .heatmap-cell.is-future {
   background: transparent;
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: var(--m101-w08);
 }
 
 .heatmap-stats {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--m101-w72);
 }
 
 .heatmap-stats p {
@@ -430,7 +430,7 @@ body:focus-visible,
 
 .heatmap-stats strong {
   font-size: 1.1rem;
-  color: #ececf3;
+  color: var(--m101-text);
 }
 
 .heatmap-legend {
@@ -448,9 +448,9 @@ body:focus-visible,
 /* 记忆点总表 */
 .anchor-row {
   padding: 0.75rem 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--m101-w10);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--m101-w02);
 }
 
 .anchor-name {
@@ -460,7 +460,7 @@ body:focus-visible,
 .anchor-hook {
   margin: 0.45rem 0 0.5rem;
   font-size: 1rem;
-  color: #ffe58f;
+  color: var(--m101-gold-soft);
 }
 
 .anchor-steps,
@@ -468,12 +468,12 @@ body:focus-visible,
   margin: 0.3rem 0 0;
   padding-left: 1.2rem;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--m101-w78);
   line-height: 1.7;
 }
 
 .anchor-takeaways {
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--m101-w62);
 }
 
 .piano-legend {
@@ -483,7 +483,7 @@ body:focus-visible,
   margin: 0.9rem 0 0;
   padding: 0;
   list-style: none;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--m101-w72);
   font-size: 0.875rem;
 }
 
@@ -512,8 +512,8 @@ body:focus-visible,
   top: 0;
   text-align: center;
   font-size: 0.72rem;
-  color: rgba(255, 229, 143, 0.85);
-  border-bottom: 2px solid rgba(255, 229, 143, 0.45);
+  color: var(--m101-gold-soft-85);
+  border-bottom: 2px solid var(--m101-gold-soft-45);
   padding-bottom: 1px;
   white-space: nowrap;
 }
@@ -523,7 +523,7 @@ body:focus-visible,
   text-align: center;
   font-size: 0.72rem;
   font-weight: 700;
-  color: rgba(255, 229, 143, 0.92);
+  color: var(--m101-gold-soft-92);
 }
 
 .keyboard {
@@ -535,7 +535,7 @@ body:focus-visible,
 
 .keyboard-key {
   appearance: none;
-  border: 1px solid rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--m101-shadow-ink);
   cursor: pointer;
   font: inherit;
   display: flex;
@@ -551,8 +551,8 @@ body:focus-visible,
   min-width: 0;
   height: 100%;
   border-radius: 0 0 8px 8px;
-  background: #f7f7f9;
-  color: #1c1c22;
+  background: var(--m101-paper);
+  color: var(--m101-surface);
   border-right-width: 2px;
 }
 
@@ -563,46 +563,46 @@ body:focus-visible,
   z-index: 4;
   height: 62%;
   border-radius: 0 0 5px 5px;
-  background: #1c1c22;
-  color: #f5f5f7;
+  background: var(--m101-surface);
+  color: var(--m101-paper-2);
 }
 
 .keyboard-key.is-highlight {
-  box-shadow: inset 0 0 0 3px #ffd666;
+  box-shadow: inset 0 0 0 3px var(--m101-gold);
 }
 
 .keyboard-white.is-highlight {
-  background: #fff3c4;
+  background: var(--m101-gold-fill);
 }
 
 .keyboard-black.is-highlight {
-  background: #6b5a20;
-  color: #fff;
+  background: var(--m101-key-gold);
+  color: var(--m101-white);
 }
 
 /* 精确高亮：测验作答后标出「刚才那一个键」，比音类高亮更强一层 */
 .keyboard-key.is-highlight-exact {
-  box-shadow: inset 0 0 0 3px #ff7875;
+  box-shadow: inset 0 0 0 3px var(--m101-red);
   z-index: 3;
 }
 
 .keyboard-white.is-highlight-exact {
-  background: #ffccc7;
-  color: #4a0303;
+  background: var(--m101-red-pale);
+  color: var(--m101-red-ink-deep);
 }
 
 .keyboard-black.is-highlight-exact {
-  background: #a8071a;
-  color: #fff;
+  background: var(--m101-red-ink);
+  color: var(--m101-white);
 }
 
 .keyboard-key.is-pressed {
-  background: #91caff;
-  color: #10233f;
+  background: var(--m101-blue-soft);
+  color: var(--m101-key-black-4);
 }
 
 .keyboard-key:focus-visible {
-  outline: 2px solid #ffe58f;
+  outline: 2px solid var(--m101-gold-soft);
   outline-offset: 2px;
 }
 
@@ -636,17 +636,17 @@ body:focus-visible,
 }
 
 .swatch-chord {
-  background: #1677ff;
+  background: var(--m101-blue);
 }
 
 .swatch-scale {
-  background: #f4f1ea;
-  box-shadow: inset 0 -4px 0 #69b1ff;
+  background: var(--m101-ivory);
+  box-shadow: inset 0 -4px 0 var(--m101-blue-mid);
 }
 
 .swatch-root {
-  background: #1a1a22;
-  box-shadow: inset 0 0 0 2px #ffd666;
+  background: var(--m101-key-black);
+  box-shadow: inset 0 0 0 2px var(--m101-gold);
 }
 
 .stepper-view {
@@ -667,9 +667,9 @@ body:focus-visible,
 .step {
   appearance: none;
   min-height: 2.6rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--m101-w16);
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--m101-w04);
   color: inherit;
   font: inherit;
   cursor: pointer;
@@ -677,17 +677,17 @@ body:focus-visible,
 }
 
 .step.beat {
-  border-color: rgba(255, 255, 255, 0.38);
+  border-color: var(--m101-w38);
 }
 
 .step.on {
-  background: #1677ff;
-  color: #fff;
-  border-color: #0958d9;
+  background: var(--m101-blue);
+  color: var(--m101-white);
+  border-color: var(--m101-blue-deep);
 }
 
 .step:focus-visible {
-  outline: 2px solid #ffe58f;
+  outline: 2px solid var(--m101-gold-soft);
   outline-offset: 2px;
 }
 
@@ -698,24 +698,24 @@ body:focus-visible,
 .anchor-card {
   margin-top: 1.25rem;
   padding: 1rem 1.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-left: 3px solid #ffe58f;
+  border: 1px solid var(--m101-w16);
+  border-left: 3px solid var(--m101-gold-soft);
   border-radius: 8px;
-  background: rgba(255, 229, 143, 0.06);
+  background: var(--m101-gold-soft-06);
 }
 
 .anchor-hook {
   margin: 0 0 0.75rem;
   font-size: 1.05rem;
   line-height: 1.6;
-  color: #ffe58f;
+  color: var(--m101-gold-soft);
 }
 
 .anchor-name {
   display: block;
   font-size: 0.8rem;
   letter-spacing: 0.08em;
-  color: rgba(255, 229, 143, 0.7);
+  color: var(--m101-gold-soft-70);
   text-transform: uppercase;
 }
 
@@ -724,7 +724,7 @@ body:focus-visible,
   margin: 0;
   padding-left: 1.25rem;
   line-height: 1.7;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--m101-w78);
 }
 
 .anchor-takeaway-title {
@@ -788,9 +788,9 @@ body:focus-visible,
 .diagram {
   margin: 16px 0;
   padding: 14px 16px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--m101-w10);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--m101-w02);
 }
 
 .diagram-canvas {
@@ -812,7 +812,7 @@ body:focus-visible,
   margin: 10px 0 0;
   font-size: 0.82rem;
   line-height: 1.65;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--m101-w55);
 }
 
 .diagram-actions {
@@ -830,29 +830,29 @@ body:focus-visible,
   font-size: 0.8rem;
   padding: 4px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--m101-w20);
+  background: var(--m101-w06);
   color: inherit;
 }
 
 .diagram-action:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--m101-w12);
 }
 
 .diagram-action:focus-visible {
-  outline: 2px solid #ffe58f;
+  outline: 2px solid var(--m101-gold-soft);
   outline-offset: 2px;
 }
 
 .diagram-action-note {
   font-size: 0.76rem;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--m101-w45);
 }
 
 /* —— 图里的通用元素 —— */
 
 .diagram text {
-  fill: rgba(255, 255, 255, 0.82);
+  fill: var(--m101-w82);
   font-family: inherit;
 }
 
@@ -866,35 +866,35 @@ body:focus-visible,
 
 .diagram .dg-label {
   font-size: 12.5px;
-  fill: rgba(255, 255, 255, 0.9);
+  fill: var(--m101-w90);
 }
 
 .diagram .dg-muted {
-  fill: rgba(255, 255, 255, 0.5);
+  fill: var(--m101-w50);
 }
 
 .diagram .dg-strong {
-  fill: #ffd666;
+  fill: var(--m101-gold);
 }
 
 .diagram .dg-gold {
-  fill: #ffd666;
+  fill: var(--m101-gold);
 }
 
 .diagram .dg-danger {
-  fill: #ff9c6e;
+  fill: var(--m101-red-warm);
 }
 
 .diagram .dg-gold-stroke {
-  stroke: #ffd666;
+  stroke: var(--m101-gold);
 }
 
 .diagram .dg-strong-stroke {
-  stroke: #ffd666;
+  stroke: var(--m101-gold);
 }
 
 .diagram .dg-leader {
-  stroke: rgba(255, 255, 255, 0.32);
+  stroke: var(--m101-w32);
   stroke-width: 1;
 }
 
@@ -903,24 +903,24 @@ body:focus-visible,
 }
 
 .diagram .dg-axis {
-  stroke: rgba(255, 255, 255, 0.22);
+  stroke: var(--m101-w22);
   stroke-width: 1;
 }
 
 .diagram .dg-ref-line {
-  stroke: rgba(255, 255, 255, 0.3);
+  stroke: var(--m101-w30);
   stroke-width: 1;
   stroke-dasharray: 4 4;
 }
 
 .diagram .dg-arrow {
-  stroke: rgba(255, 255, 255, 0.5);
+  stroke: var(--m101-w50);
   stroke-width: 2;
   fill: none;
 }
 
 .diagram .dg-loop {
-  stroke: rgba(255, 255, 255, 0.28);
+  stroke: var(--m101-w28);
   stroke-width: 1.5;
   fill: none;
   stroke-dasharray: 4 3;
@@ -928,7 +928,7 @@ body:focus-visible,
 
 /* 循环箭头（回到 T）：金色，跟「解决」那一步对上。 */
 .diagram .dg-loop-gold {
-  stroke: rgba(255, 214, 102, 0.85);
+  stroke: var(--m101-gold-85);
 }
 
 .diagram .dg-marker {
@@ -937,7 +937,7 @@ body:focus-visible,
 }
 
 .diagram .dg-group-bar {
-  fill: #ffd666;
+  fill: var(--m101-gold);
   opacity: 0.85;
 }
 
@@ -954,27 +954,27 @@ body:focus-visible,
 }
 
 .diagram .dg-hit:focus-visible .dg-key {
-  stroke: #ffe58f;
+  stroke: var(--m101-gold-soft);
   stroke-width: 2;
 }
 
 /* —— 键盘图 —— */
 
 .diagram .dg-key-white {
-  fill: #f4f1ea;
-  stroke: rgba(0, 0, 0, 0.45);
+  fill: var(--m101-ivory);
+  stroke: var(--m101-shadow-ink);
 }
 
 .diagram .dg-key-black {
-  fill: #2b2b36;
-  stroke: rgba(255, 255, 255, 0.18);
+  fill: var(--m101-key-black-2);
+  stroke: var(--m101-w18);
 }
 
 /* 音名用衬线体：跟正文分开，扫一眼就知道这是音名不是句子。 */
 .diagram .dg-key-name {
   font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif", serif;
   font-size: 11px;
-  fill: #1c1c22;
+  fill: var(--m101-surface);
 }
 
 /*
@@ -984,7 +984,7 @@ body:focus-visible,
 .diagram .dg-note {
   font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif", serif;
   font-size: 13px;
-  fill: rgba(255, 255, 255, 0.92);
+  fill: var(--m101-w92);
 }
 
 .diagram .dg-callout {
@@ -993,13 +993,13 @@ body:focus-visible,
 }
 
 .diagram .dg-chip {
-  fill: rgba(255, 255, 255, 0.07);
-  stroke: rgba(255, 255, 255, 0.16);
+  fill: var(--m101-w07);
+  stroke: var(--m101-w16);
 }
 
 .diagram .dg-chip-gold {
-  fill: rgba(255, 214, 102, 0.16);
-  stroke: rgba(255, 214, 102, 0.5);
+  fill: var(--m101-gold-16);
+  stroke: var(--m101-gold-50);
 }
 
 .diagram .dg-chip-text {
@@ -1007,25 +1007,25 @@ body:focus-visible,
 }
 
 .diagram .dg-half-mark {
-  fill: #ffd666;
+  fill: var(--m101-gold);
 }
 
 /* 尺子：量键距用，两端带竖线。 */
 .dg-ruler line {
-  stroke: rgba(255, 214, 102, 0.7);
+  stroke: var(--m101-gold-70);
   stroke-width: 1.5;
 }
 
 /* —— 和弦进行 —— */
 
 .diagram .dg-block {
-  fill: rgba(64, 150, 255, 0.14);
-  stroke: rgba(64, 150, 255, 0.5);
+  fill: var(--m101-blue-14);
+  stroke: var(--m101-blue-50);
 }
 
 .diagram .dg-block-minor {
-  fill: rgba(255, 214, 102, 0.14);
-  stroke: rgba(255, 214, 102, 0.5);
+  fill: var(--m101-gold-14);
+  stroke: var(--m101-gold-50);
 }
 
 .diagram .dg-roman {
@@ -1042,7 +1042,7 @@ body:focus-visible,
 /* —— 鼓型网格 —— */
 
 .diagram .dg-beat {
-  fill: rgba(255, 255, 255, 0.05);
+  fill: var(--m101-w05);
 }
 
 .diagram .dg-step-no {
@@ -1050,46 +1050,46 @@ body:focus-visible,
 }
 
 .diagram .dg-cell {
-  fill: rgba(255, 255, 255, 0.05);
-  stroke: rgba(255, 255, 255, 0.08);
+  fill: var(--m101-w05);
+  stroke: var(--m101-w08);
 }
 
 .diagram .dg-role-kick {
-  fill: rgba(255, 120, 117, 0.85);
+  fill: var(--m101-red-85);
 }
 
 .diagram .dg-role-snare {
-  fill: rgba(115, 192, 222, 0.85);
+  fill: var(--m101-cyan-85);
 }
 
 .diagram .dg-role-clap {
-  fill: rgba(179, 127, 235, 0.85);
+  fill: var(--m101-purple-85);
 }
 
 .diagram .dg-role-hat {
-  fill: rgba(149, 222, 100, 0.85);
+  fill: var(--m101-green-85);
 }
 
 .diagram .dg-kick-fill {
-  fill: #ff7875;
+  fill: var(--m101-red);
 }
 
 .diagram .dg-snare-fill {
-  fill: #73c0de;
+  fill: var(--m101-cyan);
 }
 
 /* —— 侧链 —— */
 
 .diagram .dg-kick-shape {
-  fill: #ff7875;
+  fill: var(--m101-red);
 }
 
 .diagram .dg-duck-fill {
-  fill: rgba(255, 214, 102, 0.18);
+  fill: var(--m101-gold-18);
 }
 
 .diagram .dg-duck-line {
-  stroke: #ffd666;
+  stroke: var(--m101-gold);
   stroke-width: 2;
   fill: none;
 }
@@ -1097,19 +1097,19 @@ body:focus-visible,
 /* —— 能量曲线 —— */
 
 .diagram .dg-zone {
-  fill: rgba(255, 255, 255, 0.03);
+  fill: var(--m101-w03);
 }
 
 .diagram .dg-zone-chorus {
-  fill: rgba(64, 150, 255, 0.08);
+  fill: var(--m101-blue-08);
 }
 
 .diagram .dg-energy-fill {
-  fill: rgba(64, 150, 255, 0.18);
+  fill: var(--m101-blue-18);
 }
 
 .diagram .dg-energy-line {
-  stroke: #4096ff;
+  stroke: var(--m101-blue-bright);
   stroke-width: 2.5;
   fill: none;
 }
@@ -1122,20 +1122,20 @@ body:focus-visible,
 }
 
 .diagram .dg-layer {
-  fill: rgba(255, 255, 255, 0.06);
-  stroke: rgba(255, 255, 255, 0.14);
+  fill: var(--m101-w06);
+  stroke: var(--m101-w14);
 }
 
 .diagram .dg-layer-added {
-  fill: rgba(255, 214, 102, 0.14);
-  stroke: rgba(255, 214, 102, 0.45);
+  fill: var(--m101-gold-14);
+  stroke: var(--m101-gold-45);
 }
 
 /* —— 频段分工 —— */
 
 .diagram .dg-danger-zone {
-  fill: rgba(255, 120, 117, 0.07);
-  stroke: rgba(255, 120, 117, 0.25);
+  fill: var(--m101-red-07);
+  stroke: var(--m101-red-25);
   stroke-dasharray: 3 3;
 }
 
@@ -1144,51 +1144,51 @@ body:focus-visible,
 }
 
 .diagram .dg-band-kick {
-  fill: rgba(255, 120, 117, 0.35);
-  stroke: #ff7875;
+  fill: var(--m101-red-35);
+  stroke: var(--m101-red);
 }
 
 .diagram .dg-band-sub {
-  fill: rgba(179, 127, 235, 0.35);
-  stroke: #b37feb;
+  fill: var(--m101-purple-35);
+  stroke: var(--m101-purple);
 }
 
 .diagram .dg-band-bass {
-  fill: rgba(115, 192, 222, 0.35);
-  stroke: #73c0de;
+  fill: var(--m101-cyan-35);
+  stroke: var(--m101-cyan);
 }
 
 .diagram .dg-band-supersaw {
-  fill: rgba(149, 222, 100, 0.35);
-  stroke: #95de64;
+  fill: var(--m101-green-35);
+  stroke: var(--m101-green);
 }
 
 .diagram .dg-band-chop {
-  fill: rgba(255, 160, 122, 0.35);
-  stroke: #ffa07a;
+  fill: var(--m101-orange-35);
+  stroke: var(--m101-red-warm-2);
 }
 
 .diagram .dg-band-other {
-  fill: rgba(255, 255, 255, 0.12);
-  stroke: rgba(255, 255, 255, 0.3);
+  fill: var(--m101-w12);
+  stroke: var(--m101-w30);
 }
 
 /* —— 第二批教学图 —— */
 
 /* 音程：两个音之间那一截。 */
 .dg-interval {
-  stroke: #4096ff;
+  stroke: var(--m101-blue-bright);
   stroke-linecap: round;
 }
 
 .dg-interval-tight {
-  stroke: #ff9c6e;
+  stroke: var(--m101-red-warm);
 }
 
 /* 和弦三度堆叠：中间那层是情绪开关。 */
 .diagram .dg-block-third {
-  fill: rgba(255, 214, 102, 0.16);
-  stroke: rgba(255, 214, 102, 0.6);
+  fill: var(--m101-gold-16);
+  stroke: var(--m101-gold-60);
 }
 
 .dg-chord-strong {
@@ -1199,41 +1199,41 @@ body:focus-visible,
 
 /* 实心箭头（比线条更醒目）。 */
 .dg-arrow-fill {
-  fill: rgba(255, 255, 255, 0.45);
+  fill: var(--m101-w45);
 }
 
 .dg-loop-fill {
-  fill: rgba(255, 214, 102, 0.55);
+  fill: var(--m101-gold-55);
 }
 
 /* 音阶级数。 */
 .diagram .dg-degree {
   font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif", serif;
   font-size: 17px;
-  fill: #ffd666;
+  fill: var(--m101-gold);
 }
 
 .diagram .dg-degree-inline {
   font-family: "Cambria", "Palatino Linotype", "Times New Roman", "Liberation Serif", serif;
   font-size: 14px;
-  fill: #ffd666;
+  fill: var(--m101-gold);
 }
 
 /* 调内的键高亮，调外的压暗。 */
 .diagram .dg-key-on {
-  fill: #ffe9ad;
+  fill: var(--m101-gold-pale);
 }
 
 .diagram .dg-key-off {
-  fill: rgba(244, 241, 234, 0.32);
+  fill: var(--m101-ivory-32);
 }
 
 .diagram .dg-key-black-on {
-  fill: #8a6d1f;
+  fill: var(--m101-key-gold-2);
 }
 
 .diagram .dg-key-black-off {
-  fill: rgba(24, 24, 30, 0.78);
+  fill: var(--m101-key-off);
 }
 
 /* 和声功能代号。 */
@@ -1245,28 +1245,28 @@ body:focus-visible,
 
 /* 结构时间轴的段落配色（交替）。 */
 .diagram .dg-slot-a {
-  fill: rgba(64, 150, 255, 0.18);
-  stroke: rgba(64, 150, 255, 0.45);
+  fill: var(--m101-blue-18);
+  stroke: var(--m101-blue-45);
 }
 
 .diagram .dg-slot-b {
-  fill: rgba(255, 214, 102, 0.16);
-  stroke: rgba(255, 214, 102, 0.45);
+  fill: var(--m101-gold-16);
+  stroke: var(--m101-gold-45);
 }
 
 .diagram .dg-slot-c {
-  fill: rgba(115, 192, 222, 0.16);
-  stroke: rgba(115, 192, 222, 0.45);
+  fill: var(--m101-cyan-16);
+  stroke: var(--m101-cyan-45);
 }
 
 .diagram .dg-slot-d {
-  fill: rgba(179, 127, 235, 0.16);
-  stroke: rgba(179, 127, 235, 0.45);
+  fill: var(--m101-purple-16);
+  stroke: var(--m101-purple-45);
 }
 
 /* 装饰轨（FX / CHOP）：不算层数，用虚线框标出来。 */
 .diagram .dg-layer-decorative {
-  fill: rgba(255, 255, 255, 0.03);
-  stroke: rgba(255, 255, 255, 0.22);
+  fill: var(--m101-w03);
+  stroke: var(--m101-w22);
   stroke-dasharray: 5 4;
 }

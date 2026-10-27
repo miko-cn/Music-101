@@ -3,6 +3,7 @@ import { Alert, Button, Card, Flex, Radio, Steps } from "antd";
 import { sharedEngine } from "../core/audio/engine.ts";
 import { computerKeyLabel } from "../core/lesson/keys.ts";
 import { computerKeyboard } from "../core/lesson/computer-keyboard.ts";
+import { answerVerdict, anchorHint } from "../core/lesson/verdict.ts";
 import {
   applyRecipeToStage,
   buildAttempt,
@@ -31,6 +32,9 @@ import { EnergyChart } from "./DiagnosticsLab.tsx";
 import { LessonDiagrams } from "./diagrams/index.tsx";
 import { LessonCoach } from "./LessonCoach.tsx";
 import { MemoryAnchorCard } from "./MemoryAnchorCard.tsx";
+import { EarQuiz } from "./EarQuiz.tsx";
+import { QuizGroup } from "./QuizOption.tsx";
+import { useFeedbackSfx, useVerdictSfx } from "./useFeedbackSfx.ts";
 import { Piano } from "./Piano.tsx";
 import { Stepper } from "./Stepper.tsx";
 
@@ -120,6 +124,31 @@ export function LessonFlow({
   const diagnostics = diagnoseStage(lesson, state);
   const passed = stagePassed(lesson, state);
 
+  const playVerdict = useVerdictSfx(lesson.keyRoot, lesson.keyScale);
+  const playPass = useFeedbackSfx(lesson.keyRoot, lesson.keyScale);
+
+  /**
+   * 过关的那一瞬间：播一次过关音。
+   *
+   * 用 ref 记住「已经响过」，因为 passed 会随每次改动重新计算，
+   * 不加这个守卫会响一串。
+   *
+   * 音效放在 effect 里有一个坑：浏览器要求音频在用户手势内启动。
+   * 这里过关多半发生在用户点「下一步」之后，AudioContext 早就在
+   * 手势里 resume 过了，所以能响。第一次进来就直接过关的情况
+   * （比如套用配方）可能静音——那是可以接受的降级，不影响做题。
+   */
+  const passedAnnounced = useRef(false);
+  useEffect(() => {
+    if (!passed) {
+      passedAnnounced.current = false;
+      return;
+    }
+    if (passedAnnounced.current) return;
+    passedAnnounced.current = true;
+    playPass("pass");
+  }, [passed, playPass]);
+
   useEffect(() => {
     if (seenLesson.current !== lesson.id) {
       seenLesson.current = lesson.id;
@@ -206,39 +235,23 @@ export function LessonFlow({
       )}
       {step === 1 && (
         <Card title="听辨">
-          {lesson.ear.map((question, index) => (
-            <section key={question.id} className="ear-question">
-              <h2 className="result-heading">{question.prompt}</h2>
-              <Radio.Group
-                value={state.earAnswers[index] ?? undefined}
-                onChange={(event) => {
-                  const value = Number(event.target.value);
-                  setState((current) => {
-                    const earAnswers = current.earAnswers.slice();
-                    earAnswers[index] = value;
-                    return { ...current, earAnswers };
-                  });
-                }}
-              >
-                {question.choices.map((choice, choiceIndex) => (
-                  <Radio key={choiceIndex} value={choiceIndex}>
-                    {choice.label}
-                  </Radio>
-                ))}
-              </Radio.Group>
-              <Button
-                onClick={() => {
-                  const chosen = question.choices[state.earAnswers[index] ?? question.correct];
-                  void engine().then((active) => active?.playEarOption(chosen?.midis ?? []));
-                }}
-              >
-                播放当前选项
-              </Button>
-              {state.earAnswers[index] !== null && state.earAnswers[index] !== undefined && (
-                <p className="hint">{question.explain}</p>
-              )}
-            </section>
-          ))}
+          <p className="hint">
+            选完立刻知道对错。答错了先给你方向（这一关的记忆锚），实在想不出来再看答案。
+          </p>
+          <EarQuiz
+            items={lesson.ear}
+            answers={state.earAnswers}
+            onAnswer={(index, choice) =>
+              setState((current) => {
+                const earAnswers = current.earAnswers.slice();
+                earAnswers[index] = choice;
+                return { ...current, earAnswers };
+              })
+            }
+            hint={anchorHint(lesson.anchor.name, lesson.anchor.hook)}
+            keyRoot={lesson.keyRoot}
+            keyScale={lesson.keyScale}
+          />
         </Card>
       )}
       {step === 2 && (
@@ -280,18 +293,17 @@ export function LessonFlow({
               onPick={(pick) => setState((current) => ({ ...current, referencePick: pick }))}
             />
           ) : (
-            <Radio.Group
-              value={state.hand ?? undefined}
-              onChange={(event) => setState((current) => ({ ...current, hand: Number(event.target.value) }))}
-            >
-              <Flex vertical gap={8}>
-                {lesson.handChoices.map((choice, index) => (
-                  <Radio key={index} value={index}>
-                    {choice.label}
-                  </Radio>
-                ))}
-              </Flex>
-            </Radio.Group>
+            <QuizGroup
+              choices={lesson.handChoices.map((choice) => ({ label: choice.label }))}
+              value={state.hand}
+              onChange={(index) => {
+                const verdict = answerVerdict(index, lesson.handCorrect);
+                playVerdict(verdict);
+                setState((current) => ({ ...current, hand: index }));
+              }}
+              correct={lesson.handCorrect}
+              label={lesson.handPrompt}
+            />
           )}
           {lesson.showEnergy && state.hand !== null && (
             <EnergyPreview lesson={lesson} choice={state.hand} />
@@ -304,6 +316,12 @@ export function LessonFlow({
       {step === 3 && (
         <Card title="诊断">
           <Flex vertical gap={12}>
+            {passed && (
+              <div className="pass-stamp">
+                <span aria-hidden="true">★</span>
+                <span>第 {lesson.id} 关通过</span>
+              </div>
+            )}
             {diagnostics.map((item) => (
               <Alert
                 key={item.id}

@@ -14,6 +14,7 @@ import { MemoryAnchors } from "./ui/MemoryAnchors.tsx";
 import { ProgressBoard } from "./ui/ProgressBoard.tsx";
 import { ReviewDeck } from "./ui/ReviewDeck.tsx";
 import { TheoryBench } from "./ui/TheoryBench.tsx";
+import { palette, radii } from "./ui/theme.ts";
 
 const { Header, Content } = Layout;
 
@@ -71,8 +72,13 @@ export function App() {
         algorithm: theme.darkAlgorithm,
         token: {
           fontFamily: 'system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif',
-          colorBgLayout: "#12121a",
-          borderRadius: 10,
+          colorBgLayout: palette.bg,
+          colorBgContainer: palette.surface,
+          colorPrimary: palette.accent,
+          colorSuccess: palette.success,
+          colorError: palette.danger,
+          colorWarning: palette.warning,
+          borderRadius: radii.md,
         },
       }}
     >
