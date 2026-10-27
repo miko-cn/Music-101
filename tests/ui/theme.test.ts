@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { palette, radii, tokenStylesheet } from "../../src/ui/theme.ts";
+import { palette, radii, springs, tokenStylesheet } from "../../src/ui/theme.ts";
 
 /**
  * 设计 token 的一致性守卫。
@@ -50,6 +50,20 @@ describe("设计 token", () => {
   it("动效表里必须处理 prefers-reduced-motion", () => {
     const css = readFileSync(join(ROOT, "src", "ui", "motion.css"), "utf8");
     expect(css).toContain("prefers-reduced-motion: reduce");
+  });
+
+  it("弹簧只有三档，且都是物理弹簧", () => {
+    expect(Object.keys(springs).sort()).toEqual(["base", "snappy", "soft"]);
+    for (const spring of Object.values(springs)) {
+      expect(spring.type).toBe("spring");
+      expect(spring.stiffness).toBeGreaterThan(0);
+      expect(spring.damping).toBeGreaterThan(0);
+    }
+  });
+
+  it("View Transition 的伪元素也有 reduced-motion 降级", () => {
+    const css = readFileSync(join(ROOT, "src", "ui", "motion.css"), "utf8");
+    expect(css).toMatch(/::view-transition-group\(\*\)/);
   });
 
   it("CSS 里引用的每个 token 都定义过", () => {

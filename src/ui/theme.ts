@@ -237,6 +237,21 @@ export const easings = {
 } as const;
 
 /**
+ * Motion 的物理弹簧。
+ *
+ * 不叫 spring：easings.spring 是 CSS 的回弹曲线，跟物理弹簧不是一回事。
+ * 组件里不许现编 stiffness / damping，只从这三档里取。
+ */
+export const springs = {
+  /** 判定条、按钮按下：快、几乎不回弹。 */
+  snappy: { type: "spring", stiffness: 520, damping: 32 },
+  /** 题目切换、进度条：默认。 */
+  base: { type: "spring", stiffness: 380, damping: 30 },
+  /** 结算页、盖章：慢一点、有一点回弹。 */
+  soft: { type: "spring", stiffness: 220, damping: 22 },
+} as const;
+
+/**
  * 生成 CSS 变量的 <style> 内容。
  *
  * 用运行时注入而不是手写一份 CSS 文件，是为了保证 CSS 变量和
