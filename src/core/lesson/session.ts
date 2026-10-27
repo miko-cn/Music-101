@@ -99,6 +99,8 @@ export function solvedSession(questions: readonly SessionKey[], now: number): Se
     phase: questions.map(() => "correct" as const),
     committed: answers,
     firstTry: questions.map(() => true),
+    streak: questions.length,
+    bestStreak: questions.length,
     finishedAt: now,
   };
 }
@@ -122,7 +124,7 @@ export function sessionReducer(
 
   switch (action.type) {
     case "select": {
-      if (isSettled(phase) || action.choice < 0) return state;
+      if (isSettled(phase) || !Number.isInteger(action.choice) || action.choice < 0) return state;
       if (phase === "wrong" && !policy.allowRetry) return state;
       return {
         ...state,
@@ -134,12 +136,15 @@ export function sessionReducer(
       const choice = state.selected[at];
       if (phase !== "answering" || choice === null || choice === undefined) return state;
       if (choice === question.correct) {
-        const streak = state.streak + 1;
+        // 连对只数第一次就对：错过再改对也算一次断档，
+        // 否则结算页会出现「第一次就对 1/3 · 最长连对 2」这种自相矛盾的数。
+        const firstTry = (state.attempts[at] ?? 0) === 0;
+        const streak = firstTry ? state.streak + 1 : 0;
         return {
           ...state,
           phase: setAt(state.phase, at, "correct"),
           committed: setAt(state.committed, at, choice),
-          firstTry: setAt(state.firstTry, at, (state.attempts[at] ?? 0) === 0),
+          firstTry: setAt(state.firstTry, at, firstTry),
           streak,
           bestStreak: Math.max(state.bestStreak, streak),
         };
@@ -165,12 +170,9 @@ export function sessionReducer(
       };
     }
     case "reveal": {
-      if (!canReveal(state, policy)) return state;
-      return {
-        ...state,
-        phase: setAt(state.phase, at, "revealed"),
-        committed: setAt(state.committed, at, state.selected[at] ?? null),
-      };
+      const shown = state.selected[at];
+      if (!canReveal(state, policy) || shown === null || shown === undefined) return state;
+      return { ...state, phase: setAt(state.phase, at, "revealed"), committed: setAt(state.committed, at, shown) };
     }
     case "continue": {
       if (!isSettled(phase)) return state;
@@ -185,7 +187,10 @@ export interface SessionSummary {
   correct: number;
   firstTryCorrect: number;
   bestStreak: number;
-  /** 用时（秒，取整）。还没做完是 null。 */
+  /**
+   * 用时（秒，取整）。还没做完是 null；
+   * 预填会话 / 空会话（finishedAt === startedAt）没有真实用时，也是 null。
+   */
   seconds: number | null;
 }
 
@@ -196,7 +201,10 @@ export function sessionSummary(state: SessionState, questions: readonly SessionK
     correct,
     firstTryCorrect: state.firstTry.filter(Boolean).length,
     bestStreak: state.bestStreak,
-    seconds: state.finishedAt === null ? null : Math.round((state.finishedAt - state.startedAt) / 1000),
+    seconds:
+      state.finishedAt === null || state.finishedAt === state.startedAt
+        ? null
+        : Math.max(0, Math.round((state.finishedAt - state.startedAt) / 1000)),
   };
 }
 

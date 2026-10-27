@@ -60,6 +60,35 @@ describe("会话：定稿才写 committed", () => {
     const state = run([{ type: "select", choice: 1 }, { type: "check" }, { type: "select", choice: 2 }]);
     expect(state.phase[0]).toBe("answering");
     expect(state.selected[0]).toBe(2);
+    expect(state.attempts[0]).toBe(1);
+    expect(canReveal(state, LESSON_POLICY)).toBe(false);
+  });
+
+  it("错两次后又选了别的项：回到 answering，attempts 保持 2，不能 reveal", () => {
+    const state = run([
+      { type: "select", choice: 1 },
+      { type: "check" },
+      { type: "select", choice: 2 },
+      { type: "check" },
+      { type: "select", choice: 1 },
+      { type: "reveal" },
+    ]);
+    expect(state.phase[0]).toBe("answering");
+    expect(state.attempts[0]).toBe(2);
+    expect(state.committed[0]).toBeNull();
+    expect(canReveal(state, LESSON_POLICY)).toBe(false);
+  });
+
+  it("选 A、改选 B、检查判对：仍是第一次就对", () => {
+    const state = run([{ type: "select", choice: 1 }, { type: "select", choice: 0 }, { type: "check" }]);
+    expect(state.phase[0]).toBe("correct");
+    expect(state.firstTry[0]).toBe(true);
+  });
+
+  it("非整数下标无效", () => {
+    const state = run([{ type: "select", choice: 1.5 }, { type: "select", choice: Number.NaN }]);
+    expect(state.selected[0]).toBeNull();
+    expect(state.phase[0]).toBe("answering");
   });
 });
 
@@ -86,6 +115,8 @@ describe("会话：看答案", () => {
   it("定稿之后选不动", () => {
     const state = run([{ type: "select", choice: 0 }, { type: "check" }, { type: "select", choice: 1 }]);
     expect(state.selected[0]).toBe(0);
+    expect(state.committed[0]).toBe(0);
+    expect(state.phase[0]).toBe("correct");
   });
 });
 
@@ -126,6 +157,19 @@ describe("会话：连对", () => {
     expect(state.streak).toBe(0);
     expect(state.bestStreak).toBe(2);
   });
+
+  it("错过再改对不算连对；下一题第一次就对从 1 重新数", () => {
+    const fixedFirst: SessionAction[] = [
+      { type: "select", choice: 1 }, { type: "check" }, { type: "retry" },
+      { type: "select", choice: 0 }, { type: "check" },
+    ];
+    const fixed = run(fixedFirst);
+    expect(fixed.streak).toBe(0);
+    expect(fixed.bestStreak).toBe(0);
+    const state = run([...fixedFirst, { type: "continue", now: 2000 }, { type: "select", choice: 2 }, { type: "check" }]);
+    expect(state.streak).toBe(1);
+    expect(state.bestStreak).toBe(1);
+  });
 });
 
 describe("会话：结算", () => {
@@ -149,7 +193,11 @@ describe("会话：结算", () => {
     const state = solvedSession(QUESTIONS, 5000);
     expect(state.finishedAt).toBe(5000);
     expect(state.committed).toEqual([0, 2, 1]);
-    expect(sessionSummary(state, QUESTIONS).firstTryCorrect).toBe(3);
+    expect(state.phase).toEqual(["correct", "correct", "correct"]);
+    const summary = sessionSummary(state, QUESTIONS);
+    expect(summary.firstTryCorrect).toBe(3);
+    expect(summary.bestStreak).toBe(QUESTIONS.length);
+    expect(summary.seconds).toBeNull();
   });
 
   it("没有题的会话一创建就算完成", () => {

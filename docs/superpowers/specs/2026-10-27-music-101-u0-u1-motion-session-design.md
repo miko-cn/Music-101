@@ -312,8 +312,10 @@ export function sessionReducer(
   questions: readonly { correct: number }[],
   policy: SessionPolicy,
 ): SessionState;
-export function sessionSummary(state: SessionState): {
+export function sessionSummary(state: SessionState, questions: readonly { correct: number }[]): {
   total: number;
+  /** 最终对了几题（看了答案的不算），跟 earPass 比。 */
+  correct: number;
   firstTryCorrect: number;
   bestStreak: number;
   seconds: number | null;
@@ -326,7 +328,7 @@ export function sessionSummary(state: SessionState): {
 2. **看了答案仍然算错**：`revealed` 的 `committed` 是错下标，绝不改成正确下标，也不改回 `null`。否则 `buildAttempt` 的 `easy`（必须全对）和 `earPass` 会被放水
 3. `continue` 只在当前题已定稿（`correct` / `revealed`）时生效；最后一题 `continue` → 写 `finishedAt`
 4. `select` 在已定稿的题上无效（锁死，修掉现在 `lockCorrect` 锁不住改选的问题）
-5. 判对 → `streak + 1`，并更新 `bestStreak`；判错 → `streak = 0`
+5. **第一次检查就对** → `streak + 1`，并更新 `bestStreak`；判错、或者错过之后才改对 → `streak = 0`。连对只数第一次就对的题，否则结算页会出现「第一次就对 1/3 · 最长连对 2」这种互相打架的数字
 6. 复习策略（`allowRetry: false, revealAfter: 1`）：判错直接进入 `revealed`（这跟复习页现在的语义一致）
 
 ### 5.3 状态放在哪
@@ -336,6 +338,7 @@ export function sessionSummary(state: SessionState): {
 - 换关时，跟 `emptyStageState` 一起重置（`LessonFlow` 第 88–93 行那个 effect）
 - 每次 reducer 产出新状态，`committed` 同步进 `state.earAnswers`。`stageEarScore`、`diagnoseStage`、进度结算（`observeAttempt`）**一行不改**
 - 结算 effect 的 `step < 3 && !passed` 守卫和首帧只 `recordVisit` 的 early return **保持原样**
+- **唯一一处改动**：传给 `buildAttempt` 的 `earCorrect` 改成 `Math.min(最终答对数, 第一次就对的题数)`。它只影响「轻松过关」（`easy`）的判定，不影响过关：两级提示允许改对，但把选项挨个试一遍刷出来的全对不该算「轻松」——否则连续三次之后个性化会建议跳过概念卡
 
 ### 5.4 选项洗牌
 
