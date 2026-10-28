@@ -39,17 +39,72 @@ export function chord(bar: number, pitches: number[], text: string): SkeletonCho
   return { tick: bar * BAR, pitches, text };
 }
 
-export function loopChords(count: number): SkeletonChord[] {
-  const shapes = [
-    { pitches: [60, 64, 67], text: "C (I)" },
-    { pitches: [67, 71, 74], text: "G (V)" },
-    { pitches: [69, 72, 76], text: "Am (vi)" },
-    { pitches: [65, 69, 72], text: "F (IV)" },
-  ];
-  return Array.from({ length: count }, (_, bar) => {
+export type LoopProgression = "I-V-vi-IV" | "i-bVI-bIII-bVII";
+export type LoopColor = "triad" | "add9" | "maj7";
+
+export interface LoopChordsOptions {
+  progression?: LoopProgression;
+  color?: LoopColor;
+  /** 最后一小节改落在 T（I 或 i），不断在 IV / ♭VII 上。 */
+  cadenceT?: boolean;
+}
+
+const LOOP_SHAPES: Record<LoopProgression, Record<LoopColor, { pitches: number[]; text: string }[]>> = {
+  "I-V-vi-IV": {
+    triad: [
+      { pitches: [60, 64, 67], text: "C (I)" },
+      { pitches: [67, 71, 74], text: "G (V)" },
+      { pitches: [69, 72, 76], text: "Am (vi)" },
+      { pitches: [65, 69, 72], text: "F (IV)" },
+    ],
+    add9: [
+      { pitches: [60, 64, 67, 74], text: "Cadd9 (I)" },
+      { pitches: [67, 71, 74, 81], text: "Gadd9 (V)" },
+      { pitches: [69, 72, 76, 83], text: "Am(add9)" },
+      { pitches: [65, 69, 72, 79], text: "Fadd9 (IV)" },
+    ],
+    maj7: [
+      { pitches: [60, 64, 67, 71], text: "Cmaj7 (I)" },
+      { pitches: [67, 71, 74, 77], text: "G7 (V)" },
+      { pitches: [69, 72, 76, 79], text: "Am7 (vi)" },
+      { pitches: [65, 69, 72, 76], text: "Fmaj7 (IV)" },
+    ],
+  },
+  "i-bVI-bIII-bVII": {
+    triad: [
+      { pitches: [69, 72, 76], text: "Am (i)" },
+      { pitches: [65, 69, 72], text: "F (♭VI)" },
+      { pitches: [60, 64, 67], text: "C (♭III)" },
+      { pitches: [67, 71, 74], text: "G (♭VII)" },
+    ],
+    add9: [
+      { pitches: [69, 72, 76, 83], text: "Am(add9)" },
+      { pitches: [65, 69, 72, 79], text: "Fadd9 (♭VI)" },
+      { pitches: [60, 64, 67, 74], text: "Cadd9 (♭III)" },
+      { pitches: [67, 71, 74, 81], text: "Gadd9 (♭VII)" },
+    ],
+    maj7: [
+      { pitches: [69, 72, 76, 79], text: "Am7 (i)" },
+      { pitches: [65, 69, 72, 76], text: "Fmaj7 (♭VI)" },
+      { pitches: [60, 64, 67, 71], text: "Cmaj7 (♭III)" },
+      { pitches: [67, 71, 74, 77], text: "G7 (♭VII)" },
+    ],
+  },
+};
+
+export function loopChords(count: number, options: LoopChordsOptions = {}): SkeletonChord[] {
+  const progression = options.progression ?? "I-V-vi-IV";
+  const color = options.color ?? "triad";
+  const shapes = LOOP_SHAPES[progression][color];
+  const chords = Array.from({ length: count }, (_, bar) => {
     const shape = shapes[bar % 4] ?? shapes[0];
-    return { tick: bar * BAR, pitches: shape.pitches, text: shape.text };
+    return { tick: bar * BAR, pitches: [...shape.pitches], text: shape.text };
   });
+  if (options.cadenceT && count > 0) {
+    const tonic = shapes[progression === "i-bVI-bIII-bVII" ? 0 : 0];
+    chords[count - 1] = { tick: (count - 1) * BAR, pitches: [...tonic.pitches], text: tonic.text };
+  }
+  return chords;
 }
 
 export function lane(role: DrumLaneSpec["role"], label: string, on: number[]): DrumLaneSpec {

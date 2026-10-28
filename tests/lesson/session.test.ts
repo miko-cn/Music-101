@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   LESSON_POLICY,
   REVIEW_POLICY,
+  canEnterLessonStep,
   canReveal,
   createSession,
   displayOrder,
@@ -265,6 +266,26 @@ describe("会话：边界", () => {
     for (const action of actions) {
       expect(sessionReducer(state, action, QUESTIONS, LESSON_POLICY)).toBe(state);
     }
+  });
+});
+
+describe("听辨没做完不能跳步", () => {
+  it("没 finishedAt 时只能停在概念或听辨", () => {
+    expect(canEnterLessonStep(0, null)).toBe(true);
+    expect(canEnterLessonStep(1, null)).toBe(true);
+    expect(canEnterLessonStep(2, null)).toBe(false);
+    expect(canEnterLessonStep(3, null)).toBe(false);
+    expect(canEnterLessonStep(5, null)).toBe(false);
+  });
+
+  it("写了 finishedAt 之后后面的步都能进", () => {
+    expect(canEnterLessonStep(2, 1000)).toBe(true);
+    expect(canEnterLessonStep(5, 1000)).toBe(true);
+  });
+
+  it("负数或非整步进不去", () => {
+    expect(canEnterLessonStep(-1, null)).toBe(false);
+    expect(canEnterLessonStep(1.5, 1000)).toBe(false);
   });
 });
 

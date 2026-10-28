@@ -3,20 +3,42 @@ import { LESSONS } from "../../src/content/index.ts";
 import {
   buildPath,
   continueLabels,
+  continueTarget,
   currentPathNode,
   initialOpenStageIds,
   pathComplete,
+  pathDueCount,
   pathProgress,
   pathStates,
   rowDelayMs,
   stageMastery,
 } from "../../src/core/lesson/path.ts";
 import { emptyProgress, type ProgressFile } from "../../src/core/lesson/progress.ts";
+import type { ReviewCard } from "../../src/core/lesson/review.ts";
+
+const NOW = 1_700_000_000_000;
 
 /** 造一份进度：已掌握哪些关。 */
 function withMastered(ids: number[]): ProgressFile {
   const progress = emptyProgress();
   return { ...progress, passedLevels: ids };
+}
+
+function dueCard(levelId: number, dueAt = NOW): ReviewCard {
+  return {
+    id: `level:${levelId}`,
+    levelId,
+    box: 0,
+    round: 0,
+    lastAt: dueAt,
+    dueAt,
+    lastVisit: "visit",
+    lastPassed: true,
+  };
+}
+
+function withDue(ids: number[], dueIds: number[]): ProgressFile {
+  return { ...withMastered(ids), reviews: dueIds.map((id) => dueCard(id)) };
 }
 
 describe("路径节点状态", () => {
@@ -112,9 +134,30 @@ describe("课程大纲", () => {
     expect(stageMastery(style!)).toEqual({ done: 0, total: 7 });
   });
 
-  it("顶卡文案只有两套，没有返回路径", () => {
-    expect(continueLabels(false)).toEqual({ kicker: "接下来", action: "开始这一关" });
-    expect(continueLabels(true)).toEqual({ kicker: "全部掌握", action: "再看一遍" });
+  it("没到期卡时顶卡文案仍是两套，没有返回路径", () => {
+    expect(continueLabels({ complete: false, dueCount: 0 })).toEqual({
+      kicker: "接下来",
+      action: "开始这一关",
+    });
+    expect(continueLabels({ complete: true, dueCount: 0 })).toEqual({
+      kicker: "全部掌握",
+      action: "再看一遍",
+    });
+  });
+
+  it("有到期复习时顶卡先复今天 N 关，压过下一关", () => {
+    expect(continueLabels({ complete: false, dueCount: 3 })).toEqual({
+      kicker: "先复习",
+      action: "先复 今天 3 关",
+    });
+    expect(continueLabels({ complete: true, dueCount: 1 })).toEqual({
+      kicker: "先复习",
+      action: "先复 今天 1 关",
+    });
+    const progress = withDue([1, 2, 3], [1, 2]);
+    expect(pathDueCount(progress, NOW)).toBe(2);
+    expect(continueTarget(progress, NOW)).toEqual({ kind: "review", dueCount: 2 });
+    expect(continueTarget(withMastered([1, 2, 3]), NOW)).toEqual({ kind: "level", id: 4 });
   });
 
   it("当前关从阶段列表里找，找不到是 null", () => {

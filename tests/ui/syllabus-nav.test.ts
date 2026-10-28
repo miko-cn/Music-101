@@ -9,7 +9,8 @@ describe("闯关导航", () => {
   const app = readFileSync(join(ROOT, "src", "App.tsx"), "utf8");
 
   it("首页仍把进度和进关回调交给 PathMap", () => {
-    expect(app).toContain("<PathMap progress={progress} onOpenLevel={openLevel} />");
+    expect(app).toContain("onOpenLevel={openLevel}");
+    expect(app).toContain("onOpenReview=");
   });
 
   it("顶栏文案仍随所在页面切换", () => {

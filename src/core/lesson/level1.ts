@@ -1,5 +1,5 @@
 import { runDiagnostics, type Diagnostic, type DiagnosticRule } from "../analyze/index.ts";
-import { isQuarterBar, quarterSteps } from "../sequencer/grid.ts";
+import { isQuarterBar } from "../sequencer/grid.ts";
 import { PPQ, type MidiFile } from "../midi/types.ts";
 import { skeletonToMidi, type SongSkeleton } from "../midi/project.ts";
 import { writeMidiFile } from "../midi/writer.ts";
@@ -59,7 +59,7 @@ function pitchRule(): DiagnosticRule<Level1State> {
             state.pitch === null
               ? "还没有选中 C4。中央 C 是 MIDI 60，在第 4 八度的白键 C 上。"
               : `当前音高是 ${state.pitch}，第 1 关要的是 C4（MIDI ${LEVEL1_TARGET_PITCH}）。`,
-          fix: { label: "改成 C4", actionId: LEVEL1_FIX_PITCH },
+          fix: state.pitch !== null ? { label: "标出音高问题", actionId: LEVEL1_FIX_PITCH } : undefined,
         },
       ];
     },
@@ -77,7 +77,7 @@ function gridRule(): DiagnosticRule<Level1State> {
           severity: "error",
           message: "四个四分音符要落在第 1、5、9、13 格，其余格子关掉。",
           bar: 0,
-          fix: { label: "填上这四拍", actionId: LEVEL1_FIX_GRID },
+          fix: state.steps.some(Boolean) ? { label: "标出格子问题", actionId: LEVEL1_FIX_GRID } : undefined,
         },
       ];
     },
@@ -123,12 +123,16 @@ export function level1Passed(state: Level1State): boolean {
   return diagnoseLevel1(state).every((item) => item.severity === "info");
 }
 
+function level1HandAttempted(state: Level1State): boolean {
+  return state.pitch !== null || state.steps.some(Boolean);
+}
+
+/**
+ * 修正不代填 C4 / 四分格子。没动手做过就原样返回。
+ */
 export function applyLevel1Fix(state: Level1State, actionId: string): Level1State {
-  if (actionId === LEVEL1_FIX_PITCH) return { ...state, pitch: LEVEL1_TARGET_PITCH };
-  if (actionId === LEVEL1_FIX_GRID) {
-    const next = quarterSteps();
-    return { ...state, steps: [...next, ...state.steps.slice(16)] };
-  }
+  if (actionId !== LEVEL1_FIX_PITCH && actionId !== LEVEL1_FIX_GRID) return state;
+  if (!level1HandAttempted(state)) return state;
   return state;
 }
 

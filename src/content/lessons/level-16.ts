@@ -14,13 +14,13 @@ export const lesson: StageLessonEntry = defineLesson({
     steps: [
       "看最后两个和弦，就能判断这是哪种收尾。",
       "V → I = 正格终止：最稳最完整，流行副歌的标准结尾。",
-      "iv → I = 变格终止：更暗更有色彩，小调里常用。",
+      "iv → i 或 IV / iv → I = 变格终止：更暗更有色彩，小调里常用。",
       "V → vi = 阻碍终止：故意不解决，听着「没完」，但很上头。",
       "停在 V 上 = 半个终止：句子没结束，等着接下一段。",
     ],
     takeaway: [
       "正格 V→I：最稳，流行副歌的标准收尾。",
-      "变格 iv→I：暗色收尾，小调味。",
+      "变格 iv→i 或 IV→I：暗色收尾，小调味。",
       "阻碍 V→vi：故意的没解决，kawaii bass 常见。",
       "停在 V 是半个终止，不是结束。",
       "一首歌里只有一处真收尾，其余段落停在 V 才对。",
@@ -39,7 +39,7 @@ export const lesson: StageLessonEntry = defineLesson({
   ],
   ear: [
     ear("cad-authentic", "哪一段是正格终止？", "G → C", "G → G", "属到主，方向最正，是最标准的收尾。", [67, 60], [67, 67], { label: "Am → F", midis: [69, 65] }, { wrongHint: "先把每个选项的两个和弦换成级数，再对哪一种收尾模式。", encourage: "对，G → C 属到主，是最标准的收尾。", blind: true }),
-    ear("cad-plagal", "哪一段是变格终止？", "Dm → C", "G → C", "iv 到 I 是变格，比 V→I 更暗更有色彩。", [62, 60], [67, 60], { label: "F → G", midis: [65, 67] }, { wrongHint: "这一种的区别在第一个和弦：先看它是哪一级、什么性质。", encourage: "对，Dm → C 是变格终止，色彩更暗。", blind: true }),
+    ear("cad-plagal", "哪一段是变格终止？", "Dm → Am", "G → C", "iv → i 是变格。Am 歌里就是 Dm → Am，比 V→I 更暗。", [62, 69], [67, 60], { label: "Dm → C", midis: [62, 60] }, { wrongHint: "这一种的区别在落点：先看它是回到主和弦还是停在别的级数。", encourage: "对，Dm → Am 是小调里的变格终止。", blind: true }),
     ear("cad-deceptive", "哪一对是阻碍终止？", "G → Am", "G → C", "属和弦不解决，停在 vi 上，故意的没完。", [67, 69], [67, 60], { label: "F → C", midis: [65, 60] }, { wrongHint: "听第二个和弦有没有落地，故意停住不解决的那种才是一种收尾。", encourage: "对，G → Am 故意不解决，听着「没完」。", blind: true }),
     ear("cad-half", "停在 G 大三上算是？", "半个终止", "正格终止", "没有回到主和弦，句子还没结束，等着下一段。", [67], [60], { label: "变格终止", midis: [62] }, { wrongHint: "先确认最后停的和声有没有落回主和弦，停住不等于结束。", encourage: "对，停在 G 上，句子还等着接下一段。" }),
     ear("cad-chorus-end", "副歌最后四小节应该落在？", "T（主功能）", "D（属功能）", "副歌要有终点，落在主功能上才叫收完。", [60], [67], { label: "S（下属功能）", midis: [65] }, { wrongHint: "看它最后停在哪：有没有一个功能能让整段真的结束。", encourage: "对，副歌最后落在 T 功能上才算收完。" }),
@@ -65,9 +65,9 @@ export const lesson: StageLessonEntry = defineLesson({
       chord(2, [69, 72, 76], "Am (vi)"),
       chord(3, [69, 72, 76], "Am (vi)"),
     ]),
-    choice("IV → iv → I → I（变格）", [], [
+    choice("IV → I → I → I（变格）", [], [
       chord(0, [65, 69, 72], "F (IV)"),
-      chord(1, [62, 65, 69], "Dm (iv)"),
+      chord(1, [60, 64, 67], "C (I)"),
       chord(2, [60, 64, 67], "C (I)"),
       chord(3, [60, 64, 67], "C (I)"),
     ]),

@@ -89,6 +89,11 @@ export interface StageLesson {
   title: string;
   concept: string[];
   ear: StageEar[];
+  /**
+   * 第二步的标题。能听出差别的叫「听辨」；纯读题的叫「核对」。
+   * 不写就当听辨。
+   */
+  earTitle?: string;
   earPass: number;
   handPrompt: string;
   handChoices: StageChoice[];

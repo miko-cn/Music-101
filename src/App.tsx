@@ -269,7 +269,16 @@ export function App() {
               />
             )
           ) : (
-            <PathMap progress={progress} onOpenLevel={openLevel} />
+            <PathMap
+              progress={progress}
+              onOpenLevel={openLevel}
+              onOpenReview={() =>
+                navigate(() => {
+                  setMode("tools");
+                  setToolView("review");
+                }, "forward")
+              }
+            />
           )}
           </div>
           </ViewTransition>

@@ -220,3 +220,16 @@ export function displayOrder(choiceCount: number, seed: string): number[] {
     seed,
   );
 }
+
+/** 概念 = 0，听辨 / 核对 = 1。没做完听辨不能跨过这一步。 */
+export const EAR_STEP_INDEX = 1;
+
+/**
+ * 听辨会话没写 finishedAt 时，不能跳到手做及之后。
+ * 回概念、进听辨都可以。
+ */
+export function canEnterLessonStep(nextStep: number, finishedAt: number | null): boolean {
+  if (!Number.isInteger(nextStep) || nextStep < 0) return false;
+  if (finishedAt !== null) return true;
+  return nextStep <= EAR_STEP_INDEX;
+}

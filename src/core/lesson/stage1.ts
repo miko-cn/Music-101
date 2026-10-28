@@ -5,12 +5,21 @@ import { PPQ } from "../midi/types.ts";
 import { writeMidiFile } from "../midi/writer.ts";
 import { stageLesson } from "../../content/index.ts";
 import type { StageLesson } from "../../content/types.ts";
+import {
+  chorusLifted,
+  endsOnTonic,
+  hasTaughtColor,
+  inKeyChords,
+  taughtProgression,
+} from "./capstone.ts";
 
 export interface StageState {
   earAnswers: (number | null)[];
   hand: number | null;
   drums?: boolean[][];
   referencePick?: { bpm: number | null; key: number | null; structure: number | null };
+  /** 点过修正：只标问题，不代填答案。 */
+  fixHighlight?: boolean;
 }
 
 export const STAGE_FIX_HAND = "stage-hand-correct";
@@ -65,8 +74,12 @@ export function diagnoseStage(lesson: StageLesson, state: StageState): Diagnosti
       found.push({
         id: `${lesson.marker}-drums`,
         severity: "error",
-        message: "鼓组还没打成目标。踢在第 1、9 格，军鼓和拍手在第 5、13 格，踩镲打八分音符。",
-        fix: { label: "填上这套鼓", actionId: STAGE_FIX_HAND },
+        message: state.fixHighlight
+          ? "鼓组还没打成目标。对照目标格再改，修正不会代填。"
+          : "鼓组还没打成目标。踢在第 1、9 格，军鼓和拍手在第 5、13 格，踩镲打八分音符。",
+        fix: hasHandAttempt(lesson, state)
+          ? { label: "标出这套鼓的问题", actionId: STAGE_FIX_HAND }
+          : undefined,
       });
     }
   } else if (lesson.reference) {
@@ -78,19 +91,22 @@ export function diagnoseStage(lesson: StageLesson, state: StageState): Diagnosti
         message: "先用示例或上传一首歌，再从 BPM、调、结构候选里各选一个。",
       });
     }
+  } else if (lesson.id === 26) {
+    found.push(...diagnoseCapstoneHand(lesson, state));
   } else if (state.hand === null) {
     found.push({
       id: `${lesson.marker}-hand-empty`,
       severity: "error",
       message: "手做题还没选。",
-      fix: { label: "选中这一关的答案", actionId: STAGE_FIX_HAND },
     });
   } else if (state.hand !== lesson.handCorrect) {
     found.push({
       id: `${lesson.marker}-hand-wrong`,
       severity: "error",
-      message: "手做题选错了。看概念卡里的规则再选一次。",
-      fix: { label: "改成正确答案", actionId: STAGE_FIX_HAND },
+      message: state.fixHighlight
+        ? "手做还不对。对照概念卡再选，修正不会代填答案。"
+        : "手做题选错了。看概念卡里的规则再选一次。",
+      fix: { label: "标出这题的问题", actionId: STAGE_FIX_HAND },
     });
   }
   if (found.length === 0) {
@@ -109,12 +125,89 @@ export function stagePassed(lesson: StageLesson, state: StageState): boolean {
   return diagnoseStage(lesson, state).every((item) => item.severity === "info");
 }
 
+/** 动手做过手做才给修正：没选过就一键填 = 白过。 */
+export function hasHandAttempt(lesson: StageLesson, state: StageState): boolean {
+  if (lesson.drums) return (state.drums ?? []).some((lane) => lane.some(Boolean));
+  if (lesson.reference) {
+    const pick = state.referencePick;
+    return Boolean(pick && (pick.bpm !== null || pick.key !== null || pick.structure !== null));
+  }
+  return state.hand !== null;
+}
+
+/**
+ * 修正只标问题，不代填答案。
+ * 没动手做过就什么也不改。
+ */
 export function applyStageFix(lesson: StageLesson, state: StageState): StageState {
-  return {
-    ...state,
-    hand: lesson.handCorrect,
-    drums: lesson.drums?.map((lane) => [...lane.target]),
-  };
+  if (!hasHandAttempt(lesson, state)) return state;
+  return { ...state, fixHighlight: true };
+}
+
+function diagnoseCapstoneHand(lesson: StageLesson, state: StageState): Diagnostic[] {
+  if (state.hand === null) {
+    return [
+      {
+        id: `${lesson.marker}-hand-empty`,
+        severity: "error",
+        message: "还没选出一套骨架。",
+      },
+    ];
+  }
+  const choice = lesson.handChoices[state.hand];
+  if (!choice) {
+    return [
+      {
+        id: `${lesson.marker}-hand-empty`,
+        severity: "error",
+        message: "还没选出一套骨架。",
+      },
+    ];
+  }
+  const found: Diagnostic[] = [];
+  const fix = { label: "标出这套骨架的问题", actionId: STAGE_FIX_HAND };
+  if (!taughtProgression(choice.chords)) {
+    found.push({
+      id: `${lesson.marker}-harmony`,
+      severity: "error",
+      message: "和声要用教过的 I–V–vi–IV 或 i–♭VI–♭III–♭VII。",
+      fix,
+    });
+  }
+  if (!inKeyChords(choice.chords)) {
+    found.push({
+      id: `${lesson.marker}-inkey`,
+      severity: "error",
+      message: "有和弦跑出调外了。",
+      fix,
+    });
+  }
+  if (!hasTaughtColor(choice.chords)) {
+    found.push({
+      id: `${lesson.marker}-color`,
+      severity: "error",
+      message: "色彩要用三和弦、add9 或 maj7。",
+      fix,
+    });
+  }
+  if (!endsOnTonic(choice.chords)) {
+    found.push({
+      id: `${lesson.marker}-cadence`,
+      severity: "error",
+      message: "最后要落在 T（I / i / vi）。",
+      fix,
+    });
+  }
+  const song = choiceEnergySong(lesson, state.hand);
+  if (!song || !chorusLifted(song)) {
+    found.push({
+      id: `${lesson.marker}-lift`,
+      severity: "error",
+      message: "副歌要多一层，而且能量到主歌的 1.5 倍。",
+      fix,
+    });
+  }
+  return found;
 }
 
 export function stageSkeleton(lesson: StageLesson, choiceIndex: number): SongSkeleton {

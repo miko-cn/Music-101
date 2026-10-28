@@ -39,7 +39,7 @@ export const lesson: StageLessonEntry = defineLesson({
   ],
   ear: [
     ear("fn-dominant", "C 大调里哪个和弦是 D（属）功能？", "G B D", "F A C", "G 是第 5 级，属和弦。F 是第 4 级（下属），A 是第 6 级（主）。", [67, 71, 74], [65, 69, 72], { label: "A C E", midis: [69, 72, 76] }, { wrongHint: "先按级数把三个选项排到调内的位置，再看哪个建在属音上。", encourage: "对，G B D 建在第 5 级，是 D（属）功能。", blind: true }),
-    ear("fn-tonic", "哪个是 T（主）功能？", "C E G", "D F A", "C 是主和弦。Dm（ii）也是主功能，F（IV）是下属。", [60, 64, 67], [62, 65, 69], { label: "F A C", midis: [65, 69, 72] }, { wrongHint: "先给三个选项标上它在 C 大调里的级数，再按功能分类。", encourage: "对，C E G 就是主和弦，T 功能。", blind: true }),
+    ear("fn-tonic", "哪个是 T（主）功能？", "C E G", "D F A", "C 是主和弦（I = T）。Dm（ii）和 F（IV）都是 S（下属）。", [60, 64, 67], [62, 65, 69], { label: "F A C", midis: [65, 69, 72] }, { wrongHint: "先给三个选项标上它在 C 大调里的级数，再按功能分类。", encourage: "对，C E G 就是主和弦，T 功能。", blind: true }),
     ear("fn-four", "IV 属于哪个功能？", "S（下属）", "T（主）", "第四级 IV 建在下属音上，所以是下属功能，它想往上把主音托起来。", [60], [65], { label: "D（属）", midis: [67] }, { wrongHint: "功能名来自它的位置：IV 的根音在主音下方，它想往哪边走？", encourage: "对，IV 建在主音下方，是 S（下属）功能。" }),
     ear("fn-cycle", "哪一条是常见的功能循环？", "T → S → D → T", "S → S → T → T", "起承转合：稳定 → 铺垫 → 悬起 → 落地。", [60, 65, 67, 60], [65, 65, 60, 60], { label: "D → D → S → T", midis: [67, 67, 65, 60] }, { wrongHint: "四个位置分别听一遍：先找听着最稳的，再看铺垫和悬起在哪。", encourage: "对，T → S → D → T 就是起承转合。", blind: true }),
     ear("fn-flat", "一直用下属功能（ii、IV 轮着来）会怎样？", "听着平，推不动", "听着很紧张", "全是下属功能，既没悬起也没落地，句子就没有推进。", [65], [67], { label: "自动回到主功能", midis: [60] }, { wrongHint: "先问这段里有没有真正落地过，只有铺垫没有落点时听感会缺什么？", encourage: "对，全是下属功能，没有悬起也没有落地，所以推不动。" }),

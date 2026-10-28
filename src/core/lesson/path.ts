@@ -15,6 +15,7 @@ import { LESSONS, STAGES } from "../../content/index.ts";
 import type { AbilityId, LessonEntry, StageId } from "../../content/types.ts";
 import { isMastered } from "./personalize.ts";
 import type { ProgressFile } from "./progress.ts";
+import { dueReviewCards } from "./review.ts";
 
 /** 一个节点的处境。 */
 export type NodeState =
@@ -154,9 +155,42 @@ export function initialOpenStageIds(stages: readonly PathStage[]): string[] {
   return current ? [current.stage] : [];
 }
 
+/** 顶卡要去哪：到期复习优先于下一关。 */
+export type ContinueTarget =
+  | { kind: "review"; dueCount: number }
+  | { kind: "level"; id: number }
+  | { kind: "complete"; id: number };
+
+/** 今天到期的复习卡张数。 */
+export function pathDueCount(progress: ProgressFile, now: number = Date.now()): number {
+  return dueReviewCards(progress.reviews, now).length;
+}
+
+/**
+ * 顶卡的去向。
+ *
+ * Leitner 有到期卡时先复习，不把人送去下一关。
+ * 全掌握且没有到期卡，才是「再看一遍」。
+ */
+export function continueTarget(progress: ProgressFile, now: number = Date.now()): ContinueTarget {
+  const dueCount = pathDueCount(progress, now);
+  if (dueCount > 0) return { kind: "review", dueCount };
+  const stages = buildPath(progress);
+  const current = currentPathNode(stages);
+  const id = current?.id ?? LESSONS[LESSONS.length - 1]?.id ?? 1;
+  if (pathComplete(progress)) return { kind: "complete", id };
+  return { kind: "level", id };
+}
+
 /** 顶卡的两句文案。返回路径不属于顶卡。 */
-export function continueLabels(complete: boolean): { kicker: string; action: string } {
-  if (complete) return { kicker: "全部掌握", action: "再看一遍" };
+export function continueLabels(input: { complete: boolean; dueCount: number }): {
+  kicker: string;
+  action: string;
+} {
+  if (input.dueCount > 0) {
+    return { kicker: "先复习", action: `先复 今天 ${input.dueCount} 关` };
+  }
+  if (input.complete) return { kicker: "全部掌握", action: "再看一遍" };
   return { kicker: "接下来", action: "开始这一关" };
 }
 

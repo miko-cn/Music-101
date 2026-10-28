@@ -44,14 +44,16 @@ describe("第 1 关", () => {
     expect(level1Passed(state)).toBe(false);
   });
 
-  it("没选 C4 或格子不对时给出可点击的修正", () => {
-    const state = emptyLevel1State();
-    const ids = diagnoseLevel1(state).map((item) => item.id);
-    expect(ids).toContain("level1-pitch");
-    expect(ids).toContain("level1-grid");
-    const fixed = applyLevel1Fix(applyLevel1Fix(state, LEVEL1_FIX_PITCH), LEVEL1_FIX_GRID);
-    expect(fixed.pitch).toBe(60);
-    expect(fixed.steps.slice(0, 16)).toEqual(quarterSteps());
+  it("没动手做时修正不出现，点过之后也不代填 C4 和格子", () => {
+    const empty = emptyLevel1State();
+    expect(diagnoseLevel1(empty).some((item) => item.fix)).toBe(false);
+    expect(applyLevel1Fix(empty, LEVEL1_FIX_PITCH).pitch).toBeNull();
+    const tried = { ...empty, pitch: 64, steps: empty.steps.map((_, index) => index === 0) };
+    expect(diagnoseLevel1(tried).some((item) => item.fix?.actionId === LEVEL1_FIX_PITCH)).toBe(true);
+    const fixed = applyLevel1Fix(applyLevel1Fix(tried, LEVEL1_FIX_PITCH), LEVEL1_FIX_GRID);
+    expect(fixed.pitch).toBe(64);
+    expect(fixed.steps[0]).toBe(true);
+    expect(level1Passed(fixed)).toBe(false);
   });
 
   it("导出的 MIDI 是 120 BPM 的四个四分音符 C4", () => {

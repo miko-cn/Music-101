@@ -8,9 +8,9 @@ import { useState, ViewTransition } from "react";
 import {
   buildPath,
   continueLabels,
+  continueTarget,
   currentPathNode,
   initialOpenStageIds,
-  pathComplete,
   pathProgress,
   rowDelayMs,
   stageMastery,
@@ -23,14 +23,20 @@ import { levelTitleTransitionName } from "./LessonHeader.tsx";
 export function PathMap({
   progress,
   onOpenLevel,
+  onOpenReview,
 }: {
   progress: ProgressFile;
   onOpenLevel: (levelId: number) => void;
+  onOpenReview: () => void;
 }) {
   const stages = buildPath(progress).filter((stage) => stage.nodes.length > 0);
   const current = currentPathNode(stages);
   const { done, total } = pathProgress(progress);
-  const labels = continueLabels(pathComplete(progress));
+  const target = continueTarget(progress);
+  const labels = continueLabels({
+    complete: target.kind === "complete",
+    dueCount: target.kind === "review" ? target.dueCount : 0,
+  });
   const [openIds, setOpenIds] = useState<ReadonlySet<string>>(() => new Set(initialOpenStageIds(stages)));
   const [pulse, setPulse] = useState<Record<string, number>>({});
 
@@ -49,21 +55,31 @@ export function PathMap({
 
   return (
     <div className="path-syllabus">
-      {current ? (
+      {current || target.kind === "review" ? (
         <section className="path-next">
           <div className="path-next-copy">
             <span className="path-next-kicker">{labels.kicker}</span>
             <h2 className="path-next-title">
-              第 {current.id} 关 · {current.title}
+              {target.kind === "review"
+                ? `今天 ${target.dueCount} 关到期`
+                : current
+                  ? `第 ${current.id} 关 · ${current.title}`
+                  : labels.kicker}
             </h2>
-            <p className="path-next-hook">{current.hook}</p>
+            <p className="path-next-hook">
+              {target.kind === "review" ? "先把到期的复习卡做完，再闯下一关。" : current?.hook}
+            </p>
           </div>
           <div className="path-next-side">
             <p className="path-next-progress">
               <span className="sr-only">已掌握 </span>
               {done} / {total}
             </p>
-            <button type="button" className="path-next-go m101-press" onClick={() => onOpenLevel(current.id)}>
+            <button
+              type="button"
+              className="path-next-go m101-press"
+              onClick={() => (target.kind === "review" ? onOpenReview() : current && onOpenLevel(current.id))}
+            >
               {labels.action}
             </button>
           </div>

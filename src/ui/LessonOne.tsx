@@ -15,7 +15,7 @@ import { computerKeyLabel } from "../core/lesson/keys.ts";
 import { computerKeyboard } from "../core/lesson/computer-keyboard.ts";
 import { applyRecipeToLevel1, buildAttempt, isMastered, recipeFromLevel1 } from "../core/lesson/personalize.ts";
 import { observeAttempt, recordVisit, saveRecipe, type ProgressFile, type ProgressUpdate, type Recipe } from "../core/lesson/progress.ts";
-import { LESSON_POLICY, createSession, sessionSummary, solvedSession } from "../core/lesson/session.ts";
+import { LESSON_POLICY, canEnterLessonStep, createSession, sessionSummary, solvedSession } from "../core/lesson/session.ts";
 import { midiToNoteName, midiToPitchClass, pitchClassToName, type PitchClass } from "../core/theory/pitch.ts";
 import { getScalePitches } from "../core/theory/scale.ts";
 import { quarterSteps, resizeSteps, type BarCount } from "../core/sequencer/grid.ts";
@@ -49,14 +49,16 @@ const LEVEL1_QUESTIONS: SessionQuestionData[] = LEVEL1_EAR.map((question) => ({
   encourage: question.encourage,
 }));
 
-const STEPS = [
-  { title: "概念" },
-  { title: "听辨" },
-  { title: "手做" },
-  { title: "诊断" },
-  { title: "记忆点" },
-  { title: "导出" },
-];
+function lessonSteps(earDone: boolean) {
+  return [
+    { title: "概念" },
+    { title: "听辨" },
+    { title: "手做", disabled: !earDone },
+    { title: "诊断", disabled: !earDone },
+    { title: "记忆点", disabled: !earDone },
+    { title: "导出", disabled: !earDone },
+  ];
+}
 
 function solvedLevel1(): Level1State {
   return {
@@ -199,12 +201,17 @@ export function LessonOne({
     URL.revokeObjectURL(url);
   };
 
-  const go = (next: number) => startTransition(() => setStep(next));
+  const earDone = earSession.finishedAt !== null;
+  const steps = lessonSteps(earDone);
+  const go = (next: number) => {
+    if (!canEnterLessonStep(next, earSession.finishedAt)) return;
+    startTransition(() => setStep(next));
+  };
 
   return (
     <>
       <LessonHeader levelId={1} title={lessonOne.title} />
-      <Steps current={step} items={STEPS} onChange={go} />
+      <Steps current={step} items={steps} onChange={go} />
       <LessonCoach progress={progress} levelId={1} onOpenLevel={onOpenLevel} />
       {step === 0 && (
         <Card title="概念">
@@ -344,7 +351,7 @@ export function LessonOne({
         </Button>
         <Button
           type={step === 1 && earSession.finishedAt === null ? "default" : "primary"}
-          disabled={step === STEPS.length - 1}
+          disabled={step === steps.length - 1 || !canEnterLessonStep(step + 1, earSession.finishedAt)}
           onClick={() => go(step + 1)}
         >
           下一步

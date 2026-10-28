@@ -11,7 +11,7 @@ import {
   recipeFromStage,
 } from "../core/lesson/personalize.ts";
 import { observeAttempt, recordVisit, saveRecipe, type ProgressFile, type ProgressUpdate, type Recipe } from "../core/lesson/progress.ts";
-import { LESSON_POLICY, createSession, sessionSummary } from "../core/lesson/session.ts";
+import { LESSON_POLICY, canEnterLessonStep, createSession, sessionSummary } from "../core/lesson/session.ts";
 import {
   STAGE_FIX_HAND,
   applyStageFix,
@@ -40,14 +40,16 @@ import { useFeedbackSfx, useVerdictSfx } from "./useFeedbackSfx.ts";
 import { Piano } from "./Piano.tsx";
 import { Stepper } from "./Stepper.tsx";
 
-const STEPS = [
-  { title: "概念" },
-  { title: "听辨" },
-  { title: "手做" },
-  { title: "诊断" },
-  { title: "记忆点" },
-  { title: "导出" },
-];
+function lessonSteps(earTitle: string, earDone: boolean) {
+  return [
+    { title: "概念" },
+    { title: earTitle },
+    { title: "手做", disabled: !earDone },
+    { title: "诊断", disabled: !earDone },
+    { title: "记忆点", disabled: !earDone },
+    { title: "导出", disabled: !earDone },
+  ];
+}
 
 export function LessonFlow({
   lesson,
@@ -208,12 +210,18 @@ export function LessonFlow({
     URL.revokeObjectURL(url);
   };
 
-  const go = (next: number) => startTransition(() => setStep(next));
+  const earTitle = lesson.earTitle ?? "听辨";
+  const earDone = earSession.finishedAt !== null;
+  const steps = lessonSteps(earTitle, earDone);
+  const go = (next: number) => {
+    if (!canEnterLessonStep(next, earSession.finishedAt)) return;
+    startTransition(() => setStep(next));
+  };
 
   return (
     <>
       <LessonHeader levelId={lesson.id} title={lesson.title} />
-      <Steps current={step} items={STEPS} onChange={go} />
+      <Steps current={step} items={steps} onChange={go} />
       <LessonCoach progress={progress} levelId={lesson.id} onOpenLevel={onOpenLevel} />
       <p className="hint">白键 A S D F G H J，黑键 W E T Y U。Z 低八度，X 高八度。</p>
       {step === 0 && (
@@ -243,7 +251,7 @@ export function LessonFlow({
         </Card>
       )}
       {step === 1 && (
-        <Card title="听辨">
+        <Card title={earTitle}>
           <p className="hint">
             一题一题来：选好了点检查（或按 Enter）。数字键 1、2、3 选选项，空格重播。
           </p>
@@ -362,7 +370,9 @@ export function LessonFlow({
           <MemoryAnchorCard anchor={lesson.anchor} showTakeaway />
           <h2 className="result-heading anchor-takeaway-title">过关标准</h2>
           <ul className="anchor-takeaway">
-            <li>听辨：{lesson.ear.length} 题里至少对 {lesson.earPass} 题</li>
+            <li>
+              {earTitle}：{lesson.ear.length} 题里至少对 {lesson.earPass} 题
+            </li>
             <li>
               手做：
               {lesson.drums
@@ -393,10 +403,10 @@ export function LessonFlow({
         <Button disabled={step === 0} onClick={() => go(step - 1)}>
           上一步
         </Button>
-        {/* 听辨没做完时让出主色：会话里的「检查 / 继续」才是这一屏的主行动。仍然可以跳步。 */}
+        {/* 听辨没做完时让出主色：会话里的「检查 / 继续」才是这一屏的主行动。没做完不能跳步。 */}
         <Button
           type={step === 1 && earSession.finishedAt === null ? "default" : "primary"}
-          disabled={step === STEPS.length - 1}
+          disabled={step === steps.length - 1 || !canEnterLessonStep(step + 1, earSession.finishedAt)}
           onClick={() => go(step + 1)}
         >
           下一步

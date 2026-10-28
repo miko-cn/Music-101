@@ -38,11 +38,17 @@ describe("阶段一关 2–8", () => {
     }
   });
 
-  it("选错时给出可点的修正", () => {
+  it("没动手做时没有一键填答案，点过选项后修正只标错不代填", () => {
     const lesson = stageLesson(4);
-    const state = emptyStageState(lesson);
-    expect(diagnoseStage(lesson, state).some((item) => item.fix?.actionId === "stage-hand-correct")).toBe(true);
-    expect(applyStageFix(lesson, state).hand).toBe(lesson.handCorrect);
+    const empty = emptyStageState(lesson);
+    expect(diagnoseStage(lesson, empty).some((item) => item.fix)).toBe(false);
+    expect(applyStageFix(lesson, empty).hand).toBeNull();
+    const tried = { ...empty, hand: (lesson.handCorrect + 1) % lesson.handChoices.length };
+    expect(diagnoseStage(lesson, tried).some((item) => item.fix?.actionId === "stage-hand-correct")).toBe(true);
+    const fixed = applyStageFix(lesson, tried);
+    expect(fixed.hand).toBe(tried.hand);
+    expect(fixed.fixHighlight).toBe(true);
+    expect(stagePassed(lesson, fixed)).toBe(false);
   });
 
   it("第 2 关导出全音 C4–D4", () => {
