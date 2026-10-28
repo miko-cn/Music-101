@@ -71,6 +71,27 @@ describe("设计 token", () => {
     expect(reduced).toMatch(/::view-transition-group\(\*\)/);
   });
 
+  it("注入路径霓虹相关 token", () => {
+    const css = tokenStylesheet();
+    expect(css).toContain("--m101-path-accent:");
+    expect(css).toContain("--m101-path-accent-glow:");
+    expect(css).toContain("--m101-path-stage-foundation:");
+    expect(css).toContain("--m101-path-stage-arrangement:");
+    expect(css).toContain("--m101-path-stage-style:");
+    expect(css).toContain("--m101-path-surface:");
+  });
+
+  it("路径图减动效时当前关不呼吸，而且不写死主色", () => {
+    const css = readFileSync(join(ROOT, "src", "ui", "path.css"), "utf8");
+    expect(css).toContain("var(--m101-path-accent-glow)");
+    expect(css).not.toMatch(/#[0-9a-fA-F]{3,8}/);
+    const start = css.indexOf("@media (prefers-reduced-motion: reduce)");
+    expect(start).toBeGreaterThanOrEqual(0);
+    const reduced = css.slice(start);
+    expect(reduced).toContain(".path-node.is-current");
+    expect(reduced).toContain("animation: none");
+  });
+
   it("CSS 里引用的每个 token 都定义过", () => {
     // 引用一个没定义的变量，浏览器会当成无效值丢弃——
     // 那条声明直接失效，样式静悄悄地不生效。
