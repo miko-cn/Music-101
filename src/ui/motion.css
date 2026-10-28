@@ -294,6 +294,47 @@
 }
 
 /*
+ * 页面切换。伪元素不在 * 里，降级写在下面的 reduced-motion 块。
+ */
+@keyframes m101-page-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes m101-page-out-up {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+::view-transition-new(.m101-page-forward) {
+  animation: m101-page-in-up var(--m101-dur-slow) var(--m101-ease-out);
+}
+
+::view-transition-old(.m101-page-forward) {
+  animation: m101-page-out-up var(--m101-dur-base) var(--m101-ease-out);
+}
+
+::view-transition-new(.m101-page-back) {
+  animation: m101-page-in-up var(--m101-dur-slow) var(--m101-ease-out) reverse;
+}
+
+::view-transition-old(.m101-page-back) {
+  animation: m101-page-out-up var(--m101-dur-base) var(--m101-ease-out) reverse;
+}
+
+/*
  * 降级：用户要求减少动效时，全部关掉。
  *
  * 不是简单地「把时长设成 0」——那样动画还是会在同一帧里跳到终态，

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
 import { Alert, Button, Card, Flex, Radio, Steps } from "antd";
 import { sharedEngine } from "../core/audio/engine.ts";
 import { computerKeyLabel } from "../core/lesson/keys.ts";
@@ -32,6 +32,7 @@ import type { StageLesson } from "../content/types.ts";
 import { EnergyChart } from "./DiagnosticsLab.tsx";
 import { LessonDiagrams } from "./diagrams/index.tsx";
 import { LessonCoach } from "./LessonCoach.tsx";
+import { LessonHeader } from "./LessonHeader.tsx";
 import { MemoryAnchorCard } from "./MemoryAnchorCard.tsx";
 import { QuizGroup } from "./QuizOption.tsx";
 import { QuizSession } from "./session/QuizSession.tsx";
@@ -207,15 +208,16 @@ export function LessonFlow({
     URL.revokeObjectURL(url);
   };
 
+  const go = (next: number) => startTransition(() => setStep(next));
+
   return (
     <>
-      <Steps current={step} items={STEPS} onChange={setStep} />
+      <LessonHeader levelId={lesson.id} title={lesson.title} />
+      <Steps current={step} items={STEPS} onChange={go} />
       <LessonCoach progress={progress} levelId={lesson.id} onOpenLevel={onOpenLevel} />
-      <p className="hint">
-        第 {lesson.id} 关 · {lesson.title}。白键 A S D F G H J，黑键 W E T Y U。Z 低八度，X 高八度。
-      </p>
+      <p className="hint">白键 A S D F G H J，黑键 W E T Y U。Z 低八度，X 高八度。</p>
       {step === 0 && (
-        <Card title={lesson.title}>
+        <Card title="概念">
           {lesson.concept.map((paragraph) => (
             <p key={paragraph} className="lead">
               {paragraph}
@@ -259,7 +261,7 @@ export function LessonFlow({
             keyRoot={lesson.keyRoot}
             keyScale={lesson.keyScale}
             passMark={lesson.earPass}
-            onFinish={() => setStep(2)}
+            onFinish={() => go(2)}
           />
         </Card>
       )}
@@ -388,14 +390,14 @@ export function LessonFlow({
         </Card>
       )}
       <Flex gap={8}>
-        <Button disabled={step === 0} onClick={() => setStep((current) => current - 1)}>
+        <Button disabled={step === 0} onClick={() => go(step - 1)}>
           上一步
         </Button>
         {/* 听辨没做完时让出主色：会话里的「检查 / 继续」才是这一屏的主行动。仍然可以跳步。 */}
         <Button
           type={step === 1 && earSession.finishedAt === null ? "default" : "primary"}
           disabled={step === STEPS.length - 1}
-          onClick={() => setStep((current) => current + 1)}
+          onClick={() => go(step + 1)}
         >
           下一步
         </Button>

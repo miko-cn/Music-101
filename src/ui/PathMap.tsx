@@ -17,10 +17,12 @@
  * 3. **当前关会呼吸，其余安静。**
  *    呼吸只用 opacity，不动位置——整张路径图不该在动。
  */
+import { useEffect, useRef, ViewTransition, type Ref } from "react";
 import { Flex, Tag } from "antd";
 import { buildPath, pathComplete, pathProgress, type PathNode } from "../core/lesson/path.ts";
 import { layoutPath, NODE_HEIGHT, NODE_WIDTH } from "../core/lesson/path-layout.ts";
 import type { ProgressFile } from "../core/lesson/progress.ts";
+import { levelTitleTransitionName } from "./LessonHeader.tsx";
 
 export function PathMap({
   progress,
@@ -33,22 +35,37 @@ export function PathMap({
   const tracks = layoutPath(stages);
   const { done, total } = pathProgress(progress);
   const complete = pathComplete(progress);
+  const current = stages.flatMap((stage) => stage.nodes).find((node) => node.state === "current") ?? null;
+  const currentRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const node = currentRef.current;
+    if (!node) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    node.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+  }, [current?.id]);
 
   return (
     <Flex vertical gap={28} className="path-map">
-      <div className="path-head">
-        <div>
-          <h2 className="path-title">{complete ? "全部掌握" : "接下来"}</h2>
-          <p className="hint">
-            {complete
-              ? "27 关全部打过。这一关之外，可以去复习队列里巩固——遗忘才是碎片学习的敌人。"
-              : `已经掌握 ${done} / ${total} 关。下面亮着的那一关就是下一步。`}
-          </p>
-        </div>
-        <Tag color="gold">
-          {done} / {total}
-        </Tag>
-      </div>
+      {current && (
+        <section className={`path-next${complete ? " is-complete" : ""}`}>
+          <div className="path-next-copy">
+            <span className="path-next-kicker">{complete ? "全部掌握" : "接下来"}</span>
+            <h2 className="path-next-title">
+              第 {current.id} 关 · {current.title}
+            </h2>
+            <p className="path-next-hook">{current.hook}</p>
+          </div>
+          <div className="path-next-side">
+            <Tag color="gold">
+              {done} / {total}
+            </Tag>
+            <button type="button" className="path-next-go m101-press" onClick={() => onOpenLevel(current.id)}>
+              {complete ? "再看一遍" : "开始这一关"}
+            </button>
+          </div>
+        </section>
+      )}
 
       {stages.map((stage, stageIndex) => {
         const track = tracks[stageIndex];
@@ -56,7 +73,10 @@ export function PathMap({
         const nodeById = new Map(stage.nodes.map((node) => [node.id, node]));
         return (
           <section key={stage.id} className="path-stage">
-            <h3 className="path-stage-title">{stage.title}</h3>
+            <h3 className="path-stage-title">
+              <span className="path-stage-index">{String(stageIndex + 1).padStart(2, "0")}</span>
+              {stage.title}
+            </h3>
             <div
               className="path-track"
               style={{ width: track.width, height: track.height }}
@@ -68,6 +88,7 @@ export function PathMap({
                 viewBox={`0 0 ${track.width} ${track.height}`}
                 aria-hidden="true"
               >
+                <path className="path-track-glow" d={track.path} />
                 <path d={track.path} />
               </svg>
               {track.positions.map((position) => {
@@ -81,6 +102,7 @@ export function PathMap({
                     top={position.top}
                     width={NODE_WIDTH}
                     height={NODE_HEIGHT}
+                    buttonRef={node.state === "current" ? currentRef : undefined}
                     onOpenLevel={onOpenLevel}
                   />
                 );
@@ -99,6 +121,7 @@ function PathNodeButton({
   top,
   width,
   height,
+  buttonRef,
   onOpenLevel,
 }: {
   node: PathNode;
@@ -106,10 +129,12 @@ function PathNodeButton({
   top: number;
   width: number;
   height: number;
+  buttonRef?: Ref<HTMLButtonElement>;
   onOpenLevel: (levelId: number) => void;
 }) {
   return (
     <button
+      ref={buttonRef}
       type="button"
       className={`path-node is-${node.state}`}
       style={{ left, top, width, height }}
@@ -117,7 +142,9 @@ function PathNodeButton({
       aria-label={`第 ${node.id} 关 ${node.title}${node.stateText ? `，${node.stateText}` : ""}`}
     >
       <span className="path-node-number">第 {node.id} 关</span>
-      <span className="path-node-name">{node.title}</span>
+      <ViewTransition name={levelTitleTransitionName(node.id)}>
+        <span className="path-node-name">{node.title}</span>
+      </ViewTransition>
       <span className="path-node-hook">{node.hook}</span>
       {node.stateText ? (
         <span className={`path-node-badge is-${node.state}`}>{node.stateText}</span>

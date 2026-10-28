@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, startTransition } from "react";
 import { Alert, Button, Card, Flex, Steps } from "antd";
 import { sharedEngine } from "../core/audio/engine.ts";
 import {
@@ -29,6 +29,7 @@ import {
   lesson as lessonOne,
 } from "../content/lessons/level-01.ts";
 import { LessonCoach } from "./LessonCoach.tsx";
+import { LessonHeader } from "./LessonHeader.tsx";
 import { LessonDiagrams } from "./diagrams/index.tsx";
 import { anchorHint } from "../core/lesson/verdict.ts";
 import { QuizSession, type SessionQuestionData } from "./session/QuizSession.tsx";
@@ -198,12 +199,15 @@ export function LessonOne({
     URL.revokeObjectURL(url);
   };
 
+  const go = (next: number) => startTransition(() => setStep(next));
+
   return (
     <>
-      <Steps current={step} items={STEPS} onChange={setStep} />
+      <LessonHeader levelId={1} title={lessonOne.title} />
+      <Steps current={step} items={STEPS} onChange={go} />
       <LessonCoach progress={progress} levelId={1} onOpenLevel={onOpenLevel} />
       {step === 0 && (
-        <Card title="音高与键盘">
+        <Card title="概念">
           {LEVEL1_CONCEPT.map((paragraph) => (
             <p key={paragraph} className="lead">
               {paragraph}
@@ -234,7 +238,7 @@ export function LessonOne({
             keyRoot={0}
             keyScale="major"
             passMark={LEVEL1_EAR_PASS}
-            onFinish={() => setStep(2)}
+            onFinish={() => go(2)}
           />
         </Card>
       )}
@@ -335,13 +339,13 @@ export function LessonOne({
         </Card>
       )}
       <Flex gap={8}>
-        <Button disabled={step === 0} onClick={() => setStep((current) => current - 1)}>
+        <Button disabled={step === 0} onClick={() => go(step - 1)}>
           上一步
         </Button>
         <Button
           type={step === 1 && earSession.finishedAt === null ? "default" : "primary"}
           disabled={step === STEPS.length - 1}
-          onClick={() => setStep((current) => current + 1)}
+          onClick={() => go(step + 1)}
         >
           下一步
         </Button>

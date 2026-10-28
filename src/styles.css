@@ -126,6 +126,25 @@ body:focus-visible,
   font-size: 0.875rem;
 }
 
+.lesson-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.8rem;
+}
+
+.lesson-header-number {
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  color: var(--m101-text-dim);
+}
+
+.lesson-header-title {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.3;
+}
+
 .bench {
   width: min(60rem, calc(100% - 2rem));
   margin: 0 auto;

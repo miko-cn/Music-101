@@ -36,6 +36,76 @@
   border-bottom: 1px solid var(--m101-line);
 }
 
+/* 这一屏的主语：下一步只有一个。 */
+.path-next {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.25rem 1.4rem 1.35rem;
+  border: 1px solid var(--m101-gold-50);
+  border-radius: var(--m101-radius-lg);
+  background:
+    linear-gradient(100deg, var(--m101-gold-14), transparent 55%),
+    var(--m101-surface);
+  box-shadow: 0 16px 40px var(--m101-shadow-ink);
+}
+
+.path-next-kicker {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--m101-brand);
+}
+
+.path-next-title {
+  margin: 0.3rem 0 0;
+  font-size: 1.7rem;
+  line-height: 1.25;
+}
+
+.path-next-hook {
+  margin: 0.45rem 0 0;
+  max-width: 36rem;
+  color: var(--m101-text-dim);
+  line-height: 1.6;
+}
+
+.path-next-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.8rem;
+}
+
+.path-next-go {
+  appearance: none;
+  cursor: pointer;
+  border: 0;
+  border-radius: var(--m101-radius-md);
+  padding: 0.7rem 1.15rem;
+  font: inherit;
+  font-weight: 700;
+  color: var(--m101-bg);
+  background: var(--m101-brand);
+  box-shadow: 0 4px 0 var(--m101-press-brand);
+}
+
+.path-next.is-complete {
+  border-color: var(--m101-line-strong);
+}
+
+@media (max-width: 720px) {
+  .path-next {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .path-next-side {
+    align-items: flex-start;
+  }
+}
+
 .path-title {
   margin: 0;
   font-size: 1.35rem;
@@ -57,17 +127,32 @@
 .path-track-line path {
   fill: none;
   stroke: var(--m101-line-strong);
-  stroke-width: 4;
+  stroke-width: 3;
   stroke-linecap: round;
+}
+
+.path-track-line path.path-track-glow {
+  stroke: var(--m101-brand);
+  stroke-width: 8;
+  opacity: 0.28;
 }
 
 .path-stage-title {
   margin: 0 0 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
   font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--m101-text-dim);
-  text-align: center;
+}
+
+.path-stage-index {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.14em;
+  color: var(--m101-brand);
 }
 
 /* 阶段之间要断开——「地基 → 编曲 → 风格」是三次跳跃，看得见才对。 */
@@ -167,7 +252,18 @@
 .path-node.is-current {
   border-color: var(--m101-brand);
   background: var(--m101-brand-soft-bg);
-  box-shadow: 0 0 0 1px var(--m101-brand), 0 8px 26px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 0 1px var(--m101-brand),
+    0 0 28px var(--m101-gold-45),
+    0 10px 28px var(--m101-shadow-ink);
+}
+
+.path-node.is-current .path-node-number {
+  color: var(--m101-bg);
+  background: var(--m101-brand);
+  align-self: flex-start;
+  padding: 1px 8px;
+  border-radius: 999px;
 }
 
 .path-node.is-current .path-node-name {
@@ -188,9 +284,10 @@
   color: var(--m101-danger);
 }
 
-/* 已掌握：安静地亮着，不抢注意力。 */
+/* 已掌握：还是安静，但标题不要灰到像没做过。 */
 .path-node.is-mastered {
   border-color: var(--m101-line);
+  background: var(--m101-surface-deep);
 }
 
 .path-node.is-mastered .path-node-name {
@@ -201,9 +298,14 @@
   opacity: 0.55;
 }
 
-/* 没做过：中性。 */
+/* 没做过：再退一档，当前关才是这一屏的主语。 */
 .path-node.is-new {
-  border-color: var(--m101-line-strong);
+  border-color: var(--m101-line);
+  background: transparent;
+}
+
+.path-node.is-new .path-node-name {
+  color: var(--m101-text-dim);
 }
 
 /* 窄屏上路径太宽，让它能横向滚动而不是挤成一团。 */
