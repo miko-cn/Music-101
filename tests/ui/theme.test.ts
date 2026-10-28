@@ -81,15 +81,10 @@ describe("设计 token", () => {
     expect(css).toContain("--m101-path-surface:");
   });
 
-  it("路径图减动效时当前关不呼吸，而且不写死主色", () => {
+  it("大纲样式不写死主色", () => {
     const css = readFileSync(join(ROOT, "src", "ui", "path.css"), "utf8");
-    expect(css).toContain("var(--m101-path-accent-glow)");
     expect(css).not.toMatch(/#[0-9a-fA-F]{3,8}/);
-    const start = css.indexOf("@media (prefers-reduced-motion: reduce)");
-    expect(start).toBeGreaterThanOrEqual(0);
-    const reduced = css.slice(start);
-    expect(reduced).toContain(".path-node.is-current");
-    expect(reduced).toContain("animation: none");
+    expect(css).not.toContain("--m101-path-");
   });
 
   it("CSS 里引用的每个 token 都定义过", () => {
