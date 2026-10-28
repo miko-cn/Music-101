@@ -1,30 +1,30 @@
 /*
  * 路径图。
  *
- * 路径图要解决的核心问题是「一眼看出该去哪」，
- * 所以节点的状态区分必须比装饰更醒目：
- * - 当前关：金色描边 + 呼吸（唯一会动的节点）
+ * 这一屏只做三件事：顶上告诉你下一关，下面是三条航道，当前关用一层柔光标出来。
+ * 强发光只有主按钮和当前关。阶段辅色只染标签和连线，不刷满整段背景。
+ *
+ * 状态仍然比装饰醒目：
+ * - 当前关：青色细边 + 柔光。徽标可以很慢地呼吸，减动效时停住
  * - 卡住：红色描边 + 「上次没过」
  * - 已掌握：安静地亮着，可以跳过
  * - 没做过：中性描边
- *
- * 节点用圆角方块而不是纯圆点：方块能装下标题和口诀，
- * 圆点装不下。学习者认的是名字，不是编号。
  */
 
-/* 呼吸：路径上唯一会动的元素。 */
+/* 呼吸只动透明度，不动位置。减动效时整段关掉。 */
 @keyframes m101-breathe {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.6;
+    opacity: 0.72;
   }
 }
 
 .path-map {
-  padding: 1rem 0 1.5rem;
+  align-items: center;
+  padding: 0.25rem 0 2rem;
 }
 
 .path-head {
@@ -36,36 +36,35 @@
   border-bottom: 1px solid var(--m101-line);
 }
 
-/* 这一屏的主语：下一步只有一个。 */
+/* 这一屏的主语：下一步只有一个。描边只有一条，不再叠光。 */
 .path-next {
+  align-self: stretch;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 1.5rem;
-  padding: 1.25rem 1.4rem 1.35rem;
-  border: 1px solid var(--m101-gold-50);
+  padding: 1.15rem 1.35rem 1.25rem;
+  border: 1px solid var(--m101-path-accent);
   border-radius: var(--m101-radius-lg);
-  background:
-    linear-gradient(100deg, var(--m101-gold-14), transparent 55%),
-    var(--m101-surface);
-  box-shadow: 0 16px 40px var(--m101-shadow-ink);
+  background: var(--m101-path-surface);
 }
 
 .path-next-kicker {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
-  color: var(--m101-brand);
+  letter-spacing: 0.14em;
+  color: var(--m101-path-accent);
 }
 
 .path-next-title {
-  margin: 0.3rem 0 0;
-  font-size: 1.7rem;
+  margin: 0.28rem 0 0;
+  font-size: 1.65rem;
   line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
 .path-next-hook {
-  margin: 0.45rem 0 0;
+  margin: 0.4rem 0 0;
   max-width: 36rem;
   color: var(--m101-text-dim);
   line-height: 1.6;
@@ -75,7 +74,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.8rem;
+  gap: 0.75rem;
 }
 
 .path-next-go {
@@ -83,12 +82,12 @@
   cursor: pointer;
   border: 0;
   border-radius: var(--m101-radius-md);
-  padding: 0.7rem 1.15rem;
+  padding: 0.68rem 1.1rem;
   font: inherit;
   font-weight: 700;
   color: var(--m101-bg);
-  background: var(--m101-brand);
-  box-shadow: 0 4px 0 var(--m101-press-brand);
+  background: var(--m101-path-accent);
+  box-shadow: 0 3px 0 var(--m101-press-neutral);
 }
 
 .path-next.is-complete {
@@ -111,6 +110,46 @@
   font-size: 1.35rem;
 }
 
+/* 一条航道。底板保持中性，颜色留给标题序号和连线。 */
+.path-stage {
+  width: fit-content;
+  max-width: 100%;
+  padding: 1rem 0.85rem 1.35rem;
+  border: 1px solid var(--m101-line);
+  border-radius: var(--m101-radius-lg);
+  background: var(--m101-path-surface);
+}
+
+.path-stage-title {
+  margin: 0 0 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--m101-text-dim);
+}
+
+.path-stage-index {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.14em;
+  color: var(--m101-text-faint);
+}
+
+.path-stage--foundation .path-stage-index {
+  color: var(--m101-path-stage-foundation);
+}
+
+.path-stage--arrangement .path-stage-index {
+  color: var(--m101-path-stage-arrangement);
+}
+
+.path-stage--style .path-stage-index {
+  color: var(--m101-path-stage-style);
+}
+
 /* 轨道：节点绝对定位，连线是一层 SVG。 */
 .path-track {
   position: relative;
@@ -127,39 +166,25 @@
 .path-track-line path {
   fill: none;
   stroke: var(--m101-line-strong);
-  stroke-width: 3;
+  stroke-width: 1;
   stroke-linecap: round;
 }
 
 .path-track-line path.path-track-glow {
-  stroke: var(--m101-brand);
-  stroke-width: 8;
-  opacity: 0.28;
+  stroke-width: 3;
+  opacity: 0.35;
 }
 
-.path-stage-title {
-  margin: 0 0 0.9rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--m101-text-dim);
+.path-stage--foundation .path-track-line path {
+  stroke: var(--m101-path-stage-foundation);
 }
 
-.path-stage-index {
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.14em;
-  color: var(--m101-brand);
+.path-stage--arrangement .path-track-line path {
+  stroke: var(--m101-path-stage-arrangement);
 }
 
-/* 阶段之间要断开——「地基 → 编曲 → 风格」是三次跳跃，看得见才对。 */
-.path-stage + .path-stage {
-  padding-top: 1.5rem;
-  margin-top: 0.5rem;
-  border-top: 1px dashed var(--m101-line);
+.path-stage--style .path-track-line path {
+  stroke: var(--m101-path-stage-style);
 }
 
 /* 节点。
@@ -187,13 +212,12 @@
 }
 
 .path-node:hover {
-  border-color: var(--m101-brand-soft);
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  border-color: var(--m101-path-accent);
+  transform: translateY(-1px);
 }
 
 .path-node:focus-visible {
-  outline: 2px solid var(--m101-brand-soft);
+  outline: 2px solid var(--m101-path-accent);
   outline-offset: 3px;
 }
 
@@ -235,7 +259,7 @@
 }
 
 .path-node-badge.is-current {
-  background: var(--m101-brand);
+  background: var(--m101-path-accent);
 }
 
 .path-node-badge.is-mastered {
@@ -248,33 +272,30 @@
 
 /* —— 四种状态 —— */
 
-/* 当前关：金色描边。唯一会呼吸的节点。 */
+/* 当前关：青色细边加一层柔光。唯一会呼吸的是徽标，卡片本身不动。 */
 .path-node.is-current {
-  border-color: var(--m101-brand);
-  background: var(--m101-brand-soft-bg);
-  box-shadow:
-    0 0 0 1px var(--m101-brand),
-    0 0 28px var(--m101-gold-45),
-    0 10px 28px var(--m101-shadow-ink);
+  border-color: var(--m101-path-accent);
+  background: var(--m101-surface);
+  box-shadow: 0 0 16px var(--m101-path-accent-glow);
 }
 
 .path-node.is-current .path-node-number {
   color: var(--m101-bg);
-  background: var(--m101-brand);
+  background: var(--m101-path-accent);
   align-self: flex-start;
   padding: 1px 8px;
   border-radius: 999px;
 }
 
 .path-node.is-current .path-node-name {
-  color: var(--m101-brand-soft);
+  color: var(--m101-text);
 }
 
 .path-node.is-current .path-node-badge {
-  animation: m101-breathe 2.4s var(--m101-ease-out) infinite;
+  animation: m101-breathe 3.6s var(--m101-ease-out) infinite;
 }
 
-/* 卡住：红色描边，这关需要回来补。 */
+/* 卡住：红色描边，这关需要回来补。不发光。 */
 .path-node.is-retry {
   border-color: var(--m101-danger);
   background: var(--m101-danger-soft);
@@ -312,5 +333,14 @@
 @media (max-width: 640px) {
   .path-map {
     overflow-x: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .path-node,
+  .path-node.is-current,
+  .path-node.is-current .path-node-badge {
+    animation: none;
+    transition: none;
   }
 }

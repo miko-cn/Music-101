@@ -72,7 +72,7 @@ export function PathMap({
         if (!track) return null;
         const nodeById = new Map(stage.nodes.map((node) => [node.id, node]));
         return (
-          <section key={stage.id} className="path-stage">
+          <section key={stage.id} className={`path-stage path-stage--${stage.id}`}>
             <h3 className="path-stage-title">
               <span className="path-stage-index">{String(stageIndex + 1).padStart(2, "0")}</span>
               {stage.title}
