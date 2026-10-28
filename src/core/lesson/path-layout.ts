@@ -2,7 +2,7 @@
  * 路径图的布局计算。
  *
  * 路径图必须是**一条路**，不是一格一格的菜单。区别在哪儿：
- * 格子告诉��有 27 个关」，路告诉��你从这儿走到那儿」。
+ * 格子告诉「有 27 个关」，路告诉「你从这儿走到那儿」。
  *
  * 节点横向摆动、纵向排开，连线是一条曲线。
  *
@@ -33,13 +33,14 @@ export const NODE_GAP = 40;
 /**
  * 横向摆动的最大幅度（像素）。
  *
- * 要足够大，路才读得出是「弯的」而不是「直的」。
+ * 要弯得出来，但不能弯到像演示用的大蛇。
+ * 三阶段并排读的时候，过宽的摆幅会把航道撑满整屏。
  *
- * 关键约束：**幅度要大于节点宽度的一半**，否则相邻两个节点
+ * 关键约束：**幅度仍要大于节点宽度的一半**，否则相邻两个节点
  * 横向重叠过半，整条线几乎全被节点盖住，图就退化成列表。
- * 200px 的节点配 140px 幅度，露出来的弧才连得成一条路。
+ * 200px 的节点配 110px 幅度：弧还在，航道收得住。
  */
-export const NODE_AMPLITUDE = 150;
+export const NODE_AMPLITUDE = 110;
 /** 轨道左右各留的边距。 */
 export const TRACK_PADDING = 24;
 
@@ -81,8 +82,8 @@ function curveSegment(x1: number, y1: number, x2: number, y2: number): string {
 /** 算一个阶段的轨道。 */
 export function layoutStage(stage: PathStage, stageIndex: number): StageTrack {
   const count = stage.nodes.length;
-  // 每个阶段的幅度略有差别，免得三段看起来像复制粘贴。
-  const amplitude = NODE_AMPLITUDE * (1 + stageIndex * 0.12);
+  // 后面的阶段只略宽一点。差太大的话，第三航道会比第一航道胖一圈。
+  const amplitude = NODE_AMPLITUDE * (1 + stageIndex * 0.06);
   // 节点中心在中线两侧 ±amplitude 摆动。
   // 中线要落在轨道正中，所以中线 = 左边界 + 摆幅 + 半个节点宽。
   const centerX = TRACK_PADDING + amplitude + NODE_WIDTH / 2;

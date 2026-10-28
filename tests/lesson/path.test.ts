@@ -204,6 +204,14 @@ describe("路径布局", () => {
     expect(NODE_AMPLITUDE).toBeGreaterThan(NODE_WIDTH / 2);
   });
 
+  it("幅度收窄后相邻节点仍有横向错开", () => {
+    const tracks = layoutPath(stages);
+    const nodes = tracks[0]!.positions;
+    expect(Math.abs(nodes[0]!.x - nodes[1]!.x)).toBeGreaterThan(40);
+    expect(NODE_AMPLITUDE).toBeLessThanOrEqual(120);
+    expect(NODE_AMPLITUDE).toBeGreaterThanOrEqual(100);
+  });
+
   it("CSS 里不再写死节点尺寸", () => {
     // 尺寸由 path-layout.ts 的常量注入 CSS。
     // 两份尺寸各写各的，漂移了节点就会盖住连线，而且很难看出来。
