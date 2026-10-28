@@ -200,16 +200,6 @@ export const extras: Record<string, string> = {
   "paper-2": "#f5f5f7",
   // 投影。
   "shadow-ink": "rgba(0, 0, 0, 0.45)",
-  /**
-   * 路径页的克制霓虹。主强调只推青色；阶段辅色只给标签和连线。
-   * 发光透明度压低，避免整页变成灯管。
-   */
-  "path-accent": "#5ee0ff",
-  "path-accent-glow": "rgba(94, 224, 255, 0.26)",
-  "path-stage-foundation": "rgba(94, 224, 255, 0.55)",
-  "path-stage-arrangement": "rgba(176, 140, 255, 0.5)",
-  "path-stage-style": "rgba(255, 143, 196, 0.5)",
-  "path-surface": "#141820",
   /** 可按压按钮的底边阴影：比各自底色深一档。 */
   "press-neutral": "#0b0b10",
   "press-brand": "#b8902a",

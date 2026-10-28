@@ -71,14 +71,18 @@ describe("设计 token", () => {
     expect(reduced).toMatch(/::view-transition-group\(\*\)/);
   });
 
-  it("注入路径霓虹相关 token", () => {
+  it("路径霓虹 token 已经移除", () => {
     const css = tokenStylesheet();
-    expect(css).toContain("--m101-path-accent:");
-    expect(css).toContain("--m101-path-accent-glow:");
-    expect(css).toContain("--m101-path-stage-foundation:");
-    expect(css).toContain("--m101-path-stage-arrangement:");
-    expect(css).toContain("--m101-path-stage-style:");
-    expect(css).toContain("--m101-path-surface:");
+    for (const name of [
+      "--m101-path-accent:",
+      "--m101-path-accent-glow:",
+      "--m101-path-stage-foundation:",
+      "--m101-path-stage-arrangement:",
+      "--m101-path-stage-style:",
+      "--m101-path-surface:",
+    ]) {
+      expect(css, name).not.toContain(name);
+    }
   });
 
   it("大纲样式不写死主色", () => {
