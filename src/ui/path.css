@@ -153,11 +153,13 @@
 /* 轨道：节点绝对定位，连线是一层 SVG。 */
 .path-track {
   position: relative;
+  z-index: 0;
   margin: 0 auto;
 }
 
 .path-track-line {
   position: absolute;
+  z-index: 0;
   inset: 0;
   pointer-events: none;
   overflow: visible;
@@ -192,6 +194,7 @@
    这里不要再写死一份——两份尺寸漂移了，节点就会盖住连线。 */
 .path-node {
   position: absolute;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -295,10 +298,13 @@
   animation: m101-breathe 3.6s var(--m101-ease-out) infinite;
 }
 
-/* 卡住：红色描边，这关需要回来补。不发光。 */
+/* 卡住：红色描边，这关需要回来补。不发光。
+   淡红叠在不透明底上，连线才不会从卡片里透出来。 */
 .path-node.is-retry {
   border-color: var(--m101-danger);
-  background: var(--m101-danger-soft);
+  background:
+    linear-gradient(var(--m101-danger-soft), var(--m101-danger-soft)),
+    var(--m101-surface);
 }
 
 .path-node.is-retry .path-node-name {
@@ -319,10 +325,10 @@
   opacity: 0.55;
 }
 
-/* 没做过：再退一档，当前关才是这一屏的主语。 */
+/* 没做过：再退一档，当前关才是这一屏的主语。底要实，线才在卡片下面。 */
 .path-node.is-new {
   border-color: var(--m101-line);
-  background: transparent;
+  background: var(--m101-surface);
 }
 
 .path-node.is-new .path-node-name {

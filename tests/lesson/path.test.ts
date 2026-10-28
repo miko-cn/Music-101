@@ -212,6 +212,15 @@ describe("路径布局", () => {
     expect(NODE_AMPLITUDE).toBeGreaterThanOrEqual(100);
   });
 
+  it("连线层低于节点，卡片盖住折线", () => {
+    const css = readFileSync(join(ROOT, "src", "ui", "path.css"), "utf8");
+    const line = css.match(/\.path-track-line\s*\{[^}]*\}/)?.[0] ?? "";
+    const node = css.match(/\.path-node\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(line).toMatch(/z-index:\s*0/);
+    expect(node).toMatch(/z-index:\s*1/);
+    expect(css).not.toMatch(/\.path-node\.is-new\s*\{[^}]*background:\s*transparent/);
+  });
+
   it("CSS 里不再写死节点尺寸", () => {
     // 尺寸由 path-layout.ts 的常量注入 CSS。
     // 两份尺寸各写各的，漂移了节点就会盖住连线，而且很难看出来。
