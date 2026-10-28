@@ -41,7 +41,7 @@ export interface SessionQuestionData {
   explain: string;
   wrongHint?: string;
   encourage?: string;
-  /** 盲听：选项文字检查之后才显示。任务 9 才接，这里先留着字段、按 false 处理。 */
+  /** 盲听：选项文字等检查之后才显示，只能靠耳朵分。 */
   blind?: boolean;
   /** 复习页每题属于不同关卡，反馈音用题目自己的调。 */
   keyRoot?: PitchClass;
@@ -215,6 +215,7 @@ export function QuizSession({
             order={order}
             selected={state.selected[state.cursor] ?? null}
             phase={phase}
+            isFirst={state.cursor === 0}
             onSelect={select}
             onPlay={(original) => playOne(question.choices[original]?.midis ?? [])}
             onPlayAll={playAll}

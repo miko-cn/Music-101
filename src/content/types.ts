@@ -37,6 +37,13 @@ export interface StageEar {
   wrongHint?: string;
   /** 答对时的反应：把刚做对的事再说一遍。 */
   encourage?: string;
+  /**
+   * 盲听：选项文字等检查之后才显示，只能靠耳朵分。
+   *
+   * 只给「选项文字就是这个声音本身的名字」的题开（音名、和弦名、进行名），
+   * 而且选项的声音必须两两不同——守卫在 tests/lesson/ear-feedback.test.ts。
+   */
+  blind?: boolean;
 }
 
 export interface StageChoice {

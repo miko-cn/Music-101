@@ -47,6 +47,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "whole-ef",
+      blind: true,
       prompt: "哪一对是全音？",
       choices: [
         { label: "E4 → F♯4", midis: [64, 66] },
@@ -60,6 +61,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "semi-bc",
+      blind: true,
       prompt: "哪一对是半音？",
       choices: [
         { label: "B4 → C5", midis: [71, 72] },
@@ -73,6 +75,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "whole-fg",
+      blind: true,
       prompt: "哪一对是全音？",
       choices: [
         { label: "F4 → G4", midis: [65, 67] },
@@ -125,6 +128,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "up-whole",
+      blind: true,
       prompt: "从 C4 往上走一个全音到哪？",
       choices: [
         { label: "D4", midis: [60, 62] },

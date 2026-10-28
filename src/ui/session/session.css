@@ -110,6 +110,42 @@
   line-height: 1.45;
 }
 
+/* 题干和「盲听」标签一行；第一题没法自动播时，提示紧挨在题干下面。 */
+.session-question-title {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.session-question-promptline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.session-blind-tag {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: var(--m101-brand);
+  background: var(--m101-brand-soft-bg);
+  border: 1px solid var(--m101-gold-50);
+}
+
+.session-blind-hint {
+  margin: 0;
+  color: var(--m101-text-dim);
+  font-size: 0.85rem;
+}
+
 .session-play-all {
   flex: 0 0 auto;
   appearance: none;

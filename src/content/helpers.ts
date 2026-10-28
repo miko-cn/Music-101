@@ -92,6 +92,11 @@ export interface EarFeedback {
   wrongHint: string;
   /** 答对时的反应：把刚做对的事再说一遍。 */
   encourage: string;
+  /**
+   * 盲听：选项文字等检查之后才显示。
+   * 手写题直接写在题目上；走 ear() 的模板题从这里透传。
+   */
+  blind?: boolean;
 }
 
 export function ear(
@@ -123,6 +128,7 @@ export function ear(
     explain,
     wrongHint: feedback?.wrongHint,
     encourage: feedback?.encourage,
+    blind: feedback?.blind,
   };
 }
 

@@ -126,3 +126,27 @@ describe("听辨题的反馈文案", () => {
     expect(ALL_QUESTIONS.length).toBeGreaterThanOrEqual(170);
   });
 });
+
+describe("盲听题", () => {
+  const blind = FLOW_LESSONS.flatMap((lesson) =>
+    lesson.ear.filter((question) => question.blind).map((question) => ({ lesson, question })),
+  );
+
+  it("至少开了一批", () => {
+    expect(blind.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it("选项的声音两两不同——否则盲听等于瞎猜", () => {
+    for (const { lesson, question } of blind) {
+      const sounds = question.choices.map((choice) => JSON.stringify(choice.midis));
+      expect(new Set(sounds).size, `第 ${lesson.id} 关 ${question.id}`).toBe(sounds.length);
+    }
+  });
+
+  it("只在 2–8 关和 14–17 关开：阶段二、三别处的 midis 是层数编码，不是真音高", () => {
+    for (const { lesson, question } of blind) {
+      const ok = (lesson.id >= 2 && lesson.id <= 8) || (lesson.id >= 14 && lesson.id <= 17);
+      expect(ok, `第 ${lesson.id} 关 ${question.id}`).toBe(true);
+    }
+  });
+});

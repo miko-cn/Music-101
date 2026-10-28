@@ -37,6 +37,7 @@ export const lesson: StageLessonEntry = defineLesson({
   ear: [
     {
       id: "which-major",
+      blind: true,
       prompt: "哪个是大三和弦？",
       choices: [
         { label: "C E G", midis: [60, 64, 67] },
@@ -50,6 +51,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "which-minor",
+      blind: true,
       prompt: "哪个是小三和弦？",
       choices: [
         { label: "F A♭ C", midis: [65, 68, 72] },
@@ -63,6 +65,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "major-third",
+      blind: true,
       prompt: "C 大三和弦的三音是？",
       choices: [
         { label: "E", midis: [60, 64] },
@@ -76,6 +79,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "minor-third",
+      blind: true,
       prompt: "Cm 的三音是？",
       choices: [
         { label: "C", midis: [60, 60] },
@@ -89,6 +93,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "a-minor",
+      blind: true,
       prompt: "哪个是 A 小三和弦？",
       choices: [
         { label: "A C E", midis: [69, 72, 76] },
@@ -128,6 +133,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "eb-major",
+      blind: true,
       prompt: "哪个是 E♭ 大三和弦？",
       choices: [
         { label: "E♭ G B♭", midis: [63, 67, 70] },

@@ -41,6 +41,7 @@ export const lesson: StageLessonEntry = defineLesson({
   ear: [
     {
       id: "minor-tonic",
+      blind: true,
       prompt: "A 小调的主和弦是哪个？",
       choices: [
         { label: "A C E", midis: [69, 72, 76] },
@@ -54,6 +55,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "natural-minor",
+      blind: true,
       prompt: "A 自然小调是哪个？",
       choices: [
         { label: "A B C D E F G", midis: [69, 71, 72, 74, 76, 77, 79] },
@@ -67,6 +69,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "minor-i",
+      blind: true,
       prompt: "A 小调的 i 是？",
       choices: [
         { label: "A C E", midis: [69, 72, 76] },
@@ -93,6 +96,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "flat-seven",
+      blind: true,
       prompt: "哪个是 ♭VII？",
       choices: [
         { label: "G B D", midis: [67, 71, 74] },
@@ -106,6 +110,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "borrowed-second",
+      blind: true,
       prompt: "i–♭VI–♭III–♭VII 的第二个和弦是？",
       choices: [
         { label: "F", midis: [65, 69, 72] },
@@ -132,6 +137,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "which-iv",
+      blind: true,
       prompt: "哪个是 A 小调里的 iv？",
       choices: [
         { label: "Dm", midis: [62, 65, 69] },
