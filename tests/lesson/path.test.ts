@@ -5,9 +5,14 @@ import { describe, expect, it } from "vitest";
 import { LESSONS } from "../../src/content/index.ts";
 import {
   buildPath,
+  continueLabels,
+  currentPathNode,
+  initialOpenStageIds,
   pathComplete,
   pathProgress,
   pathStates,
+  rowDelayMs,
+  stageMastery,
 } from "../../src/core/lesson/path.ts";
 import {
   NODE_AMPLITUDE,
@@ -244,5 +249,42 @@ describe("路径布局", () => {
     const track = layoutStage(single, 0);
     expect(track.path).toBe("");
     expect(track.height).toBe(0);
+  });
+});
+
+describe("课程大纲", () => {
+  it("默认只展开含当前关的那一段", () => {
+    expect(initialOpenStageIds(buildPath(emptyProgress()))).toEqual(["foundation"]);
+    const afterFoundation = Array.from({ length: 8 }, (_, index) => index + 1);
+    expect(initialOpenStageIds(buildPath(withMastered(afterFoundation)))).toEqual(["arrangement"]);
+    const allButLast = Array.from({ length: 26 }, (_, index) => index + 1);
+    expect(initialOpenStageIds(buildPath(withMastered(allButLast)))).toEqual(["style"]);
+  });
+
+  it("阶段进度按已掌握节点计数，零也有分母", () => {
+    const foundation = buildPath(withMastered([1, 2])).find((stage) => stage.id === "foundation");
+    expect(foundation).toBeDefined();
+    expect(stageMastery(foundation!)).toEqual({ done: 2, total: 8 });
+    const style = buildPath(emptyProgress()).find((stage) => stage.id === "style");
+    expect(stageMastery(style!)).toEqual({ done: 0, total: 7 });
+  });
+
+  it("顶卡文案只有两套，没有返回路径", () => {
+    expect(continueLabels(false)).toEqual({ kicker: "接下来", action: "开始这一关" });
+    expect(continueLabels(true)).toEqual({ kicker: "全部掌握", action: "再看一遍" });
+  });
+
+  it("当前关从阶段列表里找，找不到是 null", () => {
+    const node = currentPathNode(buildPath(emptyProgress()));
+    expect(node?.id).toBe(1);
+    expect(node?.state).toBe("current");
+    expect(currentPathNode([])).toBeNull();
+  });
+
+  it("行错峰是 20ms 一档，200ms 封顶", () => {
+    expect(rowDelayMs(0)).toBe(0);
+    expect(rowDelayMs(3)).toBe(60);
+    expect(rowDelayMs(10)).toBe(200);
+    expect(rowDelayMs(11)).toBe(200);
   });
 });

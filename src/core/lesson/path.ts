@@ -130,3 +130,37 @@ export function pathProgress(progress: ProgressFile): { done: number; total: num
 export function pathComplete(progress: ProgressFile): boolean {
   return pathProgress(progress).done === pathProgress(progress).total;
 }
+
+/** 目录顶卡用的那一关。没有阶段时是 null。 */
+export function currentPathNode(stages: readonly PathStage[]): PathNode | null {
+  for (const stage of stages) {
+    const found = stage.nodes.find((node) => node.state === "current");
+    if (found) return found;
+  }
+  return null;
+}
+
+/** 阶段头上的「已掌握 / 关数」。没掌握也保留分母。 */
+export function stageMastery(stage: PathStage): { done: number; total: number } {
+  return {
+    done: stage.nodes.filter((node) => node.state === "mastered").length,
+    total: stage.nodes.length,
+  };
+}
+
+/** 进入路径页时只打开含当前关的阶段。空列表表示没有可打开的段。 */
+export function initialOpenStageIds(stages: readonly PathStage[]): string[] {
+  const current = currentPathNode(stages);
+  return current ? [current.stage] : [];
+}
+
+/** 顶卡的两句文案。返回路径不属于顶卡。 */
+export function continueLabels(complete: boolean): { kicker: string; action: string } {
+  if (complete) return { kicker: "全部掌握", action: "再看一遍" };
+  return { kicker: "接下来", action: "开始这一关" };
+}
+
+/** 展开时第 index 行的延迟。20ms 一档，200ms 封顶。 */
+export function rowDelayMs(index: number): number {
+  return Math.min(Math.max(0, index) * 20, 200);
+}
