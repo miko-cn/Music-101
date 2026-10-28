@@ -14,34 +14,40 @@
  */
 import { useCallback } from "react";
 import { sharedEngine } from "../core/audio/engine.ts";
-import type { SfxCue } from "../core/audio/sfx.ts";
+import type { SfxCue, SfxOptions } from "../core/audio/sfx.ts";
 import type { AnswerVerdict } from "../core/lesson/verdict.ts";
 import { sfxForVerdict } from "../core/lesson/verdict.ts";
 import type { PitchClass } from "../core/theory/pitch.ts";
 import type { ScaleId } from "../core/theory/scale.ts";
+import { applySfxVolume } from "./soundPrefs.ts";
+
+/**
+ * 播一条反馈音。必须在点击的同步链路里调用——见文件头。
+ * resume 不 await：它本身就是解锁动作，await 了反而会跳出手势。
+ */
+export function playFeedbackSfx(cue: SfxCue, options: SfxOptions = {}): void {
+  const active = sharedEngine();
+  if (!active) return;
+  void active.resume();
+  applySfxVolume(active);
+  active.playSfx(cue, options);
+}
 
 export function useFeedbackSfx(keyRoot: PitchClass, keyScale: ScaleId) {
   return useCallback(
-    (cue: SfxCue) => {
-      const active = sharedEngine();
-      if (!active) return;
-      // 不 await resume：这一行必须在手势的同步链路里跑完。
-      void active.resume();
-      active.playSfx(cue, { keyRoot, keyScale });
-    },
+    (cue: SfxCue, extra: { streak?: number } = {}) => playFeedbackSfx(cue, { keyRoot, keyScale, ...extra }),
     [keyRoot, keyScale],
   );
 }
 
 /** 判定结果直接变成音效。idle 不发声——没作答时响一下是在催人。 */
 export function useVerdictSfx(keyRoot: PitchClass, keyScale: ScaleId) {
-  const play = useFeedbackSfx(keyRoot, keyScale);
   return useCallback(
     (verdict: AnswerVerdict) => {
       const cue = sfxForVerdict(verdict);
       if (!cue) return;
-      play(cue);
+      playFeedbackSfx(cue, { keyRoot, keyScale });
     },
-    [play],
+    [keyRoot, keyScale],
   );
 }

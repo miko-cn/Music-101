@@ -35,12 +35,12 @@ export const lesson: StageLessonEntry = defineLesson({
     "编曲里的用法：段落末尾的最后一个和弦，用 V→I 收；副歌的第一小节往往从 V 开始（就像 I–V–vi–IV 那样），这样进副歌的第一个和弦就已经「要往家走」。",
   ],
   ear: [
-    ear("v-chord", "C 大调的 V 是哪个？", "G B D", "F A C", "第 5 级是 G。", [67, 71, 74], [65, 69, 72], { label: "D F A", midis: [62, 65, 69] }, { wrongHint: "先列出 C 大调的七个音，V 对应第几级，再挑根音对得上的那个选项。", encourage: "对，V 是第 5 级，G B D 就是那个属和弦。" }),
+    ear("v-chord", "C 大调的 V 是哪个？", "G B D", "F A C", "第 5 级是 G。", [67, 71, 74], [65, 69, 72], { label: "D F A", midis: [62, 65, 69] }, { wrongHint: "先列出 C 大调的七个音，V 对应第几级，再挑根音对得上的那个选项。", encourage: "对，V 是第 5 级，G B D 就是那个属和弦。", blind: true }),
     ear("resolve-to", "V 最常解决到哪里？", "I", "vi", "属和弦回到主和弦。", [67], [69], { label: "IV", midis: [65] }, { wrongHint: "别按和弦名猜，看导音想往哪跑：它升上去落定的那个级数就是解的位置。", encourage: "对，V 落回 I，张力一下就落地了。" }),
-    ear("which-pair", "哪一对是解决？", "G → C", "G → G", "第二个和弦换成了主和弦，张力才落地。", [67, 60], [67, 67], { label: "G → Am", midis: [67, 69] }, { wrongHint: "两个选项只差第二个和弦，听它有没有换掉——张力得靠换和弦才放得掉。", encourage: "对，第二个换成主和弦，张力才真正落地。" }),
+    ear("which-pair", "哪一对是解决？", "G → C", "G → G", "第二个和弦换成了主和弦，张力才落地。", [67, 60], [67, 67], { label: "G → Am", midis: [67, 69] }, { wrongHint: "两个选项只差第二个和弦，听它有没有换掉——张力得靠换和弦才放得掉。", encourage: "对，第二个换成主和弦，张力才真正落地。", blind: true }),
     ear("tense", "一直停在 V 上，听感是？", "悬着", "已经结束", "没有回到 I，句子还没完。", [67], [67], { label: "更紧张", midis: [67] }, { wrongHint: "先别用情绪词，先看有没有回到落点——没回去就说明句子没收住。", encourage: "对，停在 V 上，句子还悬在半空。" }),
     ear("in-key", "G 和 C 都在 C 大调里吗？", "在", "不在", "两个都是调内和弦，差别是张力，不是调外。", [67], [67], { label: "只有 G 在", midis: [67] }, { wrongHint: "把 C 大调的七个音列出来，再逐个音去对，看有没有落在这七个之外。", encourage: "对，G 和 C 都在调内，差别只在张力。" }),
-    ear("typical-end", "哪条是 C 大调里最典型的终止？", "V → I", "I → V", "属到主是方向最正的终止。I → V 是悬着的，vi → IV 也不是终止。", [67, 60], [60, 67], { label: "vi → IV", midis: [69, 65] }, { wrongHint: "两条都听一遍，找出那个真的收住、后面不用再接的那条。", encourage: "对，V → I 是 C 大调里最典型的收尾。" }),
+    ear("typical-end", "哪条是 C 大调里最典型的终止？", "V → I", "I → V", "属到主是方向最正的终止。I → V 是悬着的，vi → IV 也不是终止。", [67, 60], [60, 67], { label: "vi → IV", midis: [69, 65] }, { wrongHint: "两条都听一遍，找出那个真的收住、后面不用再接的那条。", encourage: "对，V → I 是 C 大调里最典型的收尾。", blind: true }),
   ],
   handPrompt: "选出有解决的两小节。",
   handChoices: [

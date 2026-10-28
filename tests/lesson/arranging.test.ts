@@ -61,26 +61,15 @@ describe("阶段二、三关 9–27", () => {
   it("第 10 关鼓组没打满不过关，填上目标后导出四件套音高", () => {
     const lesson = lessonById(10);
     const empty = emptyStageState(lesson);
-    expect(diagnoseStage(lesson, empty).some((item) => item.fix?.actionId === "stage-hand-correct")).toBe(true);
+    expect(diagnoseStage(lesson, empty).some((item) => item.fix)).toBe(false);
     expect(stagePassed(lesson, { ...passed(10), drums: empty.drums })).toBe(false);
-    expect(applyStageFix(lesson, empty).drums?.[0]).toEqual([
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-    ]);
+    const triedDrums = (empty.drums ?? []).map((lane, laneIndex) =>
+      laneIndex === 0 ? lane.map((on, step) => (step === 0 ? true : on)) : [...lane],
+    );
+    const tried = { ...empty, drums: triedDrums };
+    expect(diagnoseStage(lesson, tried).some((item) => item.fix?.actionId === "stage-hand-correct")).toBe(true);
+    expect(applyStageFix(lesson, tried).drums?.[0]).toEqual(triedDrums[0]);
+    expect(applyStageFix(lesson, tried).fixHighlight).toBe(true);
     const notes = noteOns(10).filter((note) => note && note.track !== "CHORDS");
     const byTrack = Object.fromEntries(
       ["KICK", "SNARE", "CLAP", "HAT"].map((role) => [role, notes.filter((note) => note?.track === role).map((note) => note?.pitch)]),
@@ -119,7 +108,7 @@ describe("阶段二、三关 9–27", () => {
     expect(mean(chorus)).toBeGreaterThan(mean(verse) * 1.5);
   });
 
-  it("第 26 关导出 16 小节、150 BPM，并带副歌标记和 supersaw", () => {
+  it("第 26 关导出 16 小节、150 BPM，并带副歌标记和加层", () => {
     const lesson = lessonById(26);
     const skeleton = stageSkeleton(lesson, 0);
     expect(skeleton.totalBars).toBe(16);

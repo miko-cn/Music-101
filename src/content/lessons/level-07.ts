@@ -38,6 +38,7 @@ export const lesson: StageLessonEntry = defineLesson({
   ear: [
     {
       id: "which-v",
+      blind: true,
       prompt: "哪个是 V 级？",
       choices: [
         { label: "G B D", midis: [67, 71, 74] },
@@ -51,6 +52,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "which-vi",
+      blind: true,
       prompt: "哪个是 vi 级？",
       choices: [
         { label: "A C E", midis: [69, 72, 76] },
@@ -64,6 +66,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "which-iv",
+      blind: true,
       prompt: "哪个是 IV 级？",
       choices: [
         { label: "F A C", midis: [65, 69, 72] },
@@ -77,6 +80,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "lowercase-means",
+      blind: true,
       prompt: "哪个是小写级数（小三和弦）？",
       choices: [
         { label: "Am", midis: [69, 72, 76] },
@@ -90,6 +94,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "second-chord",
+      blind: true,
       prompt: "I–V–vi–IV 的第二个和弦是？",
       choices: [
         { label: "G", midis: [67, 71, 74] },
@@ -103,6 +108,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "which-ii",
+      blind: true,
       prompt: "C 大调的 ii 是？",
       choices: [
         { label: "Dm", midis: [62, 65, 69] },
@@ -129,6 +135,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "which-vii",
+      blind: true,
       prompt: "C 大调的 vii° 是什么？",
       choices: [
         { label: "Bdim", midis: [71, 74, 77] },

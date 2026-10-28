@@ -25,6 +25,7 @@ export const lesson: StageLessonEntry = defineLesson({
     ],
   },
   marker: "Level27",
+  earTitle: "核对",
   totalBars: 16,
   reference: true,
   prereq: [26],

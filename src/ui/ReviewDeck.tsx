@@ -1,19 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Button, Card, Flex, Space, Tag } from "antd";
-import { sharedEngine } from "../core/audio/engine.ts";
+import { useMemo, useState } from "react";
+import { Alert, Button, Card, Flex, Tag } from "antd";
 import { lessonById } from "../content/index.ts";
 import { isStageLesson } from "../content/types.ts";
-import { QuizGroup } from "./QuizOption.tsx";
-import { useFeedbackSfx } from "./useFeedbackSfx.ts";
+import { anchorHint } from "../core/lesson/verdict.ts";
 import {
   dueReviewCards,
-  findReviewCard,
   nextReviewDueAt,
   reviewDueText,
   type ReviewCard,
 } from "../core/lesson/review.ts";
-import { reviewQuestionFor, type ReviewQuestion } from "../core/lesson/review-questions.ts";
+import { reviewQuestionFor } from "../core/lesson/review-questions.ts";
 import { gradeReview, type ProgressFile, type ProgressUpdate } from "../core/lesson/progress.ts";
+import { REVIEW_POLICY, createSession, type SessionState } from "../core/lesson/session.ts";
+import { QuizSession, type SessionQuestionData } from "./session/QuizSession.tsx";
 
 /**
  * 今日复习。
@@ -23,13 +22,41 @@ import { gradeReview, type ProgressFile, type ProgressUpdate } from "../core/les
  *
  * 抽到的是哪一道由卡片自己的轮次决定，所以每轮复习换一道题，
  * 一关里的题都能轮到；选项还会重新打乱，记住的是内容不是位置。
+ *
+ * 答题走跟关卡一样的会话，但只有一次机会：点「检查」才记进盒子，
+ * 错了直接亮答案。题目在抽出来时已经洗过，会话不再洗第二遍。
  */
-
-const OPTION_GAP_MS = 900;
 
 interface GradedItem {
   levelId: number;
   correct: boolean;
+}
+
+interface ReviewItem {
+  levelId: number;
+  question: SessionQuestionData;
+}
+
+function reviewItem(levelId: number, round: number): ReviewItem | null {
+  const question = reviewQuestionFor(levelId, round);
+  if (!question) return null;
+  const lesson = lessonById(levelId);
+  const stage = lesson && isStageLesson(lesson) ? lesson : null;
+  return {
+    levelId,
+    question: {
+      // 关号加进 id：不同关可能抽到同名题目，AnimatePresence 靠 id 区分。
+      id: `${levelId}:${question.id}`,
+      prompt: question.prompt,
+      choices: question.choices,
+      correct: question.correct,
+      explain: question.explain,
+      wrongHint: question.wrongHint ?? anchorHint(question.anchorName, question.anchorHook),
+      encourage: question.encourage,
+      keyRoot: stage?.keyRoot ?? 0,
+      keyScale: stage?.keyScale ?? "major",
+    },
+  };
 }
 
 export function ReviewDeck({
@@ -42,98 +69,22 @@ export function ReviewDeck({
   onOpenLevel: (levelId: number) => void;
 }) {
   const due = useMemo(() => dueReviewCards(progress.reviews, Date.now()), [progress.reviews]);
-  const [queue, setQueue] = useState<number[] | null>(null);
-  const [cursor, setCursor] = useState(0);
-  const [current, setCurrent] = useState<{ levelId: number; question: ReviewQuestion } | null>(null);
-  const [picked, setPicked] = useState<number | null>(null);
-  /** 答错后点了「看答案」。换题时重置。 */
-  const [showAnswer, setShowAnswer] = useState(false);
+  const [round, setRound] = useState<ReviewItem[] | null>(null);
+  const [session, setSession] = useState<SessionState>(() => createSession([], Date.now()));
   const [results, setResults] = useState<GradedItem[]>([]);
-  const timers = useRef<number[]>([]);
-
-  useEffect(
-    () => () => {
-      for (const id of timers.current) window.clearTimeout(id);
-    },
-    [],
-  );
-
-  const engine = async () => {
-    const active = sharedEngine();
-    await active?.resume();
-    return active;
-  };
-
-  /**
-   * 复习题的反馈音用当前关卡的调。
-   *
-   * 复习抽的是各关的题，每关的调不一样；用题目所属关卡的调，
-   * 「对了」那一声就在学习者正在练的那个调里。
-   */
-  const reviewLesson = current ? lessonById(current.levelId) : null;
-  const reviewKey = reviewLesson && isStageLesson(reviewLesson) ? reviewLesson : null;
-  const playCue = useFeedbackSfx(reviewKey?.keyRoot ?? 0, reviewKey?.keyScale ?? "major");
-
-  /** 把这道题的每一个选项依次弹一遍——先听清，再选。 */
-  const playAll = async (question: ReviewQuestion) => {
-    const active = await engine();
-    if (!active) return;
-    for (const id of timers.current) window.clearTimeout(id);
-    timers.current = [];
-    question.choices.forEach((choice, index) => {
-      if (index === 0) {
-        active.playEarOption(choice.midis);
-        return;
-      }
-      const id = window.setTimeout(() => active.playEarOption(choice.midis), OPTION_GAP_MS * index);
-      timers.current.push(id);
-    });
-  };
-
-  /** 抽题：卡片自己的轮次决定抽哪一道，选项重新打乱。 */
-  const loadQuestion = (levelId: number) => {
-    const card = findReviewCard(progress.reviews, levelId);
-    const question = reviewQuestionFor(levelId, card?.round ?? 0);
-    setCurrent(question ? { levelId, question } : null);
-    setPicked(null);
-    setShowAnswer(false);
-  };
 
   const start = () => {
-    const levels = due.map((card) => card.levelId);
-    setQueue(levels);
-    setCursor(0);
+    const items = due.flatMap((card) => {
+      const item = reviewItem(card.levelId, card.round);
+      return item ? [item] : [];
+    });
     setResults([]);
-    if (levels.length > 0) loadQuestion(levels[0]);
+    // 一张题都抽不出来就不要建会话：空会话加「不显示结算」会停在空白页上。
+    setRound(items);
+    setSession(createSession(items.map((item) => item.question), Date.now()));
   };
 
-  const pick = (optionIndex: number) => {
-    if (!current || picked !== null) return;
-    setPicked(optionIndex);
-    setShowAnswer(false);
-    const correct = optionIndex === current.question.correct;
-    // 音效在点击的同步链路里发出去，浏览器才认这是用户手势。
-    playCue(correct ? "correct" : "wrong");
-    setResults((items) => [...items, { levelId: current.levelId, correct }]);
-    onProgress((value) =>
-      gradeReview(value, { levelId: current.levelId, correct, now: Date.now() }),
-    );
-  };
-
-  const next = () => {
-    if (!queue) return;
-    const nextIndex = cursor + 1;
-    if (nextIndex >= queue.length) {
-      setCurrent(null);
-      setQueue(null);
-      return;
-    }
-    setCursor(nextIndex);
-    loadQuestion(queue[nextIndex]);
-  };
-
-  // —— 还没开始：列出今天要复习的 ——
-  if (!queue) {
+  if (!round) {
     if (results.length > 0) {
       const right = results.filter((item) => item.correct).length;
       const left = due.length;
@@ -175,7 +126,7 @@ export function ReviewDeck({
       <Flex vertical gap={16}>
         <Card title={`今天要复习 ${due.length} 关`}>
           <p className="hint">
-            每关抽一道听辨题：先听清楚，再选。答对就往后挪一档，答错会留在今天。
+            每关抽一道听辨题：选好了点检查。答对就往后挪一档，答错会留在今天。
           </p>
           <Flex vertical gap={8} style={{ marginTop: 12 }}>
             {due.map((card) => (
@@ -190,94 +141,37 @@ export function ReviewDeck({
     );
   }
 
-  // —— 正在答题 ——
-  if (!current) {
+  if (round.length === 0) {
     return (
       <Card title="今日复习">
-        <p className="hint">这一关暂时抽不出题目，跳过它继续。</p>
-        <Button onClick={next}>继续</Button>
+        <p className="hint">到期的关卡暂时抽不出题目。</p>
+        <Button onClick={() => setRound(null)}>返回</Button>
       </Card>
     );
   }
-  const question = current.question;
-  const answered = picked !== null;
-  const correct = answered && picked === question.correct;
-  const lesson = lessonById(current.levelId);
 
   return (
-    <Flex vertical gap={12}>
-      <Card
-        title={`第 ${current.levelId} 关 · ${lesson?.title ?? ""}`}
-        extra={
-          <Space>
-            <span className="hint">
-              {cursor + 1} / {queue.length}
-            </span>
-            <Button onClick={() => void playAll(question)}>都听一遍</Button>
-          </Space>
-        }
-      >
-        <h2 className="result-heading">{question.prompt}</h2>
-        <QuizGroup
-          choices={question.choices.map((choice) => ({
-            label: choice.label,
-            onPlay: () => {
-              const active = sharedEngine();
-              if (!active) return;
-              void active.resume();
-              active.playEarOption(choice.midis);
-            },
-          }))}
-          value={picked}
-          onChange={pick}
-          correct={question.correct}
-          revealed={answered}
-          disabled={answered}
-          label={question.prompt}
-        />
-
-        {answered && (
-          <Flex vertical gap={8} style={{ marginTop: 12 }}>
-            {correct ? (
-              <>
-                <Alert
-                  type="success"
-                  showIcon
-                  title={question.encourage ?? "对了。"}
-                  description={question.explain}
-                />
-              </>
-            ) : (
-              <>
-                {/* 答错先给方向，不直接报答案——跟关卡里同一套两级提示。 */}
-                <Alert
-                  type="error"
-                  showIcon
-                  title="不对。"
-                  description={
-                    question.wrongHint ??
-                    `这一关的记忆锚是「${question.anchorName}」：${question.anchorHook}`
-                  }
-                />
-                <Button size="small" onClick={() => setShowAnswer(true)}>
-                  还是不对，看答案
-                </Button>
-                {showAnswer && (
-                  <p className="hint">
-                    正确答案：{question.choices[question.correct]?.label}
-                    <br />
-                    {question.explain}
-                  </p>
-                )}
-              </>
-            )}
-            <Button type="primary" onClick={next}>
-              {cursor + 1 >= queue.length ? "看今天的结果" : "下一题"}
-            </Button>
-          </Flex>
-        )}
-      </Card>
-    </Flex>
+    <Card title="今日复习">
+      <QuizSession
+        questions={round.map((item) => item.question)}
+        state={session}
+        onState={setSession}
+        policy={REVIEW_POLICY}
+        seed="review"
+        shuffle={false}
+        fallbackHint=""
+        keyRoot={0}
+        keyScale="major"
+        passMark={null}
+        onGraded={(index, correct) => {
+          const item = round[index];
+          if (!item) return;
+          setResults((items) => [...items, { levelId: item.levelId, correct }]);
+          onProgress((value) => gradeReview(value, { levelId: item.levelId, correct, now: Date.now() }));
+        }}
+        onFinish={() => setRound(null)}
+      />
+    </Card>
   );
 }
 

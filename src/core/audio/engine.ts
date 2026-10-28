@@ -39,6 +39,8 @@ export interface MusicEngine {
   playVoice(voice: VoiceId, when: number, duration: number, midi?: number): void;
   /** 反馈音效：对了 / 不对 / 过关。用音乐语汇，不用通用提示音。 */
   playSfx(cue: SfxCue, options?: SfxOptions): void;
+  /** 反馈音音量，0–1，静音 = 0。立刻作用在正在响的声音上。只管反馈音，不管钢琴和听辨题。 */
+  setSfxVolume(volume: number): void;
   playSteps(steps: readonly boolean[], midi: number, bpm: number): void;
   /** 两小节：kick 在每拍上，808 经过侧链被抽下去。 */
   playPump(bpm?: number): void;
@@ -71,6 +73,40 @@ export function createEngine(): MusicEngine | null {
   const heldVoices = new Map<number, HeldVoice>();
   let nextVoiceId = 1;
   const noise = createNoise(context, 1);
+
+  /** 反馈音的基准电平：它是提示，不是内容，比音乐轻一点。 */
+  const SFX_LEVEL = 0.7;
+  /** 混响湿声的比例：够听出空间，听不出「浴室」。 */
+  const REVERB_WET = 0.18;
+  let sfxVolume = 1;
+  let sfxBus: GainNode | null = null;
+  let sfxOut: GainNode | null = null;
+
+  /*
+   * 反馈音总线懒创建：第一次播反馈音时才建（或者空闲时预热，见 createEngine 末尾）。
+   * 一是它用不上就不该占节点；二是测试的假 AudioContext 只在需要时才要求有 createConvolver。
+   *
+   * 音量放在干湿相加之后的 sfxOut 上，不放在入口：放在混响上游的话，
+   * 静音只切断新输入，已经进了混响的尾巴还会响完。
+   * 湿声回到下游的 sfxOut，不回入口——接回入口会回授。
+   */
+  const ensureSfxBus = (): GainNode => {
+    if (sfxBus) return sfxBus;
+    const bus = context.createGain();
+    const out = context.createGain();
+    out.gain.value = SFX_LEVEL * sfxVolume;
+    out.connect(master);
+    bus.connect(out);
+    const reverb = createRoomReverb(context);
+    const wet = context.createGain();
+    wet.gain.value = REVERB_WET;
+    bus.connect(reverb);
+    reverb.connect(wet);
+    wet.connect(out);
+    sfxBus = bus;
+    sfxOut = out;
+    return bus;
+  };
 
   /**
    * 电钢起音：加法合成。每个泛音一条正弦，起音后各自指数衰减，高次泛音先死。
@@ -280,7 +316,7 @@ export function createEngine(): MusicEngine | null {
    * 渲染一个反馈音。
    *
    * 走的是独立的一条总线（bus），不是 master——反馈音要能单独压低，
-   * 不能跟着音乐一起推。音色沿用引擎里已有的两种：pluck（拨弦）和 bass（低通闷响）。
+   * 不能跟着音乐一起推。音色有三种：pluck（拨弦）、bass（低通闷响）和 pure（正弦，跟听辨题同一个音色）。
    */
   const renderSfxStep = (
     voice: SfxVoice,
@@ -288,6 +324,8 @@ export function createEngine(): MusicEngine | null {
     duration: number,
     midi: number,
     bus: GainNode,
+    // 不叫 gain：下面每条支路都有个局部 gain 节点，同名会把参数遮住。
+    level = 1,
   ) => {
     const frequency = midiToFrequency(midi);
     if (voice === "bass") {
@@ -298,7 +336,7 @@ export function createEngine(): MusicEngine | null {
       osc.frequency.setValueAtTime(frequency, when);
       const filter = lowpass(context, spec.lowpassHz);
       const shape = waveshaper(context, spec.drive);
-      const gain = envelope(context, when, duration, 0.28);
+      const gain = envelope(context, when, duration, 0.28 * level);
       osc.connect(filter).connect(shape).connect(gain).connect(bus);
       track(osc, when, duration);
       return;
@@ -307,8 +345,8 @@ export function createEngine(): MusicEngine | null {
       const spec = PLAIN_TONE;
       const hold = Math.max(duration, spec.attackSeconds + 0.01);
       const voices = [
-        { frequency, gain: spec.peak },
-        { frequency: frequency * 2, gain: spec.peak * spec.octaveGain },
+        { frequency, gain: spec.peak * level },
+        { frequency: frequency * 2, gain: spec.peak * spec.octaveGain * level },
       ];
       for (const item of voices) {
         const osc = context.createOscillator();
@@ -331,10 +369,13 @@ export function createEngine(): MusicEngine | null {
     osc.frequency.setValueAtTime(frequency, when);
     const filter = lowpass(context, spec.lowpassHz);
     const shape = waveshaper(context, spec.drive);
-    const gain = envelope(context, when, duration, 0.3);
+    const gain = envelope(context, when, duration, 0.3 * level);
     osc.connect(filter).connect(shape).connect(gain).connect(bus);
     track(osc, when, duration);
   };
+
+  // 冲激响应两声道要填十几万个采样，放到空闲时预先算好，第一次播反馈音时不卡这一下。
+  if (typeof requestIdleCallback === "function") requestIdleCallback(() => ensureSfxBus());
 
   return {
     async resume() {
@@ -374,14 +415,17 @@ export function createEngine(): MusicEngine | null {
     },
     playVoice,
     playSfx(cue, options = {}) {
-      // 反馈音比音乐轻一点：它是提示，不是内容，抢了注意力就本末倒置。
-      const bus = context.createGain();
-      bus.gain.value = 0.7;
-      bus.connect(master);
+      const bus = ensureSfxBus();
       const origin = context.currentTime + 0.02;
       for (const step of sfxSteps(cue, options)) {
-        renderSfxStep(step.voice, origin + step.offset, step.duration, step.midi, bus);
+        renderSfxStep(step.voice, origin + step.offset, step.duration, step.midi, bus, step.gain ?? 1);
       }
+    },
+    setSfxVolume(volume) {
+      // NaN 传进 setTargetAtTime 会直接抛 TypeError，所以非有限数按静音处理。
+      sfxVolume = Number.isFinite(volume) ? Math.min(1, Math.max(0, volume)) : 0;
+      // 用 setTargetAtTime 而不是直接赋值：拖音量条时直接跳值会有咔哒声。
+      sfxOut?.gain.setTargetAtTime(SFX_LEVEL * sfxVolume, context.currentTime, 0.015);
     },
     playSteps(steps, midi, bpm) {
       const seconds = stepSeconds(bpm);
@@ -460,6 +504,28 @@ function createNoise(context: AudioContext, seconds: number): AudioBuffer {
     data[index] = Math.random() * 2 - 1;
   }
   return buffer;
+}
+
+/**
+ * 程序生成的房间混响：白噪声乘一条衰减曲线当冲激响应。
+ * 不用录好的冲激响应文件——全站零音频资产。
+ *
+ * 衰减写死成三次方、用连乘：每个采样都要算一次，`**` 走的是通用幂运算，比连乘慢，
+ * 而全站只有这一种房间，不需要可调的衰减指数。
+ */
+function createRoomReverb(context: AudioContext, seconds = 1.4): ConvolverNode {
+  const length = Math.floor(context.sampleRate * seconds);
+  const impulse = context.createBuffer(2, length, context.sampleRate);
+  for (let channel = 0; channel < 2; channel += 1) {
+    const data = impulse.getChannelData(channel);
+    for (let index = 0; index < length; index += 1) {
+      const fade = 1 - index / length;
+      data[index] = (Math.random() * 2 - 1) * fade * fade * fade;
+    }
+  }
+  const convolver = context.createConvolver();
+  convolver.buffer = impulse;
+  return convolver;
 }
 
 export { sidechainAutomation };

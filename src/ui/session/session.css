@@ -1,0 +1,592 @@
+/*
+ * 答题会话。
+ *
+ * 规矩跟 motion.css 一样：颜色、时长、缓动只从 token 取；
+ * 对 / 错的弹跳和抖动复用 m101-pop / m101-shake，不在这里另写一份。
+ *
+ * 选项块和主按钮的底边阴影换色只覆盖静止态：
+ * `.session-option.is-selected` 是两个类，盖得过 `.m101-press`，
+ * 又盖不过 `.m101-press:active:not(:disabled)`——按下去阴影照样收掉，
+ * 而且不依赖哪个样式表先注入。
+ */
+
+.quiz-session {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* 卡片里的说明文字后面紧跟会话时，给进度条留出呼吸。 */
+.hint + .quiz-session,
+.hint + .session-summary {
+  margin-top: 20px;
+}
+
+/* —— 进度条 + 连对 —— */
+
+.session-progress {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.session-progress-track {
+  position: relative;
+  flex: 1 1 auto;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  /* w08 在暗底卡片上几乎看不见，空着的进度条等于没有进度条。 */
+  background: var(--m101-w14);
+  box-shadow: inset 0 0 0 1px var(--m101-line);
+}
+
+.session-progress-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--m101-success);
+}
+
+/* 内条上沿一道高光：让它像一根有厚度的管子，而不是一条色块。 */
+.session-progress-fill::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--m101-w38);
+}
+
+.session-progress-count {
+  flex: 0 0 auto;
+  min-width: 3.2em;
+  color: var(--m101-text-dim);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* 连对标签占一个固定宽度的槽：出现、消失都不会把进度条挤得一伸一缩。 */
+.session-streak-slot {
+  flex: 0 0 auto;
+  min-width: 5.5em;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.session-streak {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--m101-line-strong);
+  color: var(--m101-text);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.session-streak.is-hot {
+  color: var(--m101-brand);
+  border-color: var(--m101-gold-50);
+  background: var(--m101-brand-soft-bg);
+  box-shadow:
+    0 0 0 3px var(--m101-gold-14),
+    0 0 18px var(--m101-gold-45);
+}
+
+/* —— 题目 —— */
+
+.session-question-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.session-question-head .result-heading {
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* 题干和「盲听」标签一行；第一题没法自动播时，提示紧挨在题干下面。 */
+.session-question-title {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.session-question-promptline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.session-blind-tag {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: var(--m101-brand);
+  background: var(--m101-brand-soft-bg);
+  border: 1px solid var(--m101-gold-50);
+}
+
+.session-blind-hint {
+  margin: 0;
+  color: var(--m101-text-dim);
+  font-size: 0.85rem;
+}
+
+.session-play-all {
+  flex: 0 0 auto;
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--m101-line-strong);
+  background: var(--m101-veil);
+  color: var(--m101-text-dim);
+  transition:
+    background-color var(--m101-dur-fast) var(--m101-ease-out),
+    color var(--m101-dur-fast) var(--m101-ease-out);
+}
+
+.session-play-all:hover {
+  background: var(--m101-w12);
+  color: var(--m101-text);
+}
+
+.session-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+/* 外层只负责对 / 错的整体动作：试听按钮是兄弟节点，要跟着选项一起弹、一起抖。 */
+.session-choice {
+  position: relative;
+}
+
+.session-choice.is-correct {
+  animation: m101-pop var(--m101-dur-base) var(--m101-ease-spring);
+}
+
+.session-choice.is-wrong {
+  animation: m101-shake var(--m101-dur-base) var(--m101-ease-out);
+}
+
+.session-option {
+  width: 100%;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1rem;
+  text-align: left;
+  color: var(--m101-text);
+  padding: 14px 16px;
+  padding-right: 64px;
+  border: 2px solid var(--m101-line-strong);
+  border-radius: var(--m101-radius-lg);
+  background: var(--m101-veil-soft);
+  transition:
+    transform var(--m101-dur-fast) var(--m101-ease-out),
+    box-shadow var(--m101-dur-fast) var(--m101-ease-out),
+    border-color var(--m101-dur-fast) var(--m101-ease-out),
+    background-color var(--m101-dur-fast) var(--m101-ease-out);
+}
+
+.session-option:hover:not(:disabled) {
+  background: var(--m101-veil);
+  border-color: var(--m101-w22);
+}
+
+.session-option:focus-visible {
+  outline: 2px solid var(--m101-brand-soft);
+  outline-offset: 3px;
+}
+
+.session-option:disabled {
+  cursor: default;
+}
+
+/* 定稿之后，跟这道题无关的选项退到后面。 */
+.session-option.is-idle:disabled {
+  opacity: 0.5;
+}
+
+.session-option-key {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--m101-radius-sm);
+  border: 2px solid var(--m101-line-strong);
+  color: var(--m101-text-dim);
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color var(--m101-dur-fast) var(--m101-ease-out),
+    border-color var(--m101-dur-fast) var(--m101-ease-out),
+    color var(--m101-dur-fast) var(--m101-ease-out);
+}
+
+.session-option-label {
+  flex: 1 1 auto;
+  line-height: 1.5;
+}
+
+/* 选中。 */
+.session-option.is-selected {
+  border-color: var(--m101-brand);
+  background: var(--m101-brand-soft-bg);
+  box-shadow: 0 4px 0 var(--m101-press-brand);
+}
+
+.session-option.is-selected .session-option-key {
+  border-color: var(--m101-brand);
+  background: var(--m101-brand);
+  color: var(--m101-bg);
+}
+
+/* 对了。 */
+.session-option.is-correct {
+  border-color: var(--m101-success);
+  background: var(--m101-success-soft);
+  box-shadow: 0 4px 0 var(--m101-press-success);
+}
+
+.session-option.is-correct .session-option-key {
+  border-color: var(--m101-success);
+  background: var(--m101-success);
+  color: var(--m101-bg);
+}
+
+/* 错了。 */
+.session-option.is-wrong {
+  border-color: var(--m101-danger);
+  background: var(--m101-danger-soft);
+  box-shadow: 0 4px 0 var(--m101-press-danger);
+}
+
+.session-option.is-wrong .session-option-key {
+  border-color: var(--m101-danger);
+  background: var(--m101-danger);
+  color: var(--m101-bg);
+}
+
+/* 试听：贴在选项右侧。选项按下去时它也跟着沉，不然像是浮在上面的贴纸。 */
+.session-option-play {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--m101-line-strong);
+  background: var(--m101-veil);
+  color: var(--m101-text-dim);
+  transform: translateY(-50%);
+  transition:
+    transform var(--m101-dur-fast) var(--m101-ease-out),
+    background-color var(--m101-dur-fast) var(--m101-ease-out),
+    color var(--m101-dur-fast) var(--m101-ease-out);
+}
+
+.session-option:active:not(:disabled) + .session-option-play {
+  transform: translateY(calc(-50% + 4px));
+}
+
+.session-option-play:hover {
+  background: var(--m101-w14);
+  color: var(--m101-text);
+}
+
+.session-option-play:focus-visible {
+  outline: 2px solid var(--m101-brand-soft);
+  outline-offset: 2px;
+}
+
+/* —— 按钮 —— */
+
+.session-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 9.5rem;
+  min-height: 50px;
+  padding: 0 24px;
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 0;
+  border-radius: var(--m101-radius-lg);
+  color: var(--m101-bg);
+}
+
+.session-btn:focus-visible {
+  outline: 2px solid var(--m101-text);
+  outline-offset: 3px;
+}
+
+.session-btn.is-brand {
+  background: var(--m101-brand);
+  box-shadow: 0 4px 0 var(--m101-press-brand);
+}
+
+.session-btn.is-success {
+  background: var(--m101-success);
+  box-shadow: 0 4px 0 var(--m101-press-success);
+}
+
+.session-btn.is-danger {
+  background: var(--m101-danger);
+  box-shadow: 0 4px 0 var(--m101-press-danger);
+}
+
+.session-btn.is-ghost {
+  color: var(--m101-text);
+  background: var(--m101-w08);
+  border: 2px solid var(--m101-line-strong);
+}
+
+/* 没选中时的「检查」：灰掉、没有厚度，一看就是还按不了。 */
+.session-btn:disabled {
+  cursor: not-allowed;
+  color: var(--m101-text-faint);
+  background: var(--m101-w08);
+  box-shadow: none;
+}
+
+.session-kbd {
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid currentColor;
+  opacity: 0.6;
+}
+
+/* —— 底栏 / 判定条 —— */
+
+/*
+ * 贴在会话区底部，题目很长时也一直看得见。
+ * 底色不透明：sticky 时下面滚过去的选项不能透上来。
+ */
+.check-sheet {
+  position: sticky;
+  bottom: 12px;
+  z-index: 2;
+  overflow: hidden;
+  border-radius: var(--m101-radius-lg);
+  border: 1px solid var(--m101-line);
+  background: var(--m101-surface);
+}
+
+.check-sheet-bar {
+  padding: 16px 18px 20px;
+}
+
+/* 包一层是为了在退场时 inert。flex 放在这一层，外层只负责进出场。 */
+.check-sheet-live {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.check-sheet-tip {
+  color: var(--m101-text-faint);
+  font-size: 0.85rem;
+}
+
+.check-sheet-verdict {
+  padding: 18px 18px 22px;
+  border-left: 4px solid var(--m101-line-strong);
+}
+
+.check-sheet-verdict.is-correct {
+  border-left-color: var(--m101-success);
+  background: var(--m101-success-soft);
+}
+
+.check-sheet-verdict.is-wrong {
+  border-left-color: var(--m101-danger);
+  background: var(--m101-danger-soft);
+}
+
+.check-sheet-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--m101-bg);
+}
+
+/* 圆标在 .check-sheet-live 里面，子选择器穿不过那一层。 */
+.check-sheet-verdict.is-correct .check-sheet-icon {
+  background: var(--m101-success);
+}
+
+.check-sheet-verdict.is-wrong .check-sheet-icon {
+  background: var(--m101-danger);
+}
+
+.check-sheet-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.check-sheet-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.is-correct .check-sheet-title {
+  color: var(--m101-success);
+}
+
+.is-wrong .check-sheet-title {
+  color: var(--m101-danger);
+}
+
+.check-sheet-body {
+  margin: 0.35rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--m101-text-dim);
+}
+
+.check-sheet-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .check-sheet-verdict .check-sheet-live {
+    flex-wrap: wrap;
+  }
+
+  .check-sheet-actions {
+    width: 100%;
+  }
+
+  .check-sheet-actions .session-btn {
+    flex: 1 1 auto;
+  }
+
+  .check-sheet-tip {
+    display: none;
+  }
+}
+
+/* —— 结算页 —— */
+
+.session-summary {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  padding: 28px 8px 8px;
+  text-align: center;
+}
+
+.session-summary .result-heading {
+  margin: 0;
+}
+
+.session-confetti {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.session-summary-miss {
+  margin: 0;
+  color: var(--m101-warning);
+  font-weight: 700;
+}
+
+.session-stats {
+  width: 100%;
+  max-width: 34rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.session-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 8px;
+  border-radius: var(--m101-radius-lg);
+  border: 2px solid var(--m101-line);
+  background: var(--m101-veil-soft);
+}
+
+.session-stat-value {
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--m101-text);
+}
+
+.session-stat-value small {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--m101-text-faint);
+}
+
+.session-stat-label {
+  font-size: 0.82rem;
+  color: var(--m101-text-dim);
+}
+
+.session-summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}

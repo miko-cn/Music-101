@@ -38,6 +38,7 @@ export const lesson: StageLessonEntry = defineLesson({
   ear: [
     {
       id: "major-scale",
+      blind: true,
       prompt: "哪个是 C 大调音阶？",
       choices: [
         { label: "C D E F G A B", midis: [60, 62, 64, 65, 67, 69, 71] },
@@ -77,6 +78,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "degree-5",
+      blind: true,
       prompt: "C 大调的第 5 级是哪个？",
       choices: [
         { label: "G4", midis: [67] },
@@ -90,6 +92,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "degree-3",
+      blind: true,
       prompt: "C 大调的第 3 级是哪个？",
       choices: [
         { label: "E4", midis: [64] },
@@ -103,6 +106,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "tonic",
+      blind: true,
       prompt: "C 大调的主音是哪个？",
       choices: [
         { label: "C4", midis: [60] },

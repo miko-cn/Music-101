@@ -1,31 +1,44 @@
-import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { LESSONS } from "../../src/content/index.ts";
 import {
   buildPath,
+  continueLabels,
+  continueTarget,
+  currentPathNode,
+  initialOpenStageIds,
   pathComplete,
+  pathDueCount,
   pathProgress,
   pathStates,
+  rowDelayMs,
+  stageMastery,
 } from "../../src/core/lesson/path.ts";
-import {
-  NODE_AMPLITUDE,
-  NODE_HEIGHT,
-  NODE_WIDTH,
-  layoutPath,
-  layoutStage,
-} from "../../src/core/lesson/path-layout.ts";
 import { emptyProgress, type ProgressFile } from "../../src/core/lesson/progress.ts";
+import type { ReviewCard } from "../../src/core/lesson/review.ts";
 
-const ROOT = resolve(fileURLToPath(new URL("../../", import.meta.url)));
-
-/** 第一个节点相对中线的偏移。阶段起点应该在中线上。 */
+const NOW = 1_700_000_000_000;
 
 /** 造一份进度：已掌握哪些关。 */
 function withMastered(ids: number[]): ProgressFile {
   const progress = emptyProgress();
   return { ...progress, passedLevels: ids };
+}
+
+function dueCard(levelId: number, dueAt = NOW): ReviewCard {
+  return {
+    id: `level:${levelId}`,
+    levelId,
+    box: 0,
+    round: 0,
+    lastAt: dueAt,
+    dueAt,
+    lastVisit: "visit",
+    lastPassed: true,
+  };
+}
+
+function withDue(ids: number[], dueIds: number[]): ProgressFile {
+  return { ...withMastered(ids), reviews: dueIds.map((id) => dueCard(id)) };
 }
 
 describe("路径节点状态", () => {
@@ -104,128 +117,60 @@ describe("路径结构", () => {
   });
 });
 
-describe("路径布局", () => {
-  const stages = buildPath(emptyProgress());
-
-  it("节点纵向排开，互不重叠", () => {
-    const track = layoutStage(stages[0]!, 0);
-    for (let index = 1; index < track.positions.length; index += 1) {
-      const gap = track.positions[index]!.y - track.positions[index - 1]!.y;
-      // 纵向间距要大于节点高度，否则会叠在一起。
-      expect(gap).toBeGreaterThan(NODE_HEIGHT);
-    }
+describe("课程大纲", () => {
+  it("默认只展开含当前关的那一段", () => {
+    expect(initialOpenStageIds(buildPath(emptyProgress()))).toEqual(["foundation"]);
+    const afterFoundation = Array.from({ length: 8 }, (_, index) => index + 1);
+    expect(initialOpenStageIds(buildPath(withMastered(afterFoundation)))).toEqual(["arrangement"]);
+    const allButLast = Array.from({ length: 26 }, (_, index) => index + 1);
+    expect(initialOpenStageIds(buildPath(withMastered(allButLast)))).toEqual(["style"]);
   });
 
-  it("节点横向摆动，但不是排成一条直线", () => {
-    // 周期是 3 个节点，所以横向只有三个位置：中线、左、右。
-    // 关键是要真的用上这三个位置，而不是排成一条直线。
-    const track = layoutStage(stages[0]!, 0);
-    const xs = track.positions.map((position) => position.x);
-    expect(new Set(xs.map((x) => Math.round(x))).size).toBe(3);
+  it("阶段进度按已掌握节点计数，零也有分母", () => {
+    const foundation = buildPath(withMastered([1, 2])).find((stage) => stage.id === "foundation");
+    expect(foundation).toBeDefined();
+    expect(stageMastery(foundation!)).toEqual({ done: 2, total: 8 });
+    const style = buildPath(emptyProgress()).find((stage) => stage.id === "style");
+    expect(stageMastery(style!)).toEqual({ done: 0, total: 7 });
   });
 
-  it("阶段内部左右都摆得出去", () => {
-    // 只往一边摆的话，整条路会挤在轨道的一侧。
-    // 阶段的首尾不回中线没关系——阶段之间本来就断开。
-    for (const track of layoutPath(stages)) {
-      const xs = track.positions.map((position) => position.x);
-      const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
-      const offsets = xs.map((x) => x - centerX);
-      expect(Math.min(...offsets), "没有往左摆").toBeLessThan(-50);
-      expect(Math.max(...offsets), "没有往右摆").toBeGreaterThan(50);
-    }
+  it("没到期卡时顶卡文案仍是两套，没有返回路径", () => {
+    expect(continueLabels({ complete: false, dueCount: 0 })).toEqual({
+      kicker: "接下来",
+      action: "开始这一关",
+    });
+    expect(continueLabels({ complete: true, dueCount: 0 })).toEqual({
+      kicker: "全部掌握",
+      action: "再看一遍",
+    });
   });
 
-  it("第一个节点从中线出发", () => {
-    // 每个阶段的起点都在中线，三个阶段叠起来才连得上。
-    for (const track of layoutPath(stages)) {
-      const xs = track.positions.map((position) => position.x);
-      const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
-      expect(Math.abs(track.positions[0]!.x - centerX)).toBeLessThan(1);
-    }
+  it("有到期复习时顶卡先复今天 N 关，压过下一关", () => {
+    expect(continueLabels({ complete: false, dueCount: 3 })).toEqual({
+      kicker: "先复习",
+      action: "先复 今天 3 关",
+    });
+    expect(continueLabels({ complete: true, dueCount: 1 })).toEqual({
+      kicker: "先复习",
+      action: "先复 今天 1 关",
+    });
+    const progress = withDue([1, 2, 3], [1, 2]);
+    expect(pathDueCount(progress, NOW)).toBe(2);
+    expect(continueTarget(progress, NOW)).toEqual({ kind: "review", dueCount: 2 });
+    expect(continueTarget(withMastered([1, 2, 3]), NOW)).toEqual({ kind: "level", id: 4 });
   });
 
-  it("相邻节点明显错开，不是排成一条线", () => {
-    // 摆幅不够或者周期太长，相邻节点会几乎重合成一列——
-    // 那就不是路，是列表。
-    const track = layoutStage(stages[0]!, 0);
-    const offsets = track.positions.map((position) => position.x);
-    for (let index = 1; index < offsets.length; index += 1) {
-      const shift = Math.abs(offsets[index]! - offsets[index - 1]!);
-      expect(shift, `第 ${index} 个节点跟前一个错开太少`).toBeGreaterThan(40);
-    }
+  it("当前关从阶段列表里找，找不到是 null", () => {
+    const node = currentPathNode(buildPath(emptyProgress()));
+    expect(node?.id).toBe(1);
+    expect(node?.state).toBe("current");
+    expect(currentPathNode([])).toBeNull();
   });
 
-  it("路左右交替地摆，不是单向拱", () => {
-    // 单向拱读起来是「从上往下的一列」，交替摆才读得出是路。
-    const track = layoutStage(stages[0]!, 0);
-    const xs = track.positions.map((position) => position.x);
-    let switches = 0;
-    for (let index = 2; index < xs.length; index += 1) {
-      const a = xs[index - 1]! - xs[index - 2]!;
-      const b = xs[index]! - xs[index - 1]!;
-      if (a * b < 0) switches += 1;
-    }
-    expect(switches).toBeGreaterThanOrEqual(1);
-  });
-
-  it("节点框不超出轨道宽度", () => {
-    for (const track of layoutPath(stages)) {
-      for (const position of track.positions) {
-        expect(position.left).toBeGreaterThanOrEqual(0);
-        expect(position.left + NODE_WIDTH).toBeLessThanOrEqual(track.width);
-      }
-    }
-  });
-
-  it("节点在轨道里居中，两侧留白相同", () => {
-    // 内容偏一边的话，整张图看起来是歪的。
-    for (const track of layoutPath(stages)) {
-      const lefts = track.positions.map((position) => position.left);
-      const rights = track.positions.map((position) => position.left + NODE_WIDTH);
-      const leftGap = Math.min(...lefts);
-      const rightGap = track.width - Math.max(...rights);
-      expect(Math.abs(leftGap - rightGap)).toBeLessThan(1);
-    }
-  });
-
-  it("节点框不超出轨道高度", () => {
-    for (const track of layoutPath(stages)) {
-      for (const position of track.positions) {
-        expect(position.top).toBeGreaterThanOrEqual(0);
-        expect(position.top + NODE_HEIGHT).toBeLessThanOrEqual(track.height);
-      }
-    }
-  });
-
-  it("摆幅大于节点宽度的一半，相邻节点才不糊成一片", () => {
-    // 幅度不够的话，两个相邻节点横向重叠过半，
-    // 连线几乎全被盖住，整张图退化成列表——那就白做了。
-    expect(NODE_AMPLITUDE).toBeGreaterThan(NODE_WIDTH / 2);
-  });
-
-  it("CSS 里不再写死节点尺寸", () => {
-    // 尺寸由 path-layout.ts 的常量注入 CSS。
-    // 两份尺寸各写各的，漂移了节点就会盖住连线，而且很难看出来。
-    const css = readFileSync(join(ROOT, "src", "ui", "path.css"), "utf8");
-    expect(css).not.toMatch(/\.path-node\s*\{[^}]*width:\s*\d+px/);
-    expect(css).not.toMatch(/\.path-node\s*\{[^}]*height:\s*\d+px/);
-  });
-
-  it("连线是连续的曲线", () => {
-    const track = layoutStage(stages[0]!, 0);
-    expect(track.path.startsWith("M ")).toBe(true);
-    // 一条 M 起头，不是若干条子路径。
-    expect(track.path.split("M ").length - 1).toBe(1);
-    // 关数减一段：n 个节点 n-1 段曲线。
-    const segments = track.path.split("C ").length - 1;
-    expect(segments).toBe(track.positions.length - 1);
-  });
-
-  it("单个节点的阶段不画连线", () => {
-    const single = { id: "foundation" as const, title: "x", nodes: [] };
-    const track = layoutStage(single, 0);
-    expect(track.path).toBe("");
-    expect(track.height).toBe(0);
+  it("行错峰是 20ms 一档，200ms 封顶", () => {
+    expect(rowDelayMs(0)).toBe(0);
+    expect(rowDelayMs(3)).toBe(60);
+    expect(rowDelayMs(10)).toBe(200);
+    expect(rowDelayMs(11)).toBe(200);
   });
 });

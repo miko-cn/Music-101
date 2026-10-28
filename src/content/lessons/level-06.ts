@@ -38,6 +38,7 @@ export const lesson: StageLessonEntry = defineLesson({
   ear: [
     {
       id: "which-maj7",
+      blind: true,
       prompt: "哪个是大七和弦？",
       choices: [
         { label: "C E G B", midis: [60, 64, 67, 71] },
@@ -51,6 +52,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "which-dom7",
+      blind: true,
       prompt: "哪个是属七和弦？",
       choices: [
         { label: "C E G B♭", midis: [60, 64, 67, 70] },
@@ -64,6 +66,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "maj7-seventh",
+      blind: true,
       prompt: "Cmaj7 的七音是？",
       choices: [
         { label: "B", midis: [60, 71] },
@@ -77,6 +80,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "dom7-seventh",
+      blind: true,
       prompt: "C7 的七音是？",
       choices: [
         { label: "B♭", midis: [60, 70] },
@@ -90,6 +94,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "cm7",
+      blind: true,
       prompt: "哪个是 Cm7？",
       choices: [
         { label: "C E♭ G B♭", midis: [60, 63, 67, 70] },
@@ -116,6 +121,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "add9",
+      blind: true,
       prompt: "哪个是加了九度的和弦？",
       choices: [
         { label: "C E G D", midis: [60, 64, 67, 74] },
@@ -129,6 +135,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "minor-maj7",
+      blind: true,
       prompt: "哪个是 Cm(maj7)？",
       choices: [
         { label: "C E♭ G B", midis: [60, 63, 67, 71] },

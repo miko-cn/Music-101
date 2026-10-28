@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { EAR_MELODIC_SPACING_SECONDS } from "../../src/core/audio/ear.ts";
+import type { MusicEngine } from "../../src/core/audio/engine.ts";
 
 /**
  * 引擎在浏览器里跑，测试里用一个假的 AudioContext 顶替，
@@ -57,6 +58,11 @@ function fakeParam(): FakeParam {
   return param;
 }
 
+interface FakeGainNode {
+  gain: FakeParam;
+  connect: (target: unknown) => unknown;
+}
+
 class FakeAudioContext {
   static instances: FakeAudioContext[] = [];
   currentTime = 0;
@@ -67,6 +73,13 @@ class FakeAudioContext {
   stopped: { when: number }[] = [];
   /** 所有创建过的增益节点。 */
   gains: FakeParam[] = [];
+  /** createConvolver 被调用的次数：混响只该建一次。 */
+  convolvers = 0;
+  /** 增益节点本身（gains 只存它们的 gain 参数），顺序与 gains 一致。 */
+  gainNodes: FakeGainNode[] = [];
+  convolverNodes: object[] = [];
+  /** 增益节点和混响节点的连线。其它节点不记，用不上。 */
+  edges: { from: object; to: unknown }[] = [];
 
   constructor() {
     FakeAudioContext.instances.push(this);
@@ -75,7 +88,15 @@ class FakeAudioContext {
   createGain() {
     const gain = fakeParam();
     this.gains.push(gain);
-    return { gain, connect: (node: unknown) => node };
+    const node: FakeGainNode = {
+      gain,
+      connect: (target: unknown) => {
+        this.edges.push({ from: node, to: target });
+        return target;
+      },
+    };
+    this.gainNodes.push(node);
+    return node;
   }
 
   createOscillator() {
@@ -121,6 +142,19 @@ class FakeAudioContext {
 
   createBuffer(_channels: number, length: number) {
     return { getChannelData: () => new Float32Array(length) };
+  }
+
+  createConvolver() {
+    this.convolvers += 1;
+    const node = {
+      buffer: null as unknown,
+      connect: (target: unknown) => {
+        this.edges.push({ from: node, to: target });
+        return target;
+      },
+    };
+    this.convolverNodes.push(node);
+    return node;
   }
 
   async resume() {
@@ -286,5 +320,83 @@ describe("延音跟住按住时长", () => {
     engine.releasePitch(id);
     engine.releasePitch(id);
     expect(context.stopped).toHaveLength(4);
+  });
+});
+
+describe("反馈音总线", () => {
+  /**
+   * 播一次反馈音，再顺着连线认出总线的各个节点：
+   * 混响是唯一的 convolver；连进混响的是入口，混响连到湿声，湿声连到 sfxOut。
+   * master 是引擎构造时第一个建的增益节点。
+   */
+  function sfxGraph(engine: MusicEngine, context: FakeAudioContext) {
+    engine.playSfx("correct");
+    const target = (from: unknown) => context.edges.find((edge) => edge.from === from)?.to;
+    const reverb = context.convolverNodes[0];
+    const bus = context.edges.find((edge) => edge.to === reverb)?.from;
+    const wet = target(reverb) as FakeGainNode | undefined;
+    const out = target(wet) as FakeGainNode | undefined;
+    const master = context.gainNodes[0];
+    if (!reverb || !bus || !wet || !out || !master) throw new Error("playSfx 应该建出完整的总线");
+    return { bus, reverb, wet, out, master };
+  }
+
+  it("总线懒创建：构造时不建，之后只建一次，混响也只建一次", async () => {
+    const { engine, context } = await makeEngine();
+    expect(context.convolvers).toBe(0);
+    const base = context.gains.length;
+    engine.playSfx("correct");
+    const first = context.gains.length - base;
+    engine.playSfx("correct");
+    const second = context.gains.length - base - first;
+    expect(context.convolvers).toBe(1);
+    // 第一次比第二次多出的正好是入口、sfxOut、湿声三个节点；之后只建各音自己的包络。
+    expect(first - second).toBe(3);
+  });
+
+  it("湿声回到 sfxOut，不回入口；sfxOut 接 master", async () => {
+    const { engine, context } = await makeEngine();
+    const { bus, reverb, wet, out, master } = sfxGraph(engine, context);
+    const backToBus = context.edges.filter((edge) => (edge.from === wet || edge.from === reverb) && edge.to === bus);
+    expect(backToBus).toHaveLength(0);
+    expect(context.edges.filter((edge) => edge.from === wet).map((edge) => edge.to)).toEqual([out]);
+    expect(context.edges.filter((edge) => edge.from === out).map((edge) => edge.to)).toEqual([master]);
+  });
+
+  it("setSfxVolume(0) 之后 sfxOut 增益为 0；总线还没建时先记住音量", async () => {
+    const { engine, context } = await makeEngine();
+    engine.setSfxVolume(0);
+    const { out } = sfxGraph(engine, context);
+    expect(out.gain.value).toBe(0);
+    engine.setSfxVolume(1);
+    expect(out.gain.value).toBeCloseTo(0.7);
+  });
+
+  it("音量变化作用在已有的 sfxOut 上，并且是平滑过渡而不是跳值", async () => {
+    const { engine, context } = await makeEngine();
+    const { out } = sfxGraph(engine, context);
+    expect(out.gain.value).toBeCloseTo(0.7);
+    engine.setSfxVolume(0.5);
+    expect(out.gain.value).toBeCloseTo(0.35);
+    expect(out.gain.calls.at(-1)?.type).toBe("setTargetAtTime");
+  });
+
+  it("越界和非有限的音量被夹住", async () => {
+    const { engine, context } = await makeEngine();
+    const { out } = sfxGraph(engine, context);
+    engine.setSfxVolume(2);
+    expect(out.gain.value).toBeCloseTo(0.7);
+    engine.setSfxVolume(Number.NaN);
+    expect(out.gain.value).toBe(0);
+  });
+
+  it("只管反馈音：静音后 master 不变，听辨题照样出声", async () => {
+    const { engine, context } = await makeEngine();
+    sfxGraph(engine, context);
+    engine.setSfxVolume(0);
+    expect(context.gains[0]!.value).toBeCloseTo(0.8);
+    const startedBefore = context.started.length;
+    engine.playEarOption([60]);
+    expect(context.started.length - startedBefore).toBe(2);
   });
 });

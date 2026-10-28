@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, startTransition, addTransitionType, ViewTransition } from "react";
 import { Badge, Button, ConfigProvider, Flex, Layout, Select, Tooltip, theme } from "antd";
 import zhCN from "antd/locale/zh_CN";
 import { LESSONS, lessonById } from "./content/index.ts";
@@ -14,6 +14,7 @@ import { MemoryAnchors } from "./ui/MemoryAnchors.tsx";
 import { PathMap } from "./ui/PathMap.tsx";
 import { ProgressBoard } from "./ui/ProgressBoard.tsx";
 import { ReviewDeck } from "./ui/ReviewDeck.tsx";
+import { SoundToggle } from "./ui/SoundToggle.tsx";
 import { TheoryBench } from "./ui/TheoryBench.tsx";
 import { palette, radii } from "./ui/theme.ts";
 import "./ui/path.css";
@@ -86,19 +87,36 @@ export function App() {
   }, []);
   const onConsumeRecipe = useCallback(() => setPendingRecipe(null), []);
 
+  /**
+   * View Transition 只对 startTransition 里的更新生效。
+   * 换页都走这里，漏一个那条路径就没有动画。
+   */
+  const navigate = (update: () => void, direction: "forward" | "back" | "swap" = "swap") => {
+    startTransition(() => {
+      addTransitionType(direction);
+      update();
+    });
+  };
+
   /** 进某一关。 */
   const openLevel = (nextLevel: number) => {
-    setPendingRecipe(null);
-    setLevel(nextLevel);
-    setMode("learn");
-    setLearnView("lesson");
+    navigate(() => {
+      setPendingRecipe(null);
+      setLevel(nextLevel);
+      setMode("learn");
+      setLearnView("lesson");
+    }, "forward");
   };
 
   /** 返回路径图。 */
   const backToPath = () => {
-    setMode("learn");
-    setLearnView("path");
+    navigate(() => {
+      setMode("learn");
+      setLearnView("path");
+    }, "back");
   };
+
+  const pageKey = mode === "tools" ? `tools-${toolView}` : learnView === "lesson" ? `lesson-${level}` : "path";
 
   return (
     <ConfigProvider
@@ -139,59 +157,62 @@ export function App() {
                     optionFilterProp="label"
                     options={LESSON_OPTIONS.map((option) => ({ ...option, disabled: levelLocked(progress, option.value) }))}
                     onChange={(value) => {
-                      setPendingRecipe(null);
-                      setLevel(value);
-                      setLearnView("lesson");
+                      navigate(() => {
+                        setPendingRecipe(null);
+                        setLevel(value);
+                        setLearnView("lesson");
+                      });
                     }}
                   />
                   <Badge count={dueCount} size="small" offset={[-2, 2]}>
-                    <Button onClick={() => {
+                    <Button onClick={() => navigate(() => {
                       setMode("tools");
                       setToolView("review");
-                    }}>
+                    })}>
                       复习
                     </Button>
                   </Badge>
                   {/* 工具入口：随时能进沙盒，但不能挤在主线按钮里。 */}
-                  <Button onClick={() => setMode("tools")}>工具</Button>
+                  <Button onClick={() => navigate(() => setMode("tools"))}>工具</Button>
                 </>
               ) : (
                 <>
-                  <Button onClick={() => setMode("learn")}>学习路径</Button>
+                  <Button onClick={() => navigate(() => setMode("learn"))}>学习路径</Button>
                   <Button
                     type={toolView === "bench" ? "primary" : "default"}
-                    onClick={() => setToolView("bench")}
+                    onClick={() => navigate(() => setToolView("bench"))}
                   >
                     乐理工作台
                   </Button>
                   <Button
                     type={toolView === "diagnostics" ? "primary" : "default"}
-                    onClick={() => setToolView("diagnostics")}
+                    onClick={() => navigate(() => setToolView("diagnostics"))}
                   >
                     诊断
                   </Button>
                   <Button
                     type={toolView === "anchors" ? "primary" : "default"}
-                    onClick={() => setToolView("anchors")}
+                    onClick={() => navigate(() => setToolView("anchors"))}
                   >
                     记忆点
                   </Button>
                   <Badge count={dueCount} size="small" offset={[-2, 2]}>
                     <Button
                       type={toolView === "review" ? "primary" : "default"}
-                      onClick={() => setToolView("review")}
+                      onClick={() => navigate(() => setToolView("review"))}
                     >
                       复习
                     </Button>
                   </Badge>
                   <Button
                     type={toolView === "progress" ? "primary" : "default"}
-                    onClick={() => setToolView("progress")}
+                    onClick={() => navigate(() => setToolView("progress"))}
                   >
                     进度
                   </Button>
                 </>
               )}
+              <SoundToggle />
               <Tooltip title="全局键盘 · 查位置（快捷键 K）">
                 <Button onClick={() => setKeyboardOpen(true)}>键盘</Button>
               </Tooltip>
@@ -199,6 +220,11 @@ export function App() {
           </Flex>
         </Header>
         <Content className="bench">
+          <ViewTransition
+            enter={{ forward: "m101-page-forward", back: "m101-page-back", default: "auto" }}
+            exit={{ forward: "m101-page-forward", back: "m101-page-back", default: "auto" }}
+          >
+          <div key={pageKey}>
           {mode === "tools" ? (
             toolView === "bench" ? (
               <TheoryBench />
@@ -212,12 +238,14 @@ export function App() {
               <ProgressBoard
                 progress={progress}
                 onProgress={onProgress}
-                onOpenReview={() => setToolView("review")}
+                onOpenReview={() => navigate(() => setToolView("review"))}
                 onApply={(recipe) => {
-                  setPendingRecipe(recipe);
-                  setLevel(recipe.levelId);
-                  setMode("learn");
-                  setLearnView("lesson");
+                  navigate(() => {
+                    setPendingRecipe(recipe);
+                    setLevel(recipe.levelId);
+                    setMode("learn");
+                    setLearnView("lesson");
+                  }, "forward");
                 }}
               />
             )
@@ -241,8 +269,19 @@ export function App() {
               />
             )
           ) : (
-            <PathMap progress={progress} onOpenLevel={openLevel} />
+            <PathMap
+              progress={progress}
+              onOpenLevel={openLevel}
+              onOpenReview={() =>
+                navigate(() => {
+                  setMode("tools");
+                  setToolView("review");
+                }, "forward")
+              }
+            />
           )}
+          </div>
+          </ViewTransition>
         </Content>
       </Layout>
       <KeyboardPanel open={keyboardOpen} onClose={() => setKeyboardOpen(false)} />

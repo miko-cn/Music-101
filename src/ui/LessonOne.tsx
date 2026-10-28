@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, startTransition } from "react";
 import { Alert, Button, Card, Flex, Steps } from "antd";
 import { sharedEngine } from "../core/audio/engine.ts";
 import {
@@ -15,6 +15,7 @@ import { computerKeyLabel } from "../core/lesson/keys.ts";
 import { computerKeyboard } from "../core/lesson/computer-keyboard.ts";
 import { applyRecipeToLevel1, buildAttempt, isMastered, recipeFromLevel1 } from "../core/lesson/personalize.ts";
 import { observeAttempt, recordVisit, saveRecipe, type ProgressFile, type ProgressUpdate, type Recipe } from "../core/lesson/progress.ts";
+import { LESSON_POLICY, canEnterLessonStep, createSession, sessionSummary, solvedSession } from "../core/lesson/session.ts";
 import { midiToNoteName, midiToPitchClass, pitchClassToName, type PitchClass } from "../core/theory/pitch.ts";
 import { getScalePitches } from "../core/theory/scale.ts";
 import { quarterSteps, resizeSteps, type BarCount } from "../core/sequencer/grid.ts";
@@ -28,23 +29,36 @@ import {
   lesson as lessonOne,
 } from "../content/lessons/level-01.ts";
 import { LessonCoach } from "./LessonCoach.tsx";
+import { LessonHeader } from "./LessonHeader.tsx";
 import { LessonDiagrams } from "./diagrams/index.tsx";
-import { EarQuiz } from "./EarQuiz.tsx";
 import { anchorHint } from "../core/lesson/verdict.ts";
+import { QuizSession, type SessionQuestionData } from "./session/QuizSession.tsx";
 import { useFeedbackSfx } from "./useFeedbackSfx.ts";
 import { NoteName } from "./NoteName.tsx";
 import { MemoryAnchorCard } from "./MemoryAnchorCard.tsx";
 import { Piano } from "./Piano.tsx";
 import { Stepper } from "./Stepper.tsx";
 
-const STEPS = [
-  { title: "概念" },
-  { title: "听辨" },
-  { title: "手做" },
-  { title: "诊断" },
-  { title: "记忆点" },
-  { title: "导出" },
-];
+const LEVEL1_QUESTIONS: SessionQuestionData[] = LEVEL1_EAR.map((question) => ({
+  id: question.id,
+  prompt: question.prompt,
+  choices: question.choices.map((choice) => ({ label: choice.label, midis: [choice.midi] })),
+  correct: question.correct,
+  explain: question.explain,
+  wrongHint: question.wrongHint,
+  encourage: question.encourage,
+}));
+
+function lessonSteps(earDone: boolean) {
+  return [
+    { title: "概念" },
+    { title: "听辨" },
+    { title: "手做", disabled: !earDone },
+    { title: "诊断", disabled: !earDone },
+    { title: "记忆点", disabled: !earDone },
+    { title: "导出", disabled: !earDone },
+  ];
+}
 
 function solvedLevel1(): Level1State {
   return {
@@ -72,6 +86,9 @@ export function LessonOne({
   const [octave, setOctave] = useState(() => computerKeyboard.getOctave());
   const [bars, setBars] = useState<BarCount>(1);
   const [state, setState] = useState<Level1State>(() => (mastered ? solvedLevel1() : emptyLevel1State()));
+  const [earSession, setEarSession] = useState(() =>
+    mastered ? solvedSession(LEVEL1_QUESTIONS, Date.now()) : createSession(LEVEL1_QUESTIONS, Date.now()),
+  );
   const [visitTick, setVisitTick] = useState(0);
   const [held, setHeld] = useState<ReadonlySet<PitchClass>>(() => new Set());
   const seenLesson = useRef<number | null>(null);
@@ -113,6 +130,8 @@ export function LessonOne({
     }
     if (step < 3 && !passed) return;
     const ear = scoreEar(state.earAnswers);
+    // 两级提示允许改对，但把选项挨个试一遍刷出来的全对不该算「轻松」。
+    const earCorrect = Math.min(ear.correct, sessionSummary(earSession, LEVEL1_QUESTIONS).firstTryCorrect);
     onProgress((current) =>
       observeAttempt(
         current,
@@ -120,14 +139,14 @@ export function LessonOne({
           visitId: visitId.current,
           levelId: 1,
           passed,
-          earCorrect: ear.correct,
+          earCorrect,
           earTotal: ear.total,
           usedFix: usedFix.current,
           mistakes: [],
         }),
       ),
     );
-  }, [step, passed, state.earAnswers, visitTick, onProgress]);
+  }, [step, passed, state.earAnswers, earSession, visitTick, onProgress]);
 
   const choosePitch = (midi: number) => {
     setState((current) => ({ ...current, pitch: midi }));
@@ -182,12 +201,20 @@ export function LessonOne({
     URL.revokeObjectURL(url);
   };
 
+  const earDone = earSession.finishedAt !== null;
+  const steps = lessonSteps(earDone);
+  const go = (next: number) => {
+    if (!canEnterLessonStep(next, earSession.finishedAt)) return;
+    startTransition(() => setStep(next));
+  };
+
   return (
     <>
-      <Steps current={step} items={STEPS} onChange={setStep} />
+      <LessonHeader levelId={1} title={lessonOne.title} />
+      <Steps current={step} items={steps} onChange={go} />
       <LessonCoach progress={progress} levelId={1} onOpenLevel={onOpenLevel} />
       {step === 0 && (
-        <Card title="音高与键盘">
+        <Card title="概念">
           {LEVEL1_CONCEPT.map((paragraph) => (
             <p key={paragraph} className="lead">
               {paragraph}
@@ -203,27 +230,22 @@ export function LessonOne({
       {step === 1 && (
         <Card title="听辨">
           <p className="hint">
-            选项上写着音名，这是听辨的视觉等价物。想听的话点每个选项后面的「▶ 听」；不听也能做完。
+            一题一题来：选好了点检查（或按 Enter）。数字键 1、2、3 选选项，空格重播。
           </p>
-          <EarQuiz
-            items={LEVEL1_EAR.map((question) => ({
-              id: question.id,
-              prompt: question.prompt,
-              choices: question.choices.map((choice) => ({ label: choice.label, midis: [choice.midi] })),
-              correct: question.correct,
-              explain: question.explain,
-            }))}
-            answers={state.earAnswers}
-            onAnswer={(index, choice) =>
-              setState((current) => {
-                const earAnswers = current.earAnswers.slice();
-                earAnswers[index] = choice;
-                return { ...current, earAnswers };
-              })
-            }
-            hint={anchorHint(LEVEL1_ANCHOR.name, LEVEL1_ANCHOR.hook)}
+          <QuizSession
+            questions={LEVEL1_QUESTIONS}
+            state={earSession}
+            onState={(next) => {
+              setEarSession(next);
+              setState((current) => ({ ...current, earAnswers: next.committed }));
+            }}
+            policy={LESSON_POLICY}
+            seed={visitId.current}
+            fallbackHint={anchorHint(LEVEL1_ANCHOR.name, LEVEL1_ANCHOR.hook)}
             keyRoot={0}
             keyScale="major"
+            passMark={LEVEL1_EAR_PASS}
+            onFinish={() => go(2)}
           />
         </Card>
       )}
@@ -324,10 +346,14 @@ export function LessonOne({
         </Card>
       )}
       <Flex gap={8}>
-        <Button disabled={step === 0} onClick={() => setStep((current) => current - 1)}>
+        <Button disabled={step === 0} onClick={() => go(step - 1)}>
           上一步
         </Button>
-        <Button type="primary" disabled={step === STEPS.length - 1} onClick={() => setStep((current) => current + 1)}>
+        <Button
+          type={step === 1 && earSession.finishedAt === null ? "default" : "primary"}
+          disabled={step === steps.length - 1 || !canEnterLessonStep(step + 1, earSession.finishedAt)}
+          onClick={() => go(step + 1)}
+        >
           下一步
         </Button>
       </Flex>

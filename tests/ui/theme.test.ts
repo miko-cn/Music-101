@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { palette, radii, tokenStylesheet } from "../../src/ui/theme.ts";
+import { palette, radii, springs, tokenStylesheet } from "../../src/ui/theme.ts";
 
 /**
  * 设计 token 的一致性守卫。
@@ -52,6 +52,45 @@ describe("设计 token", () => {
     expect(css).toContain("prefers-reduced-motion: reduce");
   });
 
+  it("弹簧只有三档，且都是物理弹簧", () => {
+    expect(Object.keys(springs).sort()).toEqual(["base", "snappy", "soft"]);
+    for (const spring of Object.values(springs)) {
+      expect(spring.type).toBe("spring");
+      expect(spring.stiffness).toBeGreaterThan(0);
+      expect(spring.damping).toBeGreaterThan(0);
+    }
+  });
+
+  it("View Transition 的伪元素也有 reduced-motion 降级", () => {
+    const css = readFileSync(join(ROOT, "src", "ui", "motion.css"), "utf8");
+    // media 块的收尾大括号顶格，块内规则都缩进：截到第一个顶格的 } 就是整个块。
+    const start = css.indexOf("@media (prefers-reduced-motion: reduce)");
+    expect(start).toBeGreaterThanOrEqual(0);
+    const end = css.indexOf("\n}", start);
+    const reduced = css.slice(start, end === -1 ? undefined : end);
+    expect(reduced).toMatch(/::view-transition-group\(\*\)/);
+  });
+
+  it("路径霓虹 token 已经移除", () => {
+    const css = tokenStylesheet();
+    for (const name of [
+      "--m101-path-accent:",
+      "--m101-path-accent-glow:",
+      "--m101-path-stage-foundation:",
+      "--m101-path-stage-arrangement:",
+      "--m101-path-stage-style:",
+      "--m101-path-surface:",
+    ]) {
+      expect(css, name).not.toContain(name);
+    }
+  });
+
+  it("大纲样式不写死主色", () => {
+    const css = readFileSync(join(ROOT, "src", "ui", "path.css"), "utf8");
+    expect(css).not.toMatch(/#[0-9a-fA-F]{3,8}/);
+    expect(css).not.toContain("--m101-path-");
+  });
+
   it("CSS 里引用的每个 token 都定义过", () => {
     // 引用一个没定义的变量，浏览器会当成无效值丢弃——
     // 那条声明直接失效，样式静悄悄地不生效。
@@ -60,6 +99,8 @@ describe("设计 token", () => {
     const files = [
       join(ROOT, "src", "styles.css"),
       join(ROOT, "src", "ui", "motion.css"),
+      join(ROOT, "src", "ui", "path.css"),
+      join(ROOT, "src", "ui", "session", "session.css"),
     ];
     for (const file of files) {
       const css = readFileSync(file, "utf8");

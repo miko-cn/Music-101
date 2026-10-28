@@ -1,7 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { LazyMotion, MotionConfig, domAnimation } from "motion/react";
 import { App } from "./App.tsx";
-import { tokenStylesheet } from "./ui/theme.ts";
+import { springs, tokenStylesheet } from "./ui/theme.ts";
 import "./styles.css";
 import "./ui/motion.css";
 
@@ -20,6 +21,11 @@ if (!container) throw new Error("找不到 #root 挂载点");
 
 createRoot(container).render(
   <StrictMode>
-    <App />
+    {/* reducedMotion="user"：CSS 那条全局降级管不到 Motion 的 JS 动画，这里单独接住。 */}
+    <MotionConfig reducedMotion="user" transition={springs.base}>
+      <LazyMotion features={domAnimation} strict>
+        <App />
+      </LazyMotion>
+    </MotionConfig>
   </StrictMode>,
 );

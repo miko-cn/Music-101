@@ -15,32 +15,34 @@ export const lesson: StageLessonEntry = defineLesson({
       "先写同名大调（A 小调就看 A 大调）。",
       "自然小调 = 大调的第 3、6、7 级各降半音。",
       "主和弦是小三，记成 i（小写）。",
-      "和大调比低半音的级数前面加 ♭：♭III、♭VI、♭VII。",
-      "不在自然小调里的级数就是借用；iv 也是常见借用。",
+      "和大调比低半音的级数前面加 ♭：♭III、♭VI、♭VII。这是尺子，不是出调。",
+      "i / ♭III / iv / ♭VI / ♭VII 都在自然小调里。真借用是和声小调的 V，或大调里的 iv。",
     ],
     takeaway: [
       "A 自然小调 = A B C D E F G = 同名大调降 3、6、7 级。",
       "小调主和弦是小三，记成 i（小写）。",
       "和声小调升第 7 级（G→G♯），为了做出 i→V→i 的解决。",
-      "借用和弦：♭III、♭VI、♭VII、iv —— 都不在调内，但特别常用。",
+      "♭III、♭VI、♭VII、iv 都在自然小调里；♭ 只是平行大调尺子上的记法。",
+      "真借用：小调里的 V（E / E7），或大调里的 iv。",
       "i–♭VI–♭III–♭VII = Am→F→C→G，和 vi–IV–I–V 是同一串声音。",
     ],
   },
   mistakeKinds: { 1: "same-progression" },
-  fixes: [{ kind: "same-progression", advice: "把借用和弦用上" }],
+  fixes: [{ kind: "same-progression", advice: "把 i、♭VI、♭III、♭VII 用上" }],
   concept: [
     "A 自然小调是 A B C D E F G。它的主和弦是小三和弦 Am，记成 i（小写）。",
     "小调和同名大调只差三件事：第 3、6、7 级各降半音。所以学小调最快的办法是拿同名大调当尺子。",
-    "用尺子量：相对 A 大调，F 低半音 → ♭VI；C 低半音 → ♭III；G 低半音 → ♭VII。这些和弦不在 A 小调里，但在小调歌里特别常用，叫做借用和弦（modal mixture）。",
-    "和声小调把第 7 级升上去（G → G♯），这样才能做出属和弦 Am → E（i → V），有归属感。E7 → Am 是小调里最重要的解决动作。",
-    "小调最常见的进行是 i–♭VI–♭III–♭VII = Am → F → C → G，在 C 大调记法里它等价于 vi–IV–I–V——同一串声音，换个调记号就换了情绪。",
-    "iv（小调的四级）也是常用暗色色彩：Am 歌里的 Dm，和 iv 一样不在自然小调里，但非常 kawaii。",
-    "编曲里的用处：future bass / kawaii bass 大量用 i–♭VI–♭III–♭VII 和 iv 这类「借来的」和弦，因为它们听起来又甜又有点忧，和风格是绝配。",
+    "用尺子量：相对 A 大调，F 低半音 → ♭VI；C 低半音 → ♭III；G 低半音 → ♭VII。♭ 是平行大调这把尺子上的记法，不是跑出调外。i、♭III、iv、♭VI、♭VII 都在 A 自然小调里。",
+    "和声小调把第 7 级升上去（G → G♯），这样才能做出属和弦 Am → E（i → V），有归属感。E7 → Am 是小调里最重要的解决动作。E / E7 才是真正的借用（从和声小调借来的 V）。",
+    "小调最常见的进行是 i–♭VI–♭III–♭VII = Am → F → C → G，在 C 大调记法里它等价于 vi–IV–I–V——同一串声音，换个调记号就换了情绪。这是调内进行，不是借用进行。",
+    "iv（小调的四级）也在自然小调里：A 小调的第 4 级是 D，三和弦是 Dm。大调歌里的 iv（C 大调里的 Fm）才是从同名小调借来的。",
+    "编曲里的用处：future bass / kawaii bass 大量用 i–♭VI–♭III–♭VII 和 iv 这类自然小调和弦，因为它们听起来又甜又有点忧，和风格是绝配。",
   ],
   earPass: 6,
   ear: [
     {
       id: "minor-tonic",
+      blind: true,
       prompt: "A 小调的主和弦是哪个？",
       choices: [
         { label: "A C E", midis: [69, 72, 76] },
@@ -54,6 +56,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "natural-minor",
+      blind: true,
       prompt: "A 自然小调是哪个？",
       choices: [
         { label: "A B C D E F G", midis: [69, 71, 72, 74, 76, 77, 79] },
@@ -67,6 +70,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "minor-i",
+      blind: true,
       prompt: "A 小调的 i 是？",
       choices: [
         { label: "A C E", midis: [69, 72, 76] },
@@ -87,12 +91,13 @@ export const lesson: StageLessonEntry = defineLesson({
         { label: "V", midis: [64, 68, 71] },
       ],
       correct: 0,
-      explain: "以 A 大调为尺子，F 比第 6 级低半音，记成 ♭VI。它不在 A 小调里，属于借用。",
+      explain: "以 A 大调为尺子，F 比第 6 级低半音，记成 ♭VI。它在 A 自然小调里，♭ 只是尺子上的记法。",
       wrongHint: "以 A 大调为尺子，F 在第几级？比它高还是低半音。",
       encourage: "对，比第 6 级低半音，所以记 ♭VI。",
     },
     {
       id: "flat-seven",
+      blind: true,
       prompt: "哪个是 ♭VII？",
       choices: [
         { label: "G B D", midis: [67, 71, 74] },
@@ -106,6 +111,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "borrowed-second",
+      blind: true,
       prompt: "i–♭VI–♭III–♭VII 的第二个和弦是？",
       choices: [
         { label: "F", midis: [65, 69, 72] },
@@ -132,6 +138,7 @@ export const lesson: StageLessonEntry = defineLesson({
     },
     {
       id: "which-iv",
+      blind: true,
       prompt: "哪个是 A 小调里的 iv？",
       choices: [
         { label: "Dm", midis: [62, 65, 69] },
@@ -139,12 +146,12 @@ export const lesson: StageLessonEntry = defineLesson({
         { label: "F", midis: [65, 69, 72] },
       ],
       correct: 0,
-      explain: "第 4 级是 D，三和弦是小三，记成 iv。它不在自然小调里，但非常常用。",
+      explain: "第 4 级是 D，三和弦是小三，记成 iv。它在自然小调里。",
       wrongHint: "A 小调的第 4 级是哪个音？它上面叠三和弦是什么性质。",
       encourage: "对，D 上的小三和弦，记 iv。",
     },
   ],
-  handPrompt: "选出 A 小调里这条借用进行。",
+  handPrompt: "选出 A 自然小调里的调内进行。",
   handChoices: [
     choice(
       "Am → F → C → G",

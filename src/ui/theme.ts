@@ -200,6 +200,11 @@ export const extras: Record<string, string> = {
   "paper-2": "#f5f5f7",
   // 投影。
   "shadow-ink": "rgba(0, 0, 0, 0.45)",
+  /** 可按压按钮的底边阴影：比各自底色深一档。 */
+  "press-neutral": "#0b0b10",
+  "press-brand": "#b8902a",
+  "press-success": "#4f8a32",
+  "press-danger": "#b0484b",
 };
 
 /** 圆角。 */
@@ -234,6 +239,21 @@ export const durations = {
 export const easings = {
   out: "cubic-bezier(0.22, 1, 0.36, 1)",
   spring: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+} as const;
+
+/**
+ * Motion 的物理弹簧。
+ *
+ * 不叫 spring：easings.spring 是 CSS 的回弹曲线，跟物理弹簧不是一回事。
+ * 组件里不许现编 stiffness / damping，只从这三档里取。
+ */
+export const springs = {
+  /** 判定条、按钮按下：快、几乎不回弹。 */
+  snappy: { type: "spring", stiffness: 520, damping: 32 },
+  /** 题目切换、进度条：默认。 */
+  base: { type: "spring", stiffness: 380, damping: 30 },
+  /** 结算页、盖章：慢一点、有一点回弹。 */
+  soft: { type: "spring", stiffness: 220, damping: 22 },
 } as const;
 
 /**
