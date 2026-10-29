@@ -224,7 +224,7 @@ export function App() {
             enter={{ forward: "m101-page-forward", back: "m101-page-back", default: "auto" }}
             exit={{ forward: "m101-page-forward", back: "m101-page-back", default: "auto" }}
           >
-          <div key={pageKey}>
+          <div key={pageKey} className="page">
           {mode === "tools" ? (
             toolView === "bench" ? (
               <TheoryBench />
