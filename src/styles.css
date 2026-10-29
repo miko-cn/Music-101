@@ -167,6 +167,28 @@ body:focus-visible,
 }
 
 /*
+ * gap 既然管了纵向间距，子元素自己的 margin-bottom 就不该再叠上来：
+ * antd 的 Alert 自带 24px，.hint 自带 margin-top，
+ * 同一段空白被算两三次，页面上就出现莫名其妙的空档。
+ * 页面这一层统一由 gap 说了算。
+ */
+.page > * {
+  margin-bottom: 0;
+}
+
+.page > .hint {
+  margin-top: 0;
+}
+
+/*
+ * 竖排 Flex 里已经用 gap 控制间距了，Alert 自带的 24px margin-bottom
+ * 又叠上来（gap 8 + 24 = 32px），一段空白被算两次。
+ */
+.ant-flex-vertical > .ant-alert {
+  margin-bottom: 0;
+}
+
+/*
  * 连续的概念段落之间没有间距，一整块文字读起来是一堵墙。
  * 只命中相邻的两个 lead 段落，不影响单段说明和它上下元素的间距。
  */

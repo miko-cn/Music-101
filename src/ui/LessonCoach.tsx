@@ -19,7 +19,7 @@ export function LessonCoach({
   if (!text && drills.length === 0 && !advice) return null;
 
   return (
-    <Flex vertical gap={8}>
+    <Flex vertical gap={12}>
       {text ? <Alert type={status === "mastered" ? "success" : "warning"} showIcon title={text} /> : null}
       {drills.map((drill) => (
         <Alert
