@@ -112,6 +112,8 @@ body:focus-visible,
   line-height: 1.4;
   overflow: visible;
   padding: 12px 24px;
+  /* 标题栏比页面底亮一档，再压一条细线跟正文分层。 */
+  border-bottom: 1px solid var(--m101-line);
 }
 
 .site-title {

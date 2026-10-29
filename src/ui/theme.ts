@@ -9,34 +9,76 @@
  * 深色面板上就会出现一个说不清从哪来的颜色。这里从根上堵掉。
  */
 
-/** 色板。深色底 + 品牌金 + 语义三色。 */
+/**
+ * 半透明色从这里派生。
+ *
+ * 以前每个色相都手写一遍 rgba(255, 214, 102, 0.45) 这种，
+ * 换个 hex 要改十几处，漏一处就出现「同一个金，两种深浅」。
+ * 现在手写的只有色相，透明度是参数。
+ */
+export function alpha(hex: string, a: number): string {
+  const value = hex.replace("#", "");
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+/**
+ * 色板。冷调深底 + 品牌金 + 语义三色。
+ *
+ * 只有品牌金是主色：主行动、根音、记忆锚、聚焦框都用它，
+ * 看到金色就知道「这是最重要的那个」。
+ * 蓝降成次级色，只管和弦音和信息提示。
+ */
 export const palette = {
-  /** 页面底色。 */
-  bg: "#12121a",
+  /** 页面底色。三层中性色里最深的一层，冷灰蓝。 */
+  bg: "#0f1017",
   /** 卡片、抬起的面。 */
-  surface: "#1c1c22",
-  /** 更深的面（黑键、代码块）。 */
-  surfaceDeep: "#1a1a22",
+  surface: "#191b25",
+  /** 更深的面（凹陷、黑键、代码块）。 */
+  surfaceDeep: "#14151e",
   /** 主文字。 */
-  text: "#ececf3",
+  text: "#eceef5",
   /** 次级文字：说明、注解。 */
-  textDim: "rgba(255, 255, 255, 0.65)",
+  textDim: "rgba(255, 255, 255, 0.66)",
   /** 最弱的一层：脚注、刻度、占位。 */
-  textFaint: "rgba(255, 255, 255, 0.45)",
-  /** 品牌金：根音、记忆锚、主行动。 */
+  textFaint: "rgba(255, 255, 255, 0.44)",
+  /** 品牌金：全站唯一的主色。 */
   brand: "#ffd666",
   /** 品牌金的浅一档：需要金字但不能刺眼的地方。 */
   brandSoft: "#ffe58f",
-  /** 和弦蓝：和弦音、交互强调。 */
-  accent: "#1677ff",
+  /** 和弦蓝：次级色。交互强调、和弦音、信息提示。 */
+  accent: "#4096ff",
   /** 和弦蓝的浅一档：调内音、按下的键。 */
   accentSoft: "#91caff",
   /** 对了。 */
-  success: "#95de64",
+  success: "#85d96a",
   /** 不对。 */
   danger: "#ff7875",
-  /** 还没做完 / 需要注意。 */
-  warning: "#ffc069",
+  /**
+   * 还没做完 / 要注意。
+   *
+   * 用橙不用黄：黄跟品牌金撞色，分不出「还没过关」和「记忆锚」。
+   */
+  warning: "#ffab5e",
+} as const;
+
+/**
+ * 教学图和琴键用的色相。
+ *
+ * UI 之外的颜色都从这儿取：图里区分轨道、鼓组、频段全靠它们。
+ */
+const hues = {
+  gold: palette.brand,
+  goldSoft: palette.brandSoft,
+  blue: palette.accent,
+  red: palette.danger,
+  green: palette.success,
+  orange: "#ffa07a",
+  cyan: "#73c0de",
+  purple: "#b37feb",
+  ivory: "#f4f1ea",
 } as const;
 
 /** 半透明叠加层。深色底上「更亮一点」几乎总是「加一层白」。 */
@@ -50,10 +92,11 @@ export const overlays = {
   /** 更淡的一层。 */
   veilSoft: "rgba(255, 255, 255, 0.04)",
   /** 语义色的淡底：对了 / 不对的底色。 */
-  successSoft: "rgba(149, 222, 100, 0.16)",
-  dangerSoft: "rgba(255, 120, 117, 0.16)",
-  brandSoft: "rgba(255, 214, 102, 0.14)",
+  successSoft: alpha(palette.success, 0.16),
+  dangerSoft: alpha(palette.danger, 0.16),
+  brandSoft: alpha(palette.brand, 0.14),
 } as const;
+
 
 /**
  * 白色叠加层的完整梯度。
@@ -102,52 +145,54 @@ export const whiteScale: Record<string, string> = {
  *
  * 每个色相一条梯度，键名是「色相-透明度」。
  * 教学图里的分层、配音轨、区间底色全靠它们区分。
+ *
+ * 值全部由 hues 派生：色相改了，这里自动跟着改。
  */
 export const colorScales: Record<string, string> = {
   // 品牌金：主色、根音、记忆锚。
-  "gold-14": "rgba(255, 214, 102, 0.14)",
-  "gold-16": "rgba(255, 214, 102, 0.16)",
-  "gold-18": "rgba(255, 214, 102, 0.18)",
-  "gold-45": "rgba(255, 214, 102, 0.45)",
-  "gold-50": "rgba(255, 214, 102, 0.5)",
-  "gold-55": "rgba(255, 214, 102, 0.55)",
-  "gold-60": "rgba(255, 214, 102, 0.6)",
-  "gold-70": "rgba(255, 214, 102, 0.7)",
-  "gold-85": "rgba(255, 214, 102, 0.85)",
+  "gold-14": alpha(hues.gold, 0.14),
+  "gold-16": alpha(hues.gold, 0.16),
+  "gold-18": alpha(hues.gold, 0.18),
+  "gold-45": alpha(hues.gold, 0.45),
+  "gold-50": alpha(hues.gold, 0.5),
+  "gold-55": alpha(hues.gold, 0.55),
+  "gold-60": alpha(hues.gold, 0.6),
+  "gold-70": alpha(hues.gold, 0.7),
+  "gold-85": alpha(hues.gold, 0.85),
   // 浅金：文字、聚焦框。
-  "gold-soft-06": "rgba(255, 229, 143, 0.06)",
-  "gold-soft-45": "rgba(255, 229, 143, 0.45)",
-  "gold-soft-70": "rgba(255, 229, 143, 0.7)",
-  "gold-soft-85": "rgba(255, 229, 143, 0.85)",
-  "gold-soft-92": "rgba(255, 229, 143, 0.92)",
+  "gold-soft-06": alpha(hues.goldSoft, 0.06),
+  "gold-soft-45": alpha(hues.goldSoft, 0.45),
+  "gold-soft-70": alpha(hues.goldSoft, 0.7),
+  "gold-soft-85": alpha(hues.goldSoft, 0.85),
+  "gold-soft-92": alpha(hues.goldSoft, 0.92),
   // 和弦蓝：和弦音、调内音。
-  "blue-08": "rgba(64, 150, 255, 0.08)",
-  "blue-14": "rgba(64, 150, 255, 0.14)",
-  "blue-18": "rgba(64, 150, 255, 0.18)",
-  "blue-45": "rgba(64, 150, 255, 0.45)",
-  "blue-50": "rgba(64, 150, 255, 0.5)",
+  "blue-08": alpha(hues.blue, 0.08),
+  "blue-14": alpha(hues.blue, 0.14),
+  "blue-18": alpha(hues.blue, 0.18),
+  "blue-45": alpha(hues.blue, 0.45),
+  "blue-50": alpha(hues.blue, 0.5),
   // 危险红：错误、kick。
-  "red-07": "rgba(255, 120, 117, 0.07)",
-  "red-25": "rgba(255, 120, 117, 0.25)",
-  "red-35": "rgba(255, 120, 117, 0.35)",
-  "red-85": "rgba(255, 120, 117, 0.85)",
+  "red-07": alpha(hues.red, 0.07),
+  "red-25": alpha(hues.red, 0.25),
+  "red-35": alpha(hues.red, 0.35),
+  "red-85": alpha(hues.red, 0.85),
   // 暖橙：紧张、不协和。
-  "orange-35": "rgba(255, 160, 122, 0.35)",
+  "orange-35": alpha(hues.orange, 0.35),
   // 成功绿：对了。
-  "green-35": "rgba(149, 222, 100, 0.35)",
-  "green-85": "rgba(149, 222, 100, 0.85)",
+  "green-35": alpha(hues.green, 0.35),
+  "green-85": alpha(hues.green, 0.85),
   // 青：军鼓。
-  "cyan-16": "rgba(115, 192, 222, 0.16)",
-  "cyan-35": "rgba(115, 192, 222, 0.35)",
-  "cyan-45": "rgba(115, 192, 222, 0.45)",
-  "cyan-85": "rgba(115, 192, 222, 0.85)",
+  "cyan-16": alpha(hues.cyan, 0.16),
+  "cyan-35": alpha(hues.cyan, 0.35),
+  "cyan-45": alpha(hues.cyan, 0.45),
+  "cyan-85": alpha(hues.cyan, 0.85),
   // 紫：拍手、低频。
-  "purple-16": "rgba(179, 127, 235, 0.16)",
-  "purple-35": "rgba(179, 127, 235, 0.35)",
-  "purple-45": "rgba(179, 127, 235, 0.45)",
-  "purple-85": "rgba(179, 127, 235, 0.85)",
+  "purple-16": alpha(hues.purple, 0.16),
+  "purple-35": alpha(hues.purple, 0.35),
+  "purple-45": alpha(hues.purple, 0.45),
+  "purple-85": alpha(hues.purple, 0.85),
   // 象牙白：白键、音符底色。
-  "ivory-32": "rgba(244, 241, 234, 0.32)",
+  "ivory-32": alpha(hues.ivory, 0.32),
 };
 
 /**
@@ -162,27 +207,27 @@ export const extras: Record<string, string> = {
   "heat-2": "#006d32",
   "heat-3": "#26a641",
   "heat-4": "#39d353",
-  // 和弦蓝的实色档。
+  // 和弦蓝的实色档：比 accent 深一档，琴键上按下的和弦音。
   "blue": "#1677ff",
-  "blue-bright": "#4096ff",
+  "blue-bright": hues.blue,
   "blue-mid": "#69b1ff",
-  "blue-soft": "#91caff",
+  "blue-soft": palette.accentSoft,
   "blue-pale": "#d6e8ff",
   "blue-deep": "#0958d9",
   // 鼓组与频段的区分色。
-  cyan: "#73c0de",
-  purple: "#b37feb",
-  green: "#95de64",
+  cyan: hues.cyan,
+  purple: hues.purple,
+  green: hues.green,
   // 危险红系。
-  red: "#ff7875",
+  red: hues.red,
   "red-pale": "#ffccc7",
   "red-warm": "#ff9c6e",
   "red-warm-2": "#ffa07a",
   "red-ink": "#a8071a",
   "red-ink-deep": "#4a0303",
   // 品牌金系。
-  gold: "#ffd666",
-  "gold-soft": "#ffe58f",
+  gold: hues.gold,
+  "gold-soft": hues.goldSoft,
   "gold-pale": "#ffe9ad",
   "gold-fill": "#fff3c4",
   // 琴键上的深色。
@@ -195,7 +240,7 @@ export const extras: Record<string, string> = {
   "key-off": "rgba(24, 24, 30, 0.78)",
   // 纸面色：白键、键盘面板。
   white: "#fff",
-  ivory: "#f4f1ea",
+  ivory: hues.ivory,
   paper: "#f7f7f9",
   "paper-2": "#f5f5f7",
   // 投影。

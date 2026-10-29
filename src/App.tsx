@@ -17,7 +17,7 @@ import { ReviewDeck } from "./ui/ReviewDeck.tsx";
 import { SoundToggle } from "./ui/SoundToggle.tsx";
 import { SiteFooter } from "./ui/SiteFooter.tsx";
 import { TheoryBench } from "./ui/TheoryBench.tsx";
-import { palette, radii } from "./ui/theme.ts";
+import { alpha, palette, overlays, radii } from "./ui/theme.ts";
 import "./ui/path.css";
 
 const { Header, Content } = Layout;
@@ -126,13 +126,48 @@ export function App() {
         algorithm: theme.darkAlgorithm,
         token: {
           fontFamily: 'system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif',
-          colorBgLayout: palette.bg,
-          colorBgContainer: palette.surface,
-          colorPrimary: palette.accent,
+          // 金是全站唯一的主色：按钮、链接、选中项、步骤条当前项都是它。
+          colorPrimary: palette.brand,
+          // 蓝降为次级色：只管信息提示和弦音。
+          colorInfo: palette.accent,
           colorSuccess: palette.success,
           colorError: palette.danger,
           colorWarning: palette.warning,
+          colorLink: palette.brand,
+          colorBgLayout: palette.bg,
+          colorBgContainer: palette.surface,
+          colorBgElevated: palette.surface,
+          colorText: palette.text,
+          colorTextSecondary: palette.textDim,
+          colorTextTertiary: palette.textFaint,
+          colorTextPlaceholder: palette.textFaint,
+          colorBorder: overlays.line,
+          colorBorderSecondary: overlays.veil,
+          colorFillSecondary: overlays.veil,
+          colorFillTertiary: overlays.veilSoft,
+          // 选中态用中性底。深色底上把金色染成底色会变成浑浊的土黄，
+          // 金色只该做前景强调。
+          colorPrimaryBg: "rgba(255, 255, 255, 0.08)",
+          colorPrimaryBgHover: "rgba(255, 255, 255, 0.12)",
+          // 提示条统一成「淡底 + 软边」。antd 默认是重底亮边，
+          // 跟本站卡片（淡面 + 细线）不是一个体系。
+          colorInfoBg: alpha(palette.accent, 0.1),
+          colorInfoBorder: alpha(palette.accent, 0.32),
+          colorSuccessBg: alpha(palette.success, 0.1),
+          colorSuccessBorder: alpha(palette.success, 0.32),
+          colorWarningBg: alpha(palette.warning, 0.1),
+          colorWarningBorder: alpha(palette.warning, 0.32),
+          colorErrorBg: alpha(palette.danger, 0.1),
+          colorErrorBorder: alpha(palette.danger, 0.32),
           borderRadius: radii.md,
+        },
+        components: {
+          Layout: {
+            // 标题栏比页面底亮一档，底下再压一条细线，跟正文分层。
+            headerBg: palette.surface,
+            bodyBg: palette.bg,
+            headerPadding: "12px 24px",
+          },
         },
       }}
     >

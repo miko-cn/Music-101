@@ -19,6 +19,7 @@ import {
 } from "../core/lesson/progress.ts";
 import { dueReviewCards, nextReviewDueAt, reviewDueText } from "../core/lesson/review.ts";
 import { ActivityHeatmap } from "./ActivityHeatmap.tsx";
+import { alpha, extras, palette, whiteScale } from "./theme.ts";
 
 export function ProgressBoard({
   progress,
@@ -216,21 +217,21 @@ export function RadarChart({ scores }: { scores: { label: string; ratio: number 
   return (
     <svg className="radar" viewBox="0 0 360 340" role="img" aria-label="能力雷达">
       {[0.25, 0.5, 0.75, 1].map((ratio) => (
-        <polygon key={ratio} points={ring(ratio)} fill="none" stroke="rgba(255,255,255,0.16)" />
+        <polygon key={ratio} points={ring(ratio)} fill="none" stroke={whiteScale.w16} />
       ))}
       {scores.map((item, index) => {
         const [x, y] = point(index, 1);
         const [labelX, labelY] = point(index, 1.22);
         return (
           <g key={item.label}>
-            <line x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,0.28)" />
-            <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="middle" fill="rgba(255,255,255,0.85)" fontSize="16">
+            <line x1={cx} y1={cy} x2={x} y2={y} stroke={whiteScale.w28} />
+            <text x={labelX} y={labelY} textAnchor="middle" dominantBaseline="middle" fill={whiteScale.w88} fontSize="16">
               {item.label}
             </text>
           </g>
         );
       })}
-      <polygon points={shape} fill="rgba(22,119,255,0.35)" stroke="#69b1ff" strokeWidth="2" />
+      <polygon points={shape} fill={alpha(palette.accent, 0.35)} stroke={extras["blue-mid"]} strokeWidth="2" />
     </svg>
   );
 }

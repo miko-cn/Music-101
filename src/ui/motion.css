@@ -168,7 +168,7 @@
 }
 
 .quiz-option-play:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--m101-w12);
   color: var(--m101-text);
 }
 

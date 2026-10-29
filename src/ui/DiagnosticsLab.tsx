@@ -9,6 +9,7 @@ import type { MidiFile } from "../core/midi/types.ts";
 import { pitchClassToName, type PitchClass } from "../core/theory/pitch.ts";
 import { toNotationName } from "../core/theory/notation.ts";
 import { SCALE_LABELS, type ScaleId } from "../core/theory/scale.ts";
+import { colorScales, extras, overlays, palette } from "./theme.ts";
 import {
   chorusFlatSong,
   chorusLiftedSong,
@@ -222,14 +223,14 @@ export function EnergyChart({ song, series }: { song: AnalysisSong; series: BarE
           y={pad}
           width={16}
           height={height - pad * 2}
-          fill={chorus.has(item.bar) ? "rgba(22,119,255,0.18)" : verse.has(item.bar) ? "rgba(255,255,255,0.04)" : "transparent"}
+          fill={chorus.has(item.bar) ? colorScales["blue-18"] : verse.has(item.bar) ? overlays.veilSoft : "transparent"}
         />
       ))}
-      <polyline points={points} fill="none" stroke="#69b1ff" strokeWidth="3" />
+      <polyline points={points} fill="none" stroke={extras["blue-mid"]} strokeWidth="3" />
       {series.map((item) => (
         <g key={item.bar}>
-          <circle cx={xOf(item.bar)} cy={yOf(item.energy)} r="4" fill="#1677ff" />
-          <text x={xOf(item.bar)} y={height - 8} textAnchor="middle" fill="rgba(255,255,255,0.65)" fontSize="12">
+          <circle cx={xOf(item.bar)} cy={yOf(item.energy)} r="4" fill={extras.blue} />
+          <text x={xOf(item.bar)} y={height - 8} textAnchor="middle" fill={palette.textDim} fontSize="12">
             {item.bar + 1}
           </text>
         </g>
