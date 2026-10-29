@@ -17,7 +17,8 @@ import { fileURLToPath } from "node:url";
 const SOURCE_URL =
   "https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/Variable/OTF/Subset/NotoSansSC-VF.otf";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SOURCE_FILE = join(ROOT, "out/fonts/NotoSansSC-VF.otf");
+// 缓存放在 node_modules/.cache：out/ 会被部署归档带走，node_modules 不会。
+const SOURCE_FILE = join(ROOT, "node_modules/.cache/music101-font/NotoSansSC-VF.otf");
 const OUTPUT_FILE = join(ROOT, "public/fonts/noto-sans-sc.woff2");
 
 /** 扫出站点实际会渲染的字符：源码里的中文标点，加上界面到处用的拉丁和记号。 */
