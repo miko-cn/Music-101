@@ -15,6 +15,7 @@ import { PathMap } from "./ui/PathMap.tsx";
 import { ProgressBoard } from "./ui/ProgressBoard.tsx";
 import { ReviewDeck } from "./ui/ReviewDeck.tsx";
 import { SoundToggle } from "./ui/SoundToggle.tsx";
+import { SiteFooter } from "./ui/SiteFooter.tsx";
 import { TheoryBench } from "./ui/TheoryBench.tsx";
 import { palette, radii } from "./ui/theme.ts";
 import "./ui/path.css";
@@ -283,6 +284,7 @@ export function App() {
           </div>
           </ViewTransition>
         </Content>
+        <SiteFooter />
       </Layout>
       <KeyboardPanel open={keyboardOpen} onClose={() => setKeyboardOpen(false)} />
     </ConfigProvider>

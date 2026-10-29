@@ -126,6 +126,75 @@ body:focus-visible,
   font-size: 0.875rem;
 }
 
+/*
+ * 页脚。
+ *
+ * 宽度跟正文一样（60rem），不然一条全宽的深色条会把页面的视线引到最下面。
+ */
+.site-footer {
+  border-top: 1px solid var(--m101-line);
+  background: var(--m101-surface-deep);
+  padding: 24px 24px 28px;
+}
+
+.site-footer-inner {
+  width: min(60rem, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 32px;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.site-footer-name {
+  margin: 0 0 4px;
+  font-weight: 700;
+}
+
+.site-footer-tagline {
+  margin: 0 0 8px;
+  color: var(--m101-text-dim);
+  font-size: 0.9rem;
+}
+
+.site-footer-note {
+  margin: 0;
+  max-width: 32rem;
+  color: var(--m101-text-faint);
+  font-size: 0.8rem;
+  line-height: 1.7;
+}
+
+.site-footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.site-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--m101-text-dim);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.site-footer-link:hover {
+  color: var(--m101-text);
+}
+
+.site-footer-legal {
+  width: min(60rem, 100%);
+  margin: 20px auto 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--m101-line);
+  color: var(--m101-text-faint);
+  font-size: 0.78rem;
+}
+
 .lesson-header {
   display: flex;
   flex-direction: column;
