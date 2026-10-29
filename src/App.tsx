@@ -125,7 +125,7 @@ export function App() {
       theme={{
         algorithm: theme.darkAlgorithm,
         token: {
-          fontFamily: 'system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif',
+          fontFamily: '"Noto Sans SC", "Noto Music Symbols", system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif',
           // 金是全站唯一的主色：按钮、链接、选中项、步骤条当前项都是它。
           colorPrimary: palette.brand,
           // 蓝降为次级色：只管信息提示和弦音。

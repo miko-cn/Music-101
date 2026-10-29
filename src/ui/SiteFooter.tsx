@@ -51,7 +51,9 @@ export function SiteFooter() {
           ))}
         </nav>
       </div>
-      <p className="site-footer-legal">© 2026 Miko · MIT License · 纯前端，无后端、无账号</p>
+      <p className="site-footer-legal">
+        © 2026 Miko · MIT License · 纯前端，无后端、无账号 · 字体 Noto Sans SC（SIL OFL 1.1）
+      </p>
     </footer>
   );
 }

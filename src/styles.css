@@ -1,4 +1,24 @@
 /*
+ * 主界面字体：思源黑体 Noto Sans SC。
+ *
+ * 自托管而不是走 CDN：整个应用零外部请求，离线可用。
+ *
+ * 这份 woff2 是按本站实际用到的字裁出来的（1275 字），完整字体是 14MB。
+ * 裁剪依据 SIL OFL 1.1，允许修改和裁剪后分发；
+ * 保留字体名是 'Source'，我们的族名不含它，所以改名分发不违规。
+ * 许可全文见 public/fonts/OFL.txt。
+ */
+@font-face {
+  font-family: "Noto Sans SC";
+  src: url("/fonts/noto-sans-sc.woff2") format("woff2");
+  /* 站点用到 400/600/700/800 四个字重，区间要覆盖到 800，
+     否则 800 会被浏览器合成（假粗），中文字合成出来很难看。 */
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
  * 记谱字体：Noto Music 的「音乐符号」子集，只有 56KB。
  *
  * unicode-range 把它的职责限死在音乐符号上（U+2669–266F 的 ♭♯、
@@ -18,7 +38,7 @@
 
 :root {
   color-scheme: dark;
-  font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-family: "Noto Sans SC", "Noto Music Symbols", system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
   background: var(--m101-bg);
   color: var(--m101-text);
 }
