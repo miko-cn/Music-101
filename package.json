@@ -8,14 +8,15 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run font:check && tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "make:midi": "node scripts/make-test-midi.ts",
     "make:tone": "node --experimental-strip-types scripts/make-tone-preview.ts",
-    "make:font": "node scripts/make-font-subset.ts"
+    "make:font": "node scripts/make-font-subset.ts",
+    "font:check": "node scripts/make-font-subset.ts --check"
   },
   "dependencies": {
     "antd": "^6.6.6",

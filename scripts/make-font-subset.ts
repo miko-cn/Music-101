@@ -1,15 +1,20 @@
 /**
  * 重新裁剪主界面字体（思源黑体 Noto Sans SC，400–800 可变）。
  *
- * 用法：npm run make:font
+ * 用法：
+ *   npm run make:font    重新裁剪，产物写进 public/fonts/
+ *   npm run font:check   只校验「字体是不是跟当前文案对得上」，不对就退出码 1
  *
  * 为什么要有这个脚本：字体是按「站点实际用到的字」裁的。
  * 改了文案之后如果不重裁，新字不在旧子集里，浏览器会拿系统字体顶上，
  * 页面上就会有一两个字形跟别的不一样。
  *
- * 源字体不入库（14MB）：脚本会从 jsdelivr 下载到 out/fonts/（已 gitignore）。
+ * font:check 挂在 build 前面，所以过期的字体不会被打包上线。
+ *
+ * 源字体不入库（14MB）：脚本会从 jsdelivr 下载到 node_modules/.cache/。
  * 裁剪依据 SIL OFL 1.1，允许裁剪后分发；许可全文见 public/fonts/OFL.txt。
  */
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,6 +25,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 // 缓存放在 node_modules/.cache：out/ 会被部署归档带走，node_modules 不会。
 const SOURCE_FILE = join(ROOT, "node_modules/.cache/music101-font/NotoSansSC-VF.otf");
 const OUTPUT_FILE = join(ROOT, "public/fonts/noto-sans-sc.woff2");
+// 裁剪时用的字符集的指纹。build 时拿它跟当前文案算出来的指纹比，
+// 对不上说明文案改了但字体没重裁。
+const STAMP_FILE = join(ROOT, "public/fonts/noto-sans-sc.subset");
 
 /** 扫出站点实际会渲染的字符：源码里的中文标点，加上界面到处用的拉丁和记号。 */
 function collectCharset(): string {
@@ -61,6 +69,23 @@ async function sourceFont(): Promise<Buffer> {
 }
 
 const charset = collectCharset();
+const digest = createHash("sha256").update(charset).digest("hex");
+
+if (process.argv.includes("--check")) {
+  if (!existsSync(STAMP_FILE)) {
+    process.stderr.write("字体还没裁过：先跑 npm run make:font\n");
+    process.exit(1);
+  }
+  if (readFileSync(STAMP_FILE, "utf8").trim() !== digest) {
+    process.stderr.write(
+      "字体子集过期：文案改过了但字体没重裁，新字会掉回系统字体。跑 npm run make:font\n",
+    );
+    process.exit(1);
+  }
+  process.stdout.write(`字体子集是最新的（${charset.length} 字）\n`);
+  process.exit(0);
+}
+
 const subsetFont = (await import("subset-font")).default;
 const out = await subsetFont(await sourceFont(), charset, {
   targetFormat: "woff2",
@@ -69,6 +94,7 @@ const out = await subsetFont(await sourceFont(), charset, {
   variationAxes: { wght: { min: 400, max: 800 } },
 });
 writeFileSync(OUTPUT_FILE, out);
+writeFileSync(STAMP_FILE, `${digest}\n`);
 process.stdout.write(
   `裁剪完成：${charset.length} 字 → ${(out.length / 1024).toFixed(1)} KB（public/fonts/noto-sans-sc.woff2）\n`,
 );
